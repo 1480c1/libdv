@@ -31,19 +31,12 @@
 #define DVC_IMAGE_CHANS 4
 #define DVC_IMAGE_ROWOFFSET (DVC_IMAGE_WIDTH * DVC_IMAGE_CHANS)
 
-gint32 ylut[256];
-gint32 impactcbr[256];
-gint32 impactcbg[256];
-gint32 impactcrg[256];
-gint32 impactcrb[256];
+gint32 table_2_018[256];
+gint32 table_0_813[256];
+gint32 table_0_391[256];
+gint32 table_1_596[256];
 
-static gint8 _dv_clamp[512];
-static gint8 *dv_clamp;
-
-static inline guint8 dv_clamp_c(gint d) { return d; }
-static inline guint8 dv_clamp_y(gint d) {
-  return dv_clamp[d + (128 - 16)];
-} // dv_clamp_y
+gint32 real_ylut[512], *ylut;
 
 void dv_ycrcb_init()
 {
@@ -51,18 +44,23 @@ void dv_ycrcb_init()
   for(i=0;
       i<256;
       ++i) {
-    ylut[i] = 298 * i;
-    impactcbr[i] = 409 * (gint8)(i);
-    impactcbg[i] = 100 * (gint8)(i);
-    impactcrg[i] = 208 * (gint8)(i);
-    impactcrb[i] = 516 * (gint8)(i);
+    table_2_018[i] = (gint32)(2.018 * 256 * (gint8)i);
+    table_0_813[i] = (gint32)(0.813 * 256 * (gint8)i);
+    table_0_391[i] = (gint32)(0.391 * 256 * (gint8)i);
+    table_1_596[i] = (gint32)(1.596 * 256 * (gint8)i);
   }
-  dv_clamp = _dv_clamp+128;
-  for(i=-128; i<(256+128); i++) {
-    if(i < 0) dv_clamp[i] = 0;
-    else if(i > 255) dv_clamp[i] = 255;
-    else dv_clamp[i] = i;
+  for(i=0; i < 512; i++) {
+    gint clamped_offset;
+
+    clamped_offset = (i - 128) + (128 - 16);
+    if (clamped_offset < 0)
+      clamped_offset = 0;
+    else if (clamped_offset > 255)
+      clamped_offset = 255;
+
+    real_ylut[i] = (gint32)(1.164 * 256 * clamped_offset);
   } // for 
+  ylut = real_ylut + 128;
 }
 
 void dv_ycrcb_411_block(guint8 *base, dv_block_t *bl)
@@ -74,23 +72,23 @@ void dv_ycrcb_411_block(guint8 *base, dv_block_t *bl)
   Y[1] = bl[1].coeffs;
   Y[2] = bl[2].coeffs;
   Y[3] = bl[3].coeffs;
-  cb_frame = bl[4].coeffs;
-  cr_frame = bl[5].coeffs;
+  cr_frame = bl[4].coeffs;
+  cb_frame = bl[5].coeffs;
   for (row = 0; row < 8; ++row) { // Eight rows
     for (i = 0; i < 4; ++i) {     // Four Y blocks
       dv_coeff_t *Ytmp = Y[i]; // less indexing in inner loop speedup?
       for (j = 0; j < 2; ++j) {   // two 4-pixel spans per Y block
-        int cb = dv_clamp_c(*cb_frame++); // +128;
-        int cr = dv_clamp_c(*cr_frame++); // +128
-        int cbr = impactcbr[cb];
-        int cbcrg = impactcbg[cb] + impactcrg[cr];
-        int crb = impactcrb[cr];
+        guint8 cb = *cb_frame++;  /* -128,-1  => 0x80,0xff */
+        guint8 cr = *cr_frame++;
+        int ro = table_1_596[cr];
+        int go = table_0_813[cr] + table_0_391[cb];
+        int bo =                   table_2_018[cb];
  
         for (k = 0; k < 4; ++k) { // 4-pixel span
-          gint32 y = ylut[dv_clamp_y(*Ytmp++)];
-          gint32 r = (y + cbr  ) >> 8;
-          gint32 g = (y - cbcrg) >> 8;
-          gint32 b = (y + crb  ) >> 8;
+          gint32 y = ylut[*Ytmp++];
+          gint32 r = (y + ro) >> 8;
+          gint32 g = (y - go) >> 8;
+          gint32 b = (y + bo) >> 8;
           *rgbp++ = (guint8)CLAMP(r,0,255);
           *rgbp++ = (guint8)CLAMP(g,0,255);
           *rgbp++ = (guint8)CLAMP(b,0,255);
@@ -116,8 +114,8 @@ void dv_ycrcb_420_block(guint8 *base, dv_block_t *bl)
   Y[1] = bl[1].coeffs;
   Y[2] = bl[2].coeffs;
   Y[3] = bl[3].coeffs;
-  cb_frame = bl[4].coeffs;
-  cr_frame = bl[5].coeffs;
+  cr_frame = bl[4].coeffs;
+  cb_frame = bl[5].coeffs;
   for (j = 0; j < 4; j += 2) { // Two rows of blocks j, j+1
     for (row = 0; row < 8; row+=2) { // 4 pairs of two rows
       for (i = 0; i < 2; ++i) { // Two columns of blocks
@@ -125,16 +123,17 @@ void dv_ycrcb_420_block(guint8 *base, dv_block_t *bl)
         dv_coeff_t *Ytmp0 = Y[yindex];
         dv_coeff_t *Ytmp1 = Y[yindex] + 8;
         for (col = 0; col < 4; ++col) {  // 4 spans of 2x2 pixels
-          int cb = dv_clamp_c(*cb_frame++); // +128;
-          int cr = dv_clamp_c(*cr_frame++); // +128
-          int cbr = impactcbr[cb];
-          int cbcrg = impactcbg[cb] + impactcrg[cr];
-          int crb = impactcrb[cr];
+          guint8 cb = *cb_frame++; // +128;
+          guint8 cr = *cr_frame++; // +128
+	  int ro = table_1_596[cr];
+	  int go = table_0_813[cr] + table_0_391[cb];
+	  int bo =                   table_2_018[cb];
+	
           for (k = 0; k < 2; ++k) { // 2x2 pixel
-            gint32 y = ylut[dv_clamp_y(*Ytmp0++)];
-            gint32 r = (y       + cbr) >> 8;
-            gint32 g = (y - cbcrg) >> 8;
-            gint32 b = (y + crb      ) >> 8;
+            gint32 y = ylut[*Ytmp0++];
+            gint32 r = (y + ro) >> 8;
+            gint32 g = (y - go) >> 8;
+            gint32 b = (y + bo) >> 8;
             *(rgbp0)++ = (guint8)CLAMP(r,0,255);
             *(rgbp0)++ = (guint8)CLAMP(g,0,255);
             *(rgbp0)++ = (guint8)CLAMP(b,0,255);
@@ -142,10 +141,10 @@ void dv_ycrcb_420_block(guint8 *base, dv_block_t *bl)
             rgbp0++;
 #endif
 
-            y = ylut[dv_clamp_y(*Ytmp1++)];
-            r = (y       + cbr) >> 8;
-            g = (y - cbcrg) >> 8;
-            b = (y + crb      ) >> 8;
+            y = ylut[*Ytmp1++];
+            r = (y + ro) >> 8;
+            g = (y - go) >> 8;
+            b = (y + bo) >> 8;
             *(rgbp1)++ = (guint8)CLAMP(r,0,255);
             *(rgbp1)++ = (guint8)CLAMP(g,0,255);
             *(rgbp1)++ = (guint8)CLAMP(b,0,255);

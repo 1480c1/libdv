@@ -407,8 +407,8 @@ int main(int argc, char *argv[])
   int x, y;
   unsigned char img_rgb[576][720][3];
   short img_y[576][720];
-  short img_u[576][180];
-  short img_v[576][180];
+  short img_cr[576][180];
+  short img_cb[576][180];
   unsigned char target[144000];
   gint isPAL;
   gint arg_index;
@@ -440,59 +440,73 @@ int main(int argc, char *argv[])
     for (y = 0; y < height; y++) {
       for (x = 0; x < width; x++) {
 	fread(img_rgb[y][x], 1, 3, f);
-	//img_rgb[y][x][0] = 0x00;
-	//img_rgb[y][x][1] = 0x00;
-	//img_rgb[y][x][2] = 0xff;
+#if 0				/* debug by forcing whole frame to same color */
+	img_rgb[y][x][0] = 0xc0;
+	img_rgb[y][x][1] = 0x80;
+	img_rgb[y][x][2] = 0x80;
+#endif
       }
     }
     fclose(f);
 
     /* Convert to YUV */
     {
-      float tmp_u[576][720];
-      float tmp_v[576][720];
+      float tmp_cr[576][720];
+      float tmp_cb[576][720];
 
       for (y = 0; y < height; y++) {
 	for (x = 0; x < width; x++) {
 	  /* This is the RGB -> YUV color matrix */
 	  static const float cm[3][3] = {
-	    { 0.0977346405969, 0.504420728197,  0.256951160416   },
-	    { 0.439165945662, -0.290954275333,  -0.148211670329  },
-	    { -0.0712801514127, -0.367885794249, 0.439165945662   }
+	    { 0.256951160416, 0.504420728197,  0.0977346405969    },
+	    { 0.439165945662, -0.367885794249, -0.0712801514127   },
+	    { -0.148211670329, -0.290954275333,  0.439165945662  }
 	  };
 
-	  float cy, cu, cv;
+	  float cy, cr, cb;
 
 	  cy = (cm[0][0] * img_rgb[y][x][0]) +
 	    (cm[0][1] * img_rgb[y][x][1]) +
 	    (cm[0][2] * img_rgb[y][x][2]);
-	  cu = (cm[1][0] * img_rgb[y][x][0]) +
+	  cr = (cm[1][0] * img_rgb[y][x][0]) +
 	    (cm[1][1] * img_rgb[y][x][1]) +
 	    (cm[1][2] * img_rgb[y][x][2]);
-	  cv = (cm[2][0] * img_rgb[y][x][0]) +
+	  cb = (cm[2][0] * img_rgb[y][x][0]) +
 	    (cm[2][1] * img_rgb[y][x][1]) +
 	    (cm[2][2] * img_rgb[y][x][2]);
 
 	  img_y[y][x] = (f2sb(cy) - 128 + 16);
-	  tmp_u[y][x] = cu;
-	  tmp_v[y][x] = cv;
+	  tmp_cr[y][x] = cr;
+	  tmp_cb[y][x] = cb;
 	  //printf("%02x\n", img_y[y][x]);
 	}
       }
       for (y = 0; y < height; y++) {
 	for (x = 0; x < width / 4; x++) {
-	  img_u[y][x] = f2sb((tmp_u[y][4*x] +
-			      tmp_u[y][4*x+1] +
-			      tmp_u[y][4*x+2] +
-			      tmp_u[y][4*x+3]) / 4.0);
-	  img_v[y][x] = f2sb((tmp_v[y][4*x] +
-			      tmp_v[y][4*x+1] +
-			      tmp_v[y][4*x+2] +
-			      tmp_v[y][4*x+3]) / 4.0);
-	  //printf("%f %f %02x %02x\n", tmp_u[2*y][2*x], tmp_v[2*y][2*x], img_u[y][x], img_v[y][x]);
+	  img_cr[y][x] = f2sb((tmp_cr[y][4*x] +
+			       tmp_cr[y][4*x+1] +
+			       tmp_cr[y][4*x+2] +
+			       tmp_cr[y][4*x+3]) / 4.0);
+	  img_cb[y][x] = f2sb((tmp_cb[y][4*x] +
+			       tmp_cb[y][4*x+1] +
+			       tmp_cb[y][4*x+2] +
+			       tmp_cb[y][4*x+3]) / 4.0);
 	}
       }
     }
+
+#if 0				/* debug value of pixel 0,0 */
+    fprintf(stderr, "RGB = %d %d %d\n",
+	    img_rgb[0][0][0],
+	    img_rgb[0][0][1],
+	    img_rgb[0][0][2]);
+    fprintf(stderr, "Y = %d\n", 
+	    img_y[0][0]);
+    fprintf(stderr, "cr = %d\n", 
+	    img_cr[0][0]);
+    fprintf(stderr, "cb = %d\n", 
+	    img_cb[0][0]);
+#endif
 
     /* Encode */
     {
@@ -562,8 +576,8 @@ int main(int argc, char *argv[])
 		  mb->b[1].coeffs[8 * j + i] = img_y[y + j][x + 8 + i];
 		  mb->b[2].coeffs[8 * j + i] = img_y[y + 8 + j][x + i];
 		  mb->b[3].coeffs[8 * j + i] = img_y[y + 8 + j][x + 8 + i];
-		  mb->b[4].coeffs[8 * j + i] = img_u[y + 2 * j][x / 4 + i / 2];
-		  mb->b[5].coeffs[8 * j + i] = img_v[y + 2 * j][x / 4 + i / 2];
+		  mb->b[4].coeffs[8 * j + i] = img_cr[y + 2 * j][x / 4 + i / 2];
+		  mb->b[5].coeffs[8 * j + i] = img_cb[y + 2 * j][x / 4 + i / 2];
 		}
 	    } else {
 	      for (j = 0; j < 8; j++)
@@ -572,8 +586,8 @@ int main(int argc, char *argv[])
 		  mb->b[1].coeffs[8 * j + i] = img_y[y + j][x + 8 + i];
 		  mb->b[2].coeffs[8 * j + i] = img_y[y + j][x + 16 + i];
 		  mb->b[3].coeffs[8 * j + i] = img_y[y + j][x + 24 + i];
-		  mb->b[4].coeffs[8 * j + i] = img_u[y + j][x / 4 + i];
-		  mb->b[5].coeffs[8 * j + i] = img_v[y + j][x / 4 + i];
+		  mb->b[4].coeffs[8 * j + i] = img_cr[y + j][x / 4 + i];
+		  mb->b[5].coeffs[8 * j + i] = img_cb[y + j][x / 4 + i];
 		}
 	    }
 
@@ -613,18 +627,18 @@ int main(int argc, char *argv[])
 	      } modes[] = {
 #if 0	/* XXX - this table should give better results; don't know why it doesn't */
 		{ 15, 0 },	/* 1 1 1 1 */
-		{ 8, 0 },		/* 1 1 1 2 */
-		{ 7, 0 },		/* 1 1 2 2 */
-		{ 5, 0 },		/* 1 2 2 4 */
+		{ 8, 0 },	/* 1 1 1 2 */
+		{ 7, 0 },	/* 1 1 2 2 */
+		{ 5, 0 },	/* 1 2 2 4 */
 		{ 15, 3 },	/* 2 2 2 2 */
 		{ 13, 3 },	/* 2 2 2 4 */
-		{ 3, 0 },		/* 2 2 4 4 */
-		{ 1, 0 },		/* 2 4 4 8 */
-		{ 2, 1 },		/* 4 4 8 8 */
-		{ 0, 1 },		/* 4 8 8 16 */
-		{ 1, 2 },		/* 8 8 16 16 */
-		{	2, 3 },		/* 8 16 16 32 */
-		{ 0, 3 }		/* 16 16 32 32 */
+		{ 3, 0 },	/* 2 2 4 4 */
+		{ 1, 0 },	/* 2 4 4 8 */
+		{ 2, 1 },	/* 4 4 8 8 */
+		{ 0, 1 },	/* 4 8 8 16 */
+		{ 1, 2 },	/* 8 8 16 16 */
+		{ 2, 3 },	/* 8 16 16 32 */
+		{ 0, 3 }	/* 16 16 32 32 */
 #else
 		{ 15, 0 },	/* 1 1 1 1 */
 		{ 15, 3 },
