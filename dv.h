@@ -32,7 +32,6 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <bitstream.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <assert.h>
 
+#include "bitstream.h"
+
 static guint8 buffer[10000] = "Deliberately buried, eh?";
 
 int offset = 0;

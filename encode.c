@@ -31,7 +31,6 @@
 #include <stdlib.h>
 #include <gtk/gtk.h>
 
-#include "bitstream.h"
 #include "dct.h"
 #include "idct_248.h"
 #include "quant.h"

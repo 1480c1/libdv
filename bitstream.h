@@ -31,7 +31,7 @@
 #ifndef DV_BITSTREAM_H
 #define DV_BITSTREAM_H
 
-#include <glib.h>
+#include <dv_types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,25 +39,13 @@ extern "C" {
 
 //My new and improved vego-matic endian swapping routine
 //(stolen from the kernel)
+#if defined(WORDS_BIGENDIAN)
+#define swab32(x)
+#else // LITTLE_ENDIAN
 #    define swab32(x)\
 ((((guint8*)&x)[0] << 24) | (((guint8*)&x)[1] << 16) |  \
  (((guint8*)&x)[2] << 8)  | (((guint8*)&x)[3]))
-
-typedef struct bitstream_s {
-  guint32 current_word;
-  guint32 next_word;
-  guint16 bits_left;
-  guint16 next_bits;
-
-  guint8 *buf;
-  guint32 buflen;
-  gint32  bufoffset;
-
-  guint32 (*bitstream_next_buffer) (guint8 **,void *);
-  void *priv;
-
-  gint32 bitsread;
-} bitstream_t;
+#endif // LITTLE_ENDIAN
 
 bitstream_t *bitstream_init();
 void bitstream_set_fill_func(bitstream_t *bs,guint32 (*next_function) (guint8 **,void *),void *priv);

@@ -36,7 +36,6 @@
 
 #include <stdlib.h>
 #include <glib.h>
-#include <bitstream.h>
 
 #define DV_AUDIO_MAX_SAMPLES 1920
 
@@ -121,6 +120,22 @@ typedef enum std_e {
 typedef gint16 dv_coeff_t;
 typedef gint32 dv_248_coeff_t;
 
+typedef struct bitstream_s {
+  guint32 current_word;
+  guint32 next_word;
+  guint16 bits_left;
+  guint16 next_bits;
+
+  guint8 *buf;
+  guint32 buflen;
+  gint32  bufoffset;
+
+  guint32 (*bitstream_next_buffer) (guint8 **,void *);
+  void *priv;
+
+  gint32 bitsread;
+} bitstream_t;
+
 typedef struct {
   gint8 sct;      // Section type (header,subcode,aux,audio,video)
   gint8 dsn;      // DIF sequence number (0-12)
@@ -183,35 +198,78 @@ typedef struct {
 /* From Section 8.1 of 61834-4: Audio auxiliary data source pack fields pc1-pc4.
  * Need this data to figure out what format audio is in the stream. */
 
+/* About bitfield ordering: The C standard does not specify the order
+   of bits within a unit of storage.  In the code here, I will use the
+   definition of WORDS_BIGENDIAN to determine whether to set
+   BIG_ENDIAN_BITFIELD or LITTLE_ENDIAN_BITFIELD.  There is nothing
+   that guarantees this relationship to be correct, but I know of no
+   counter examples.  If we do find out there is one, we'll have to
+   fix it... */
+
+#if defined(WORDS_BIGENDIAN)
+#define BIG_ENDIAN_BITFIELD
+#else
+#define LITTLE_ENDIAN_BITFIELD
+#endif  // WORDS_BIGENDIAN
+
 typedef struct {
+#if defined(LITTLE_ENDIAN_BITFIELD)
   guint8 af_size : 6; /* Samples per frame: 
 		       * 32 kHz: 1053-1080
 		       * 44.1: 1452-1489
-		       * 48: 1580-1620
-		       */
-  guint8 res0    : 1; // Should be 1
+		       * 48: 1580-1620 */
+  guint8         : 1; // Should be 1
   guint8 lf      : 1; // Locked mode flag (1 = unlocked)
+#elif defined(BIG_ENDIAN_BITFIELD)
+  guint8 lf      : 1; // Locked mode flag (1 = unlocked)
+  guint8         : 1; // Should be 1
+  guint8 af_size : 6; /* Samples per frame: 
+		       * 32 kHz: 1053-1080
+		       * 44.1: 1452-1489
+		       * 48: 1580-1620 */
+#endif // BIG_ENDIAN_BITFIELD
 } dv_aaux_as_pc1_t;
 
 typedef struct {
+#if defined(LITTLE_ENDIAN_BITFIELD)
   guint8 audio_mode: 4; // See 8.1...
   guint8 pa        : 1; // pair bit: 0 = one pair of channels, 1 = independent channel (for sm = 1, pa shall be 1) 
   guint8 chn       : 2; // number of audio channels per block: 0 = 1 channel, 1 = 2 channels, others reserved
   guint8 sm        : 1; // stereo mode: 0 = Multi-stereo, 1 = Lumped
+#elif defined(BIG_ENDIAN_BITFIELD)
+  guint8 sm        : 1; // stereo mode: 0 = Multi-stereo, 1 = Lumped
+  guint8 chn       : 2; // number of audio channels per block: 0 = 1 channel, 1 = 2 channels, others reserved
+  guint8 pa        : 1; // pair bit: 0 = one pair of channels, 1 = independent channel (for sm = 1, pa shall be 1) 
+  guint8 audio_mode: 4; // See 8.1...
+#endif // BIG_ENDIAN_BITFIELD
 } dv_aaux_as_pc2_t;
 
 typedef struct {
+#if defined(LITTLE_ENDIAN_BITFIELD)
   guint8 stype     :5; // 0x0 = SD (525/625), 0x2 = HD (1125,1250), others reserved
   guint8 system    :1; // 0 = 60 fields, 1 = 50 field
   guint8 ml        :1; // Multi-languag flag
-  guint8 res0      :1;
+  guint8           :1;
+#elif defined(BIG_ENDIAN_BITFIELD)
+  guint8           :1;
+  guint8 ml        :1; // Multi-languag flag
+  guint8 system    :1; // 0 = 60 fields, 1 = 50 field
+  guint8 stype     :5; // 0x0 = SD (525/625), 0x2 = HD (1125,1250), others reserved
+#endif // BIG_ENDIAN_BITFIELD
 } dv_aaux_as_pc3_t;
 
 typedef struct {
+#if defined(LITTLE_ENDIAN_BITFIELD)
   guint8 qu        :3; // quantization: 0=16bits linear, 1=12bits non-linear, 2=20bits linear, others reserved
   guint8 smp       :3; // sampling frequency: 0=48kHz, 1=44,1 kHz, 2=32 kHz
   guint8 tc        :1; // time constant of emphasis: 1=50/15us, 0=reserved
   guint8 ef        :1; // emphasis: 0=on, 1=off
+#elif defined(BIG_ENDIAN_BITFIELD)
+  guint8 ef        :1; // emphasis: 0=on, 1=off
+  guint8 tc        :1; // time constant of emphasis: 1=50/15us, 0=reserved
+  guint8 smp       :3; // sampling frequency: 0=48kHz, 1=44,1 kHz, 2=32 kHz
+  guint8 qu        :3; // quantization: 0=16bits linear, 1=12bits non-linear, 2=20bits linear, others reserved
+#endif // BIG_ENDIAN_BITFIELD
 } dv_aaux_as_pc4_t;
 
 // AAUX source pack (AS)
@@ -225,29 +283,55 @@ typedef struct {
 
 // From 61834-4 (section 8.2), and SMPE 314M (section 4.6.2.3.2)
 typedef struct {
+#if defined(LITTLE_ENDIAN_BITFIELD)
   guint8 ss        :2; /* 61834 says "Source and recorded situation...", SMPTE says EFC (emphasis audio channel flag)
 			  0=emphasis off, 1=emphasis on, others reserved.  EFC shall be set for each audio block. */
   guint8 cmp       :2; /* number of times compression: 0=once, 1=twice, 2=three or more, 3=no information */
   guint8 isr       :2; /* 0=analog input, 1=digital input, 2=reserved, 3=no information */
   guint8 cgms      :2; /* Copy generation management system:
 			  0=unrestricted, 1=not used, 2=one generation only, 3=no copy */
+#elif defined(BIG_ENDIAN_BITFIELD)
+  guint8 cgms      :2; /* Copy generation management system:
+			  0=unrestricted, 1=not used, 2=one generation only, 3=no copy */
+  guint8 isr       :2; /* 0=analog input, 1=digital input, 2=reserved, 3=no information */
+  guint8 cmp       :2; /* number of times compression: 0=once, 1=twice, 2=three or more, 3=no information */
+  guint8 ss        :2; /* 61834 says "Source and recorded situation...", SMPTE says EFC (emphasis audio channel flag)
+			  0=emphasis off, 1=emphasis on, others reserved.  EFC shall be set for each audio block. */
+#endif // BIG_ENDIAN_BITFIELD
 } dv_aaux_asc_pc1_t;
 
 typedef struct {
+#if defined(LITTLE_ENDIAN_BITFIELD)
   guint8 insert_ch :3; /* see 61834-4... */
   guint8 rec_mode  :3; /* recording mode: 1=original, others=various dubs... (see 68134-4) */
   guint8 rec_end   :1; /* recording end point: same as starting... */
   guint8 rec_st    :1; /* recording start point: 0=yes,1=no */
+#elif defined(BIG_ENDIAN_BITFIELD)
+  guint8 rec_st    :1; /* recording start point: 0=yes,1=no */
+  guint8 rec_end   :1; /* recording end point: same as starting... */
+  guint8 rec_mode  :3; /* recording mode: 1=original, others=various dubs... (see 68134-4) */
+  guint8 insert_ch :3; /* see 61834-4... */
+#endif // BIG_ENDIAN_BITFIELD
 } dv_aaux_asc_pc2_t;
 
 typedef struct {
+#if defined(LITTLE_ENDIAN_BITFIELD)
   guint8 speed     :7; /* speed: see tables in 314M and 61834-4 (they differ), except 0xff = invalid/unkown */
   guint8 drf       :1; /* direction: 1=forward, 0=reverse */
+#elif defined(BIG_ENDIAN_BITFIELD)
+  guint8 drf       :1; /* direction: 1=forward, 0=reverse */
+  guint8 speed     :7; /* speed: see tables in 314M and 61834-4 (they differ), except 0xff = invalid/unkown */
+#endif // BIG_ENDIAN_BITFIELD
 } dv_aaux_asc_pc3_t;
 
 typedef struct {
+#if defined(LITTLE_ENDIAN_BITFIELD)
   guint8 genre_category: 7;
-  guint8 res0          : 1;
+  guint8               : 1;
+#elif defined(BIG_ENDIAN_BITFIELD)
+  guint8               : 1;
+  guint8 genre_category: 7;
+#endif // BIG_ENDIAN_BITFIELD
 } dv_aaux_asc_pc4_t;
 
 // AAUX source control pack (ASC)

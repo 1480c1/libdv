@@ -2,8 +2,6 @@
 
 #include <stdio.h>
 
-#include "bitstream.h"
-
 #define offsetof(S, M) \
     ((int)&(((S*)NULL)->M))
 
