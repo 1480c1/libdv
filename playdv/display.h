@@ -50,12 +50,18 @@
 #define DV_FOURCC_YV12  0x32315659	/* 4:2:0 Planar mode: Y + V + U  (3 planes) */
 #define DV_FOURCC_YUY2  0x32595559	/* 4:2:2 Packed mode: Y0+U0+Y1+V0 (1 plane) */
 
+#if HAVE_LIBXV
 #define DV_DISPLAY_OPT_METHOD   0
 #define DV_DISPLAY_OPT_ASPECT	1
 #define DV_DISPLAY_OPT_SIZE	2
 #define DV_DISPLAY_OPT_CALLBACK 3
 #define DV_DISPLAY_OPT_XV_PORT  4
 #define DV_DISPLAY_NUM_OPTS     5
+#else 
+#define DV_DISPLAY_OPT_METHOD   0
+#define DV_DISPLAY_OPT_CALLBACK 1
+#define DV_DISPLAY_NUM_OPTS     2
+#endif /* HAVE_LIBXV */
 
 typedef enum dv_dpy_lib_e {
   e_dv_dpy_Xv,

@@ -91,6 +91,7 @@ dv_display_popt_callback(poptContext con, enum poptCallbackReason reason,
     dv_opt_usage(con, display->option_table, DV_DISPLAY_OPT_METHOD);
   } /* if */
 
+#if HAVE_LIBXV
   if (display->arg_aspect_string) {
     if (strlen (display->arg_aspect_string) == 1) {
       switch (display->arg_aspect_string[0]) {
@@ -117,6 +118,7 @@ dv_display_popt_callback(poptContext con, enum poptCallbackReason reason,
       ((display->arg_size_val < 10) || (display->arg_size_val > 100))) {
     dv_opt_usage(con, display->option_table, DV_DISPLAY_OPT_SIZE);
   } /* if */
+#endif /* HAVE_LIBXV */
 
 } /* dv_display_popt_callback */
 #endif /* HAVE_LIBPOPT */
@@ -139,6 +141,7 @@ dv_display_new(void)
     argDescrip: "(0|1|2|3)",
 		  }; /* display method */
 
+#if HAVE_LIBXV
   result->option_table[DV_DISPLAY_OPT_ASPECT] = (struct poptOption) {
     longName:   "aspect",
     argInfo:    POPT_ARG_STRING,
@@ -157,12 +160,6 @@ dv_display_new(void)
     argDescrip: "(10 .. 100)",
 		  }; /* display method */
 
-  result->option_table[DV_DISPLAY_OPT_CALLBACK] = (struct poptOption){
-    argInfo: POPT_ARG_CALLBACK|POPT_CBFLAG_POST,
-    arg:     dv_display_popt_callback,
-	       descrip: (char *)result, /* data passed to callback */
-	       }; /* callback */
-
   result->option_table[DV_DISPLAY_OPT_XV_PORT] = (struct poptOption) {
     longName:   "xvport", 
     argInfo:    POPT_ARG_INT, 
@@ -170,6 +167,15 @@ dv_display_new(void)
     argDescrip: "number",
     descrip:    "set Xvideo port (defaults to the first usable)",
   }; /* choose Xvideo port */
+
+#endif /* HAVE_LIBXV */
+
+  result->option_table[DV_DISPLAY_OPT_CALLBACK] = (struct poptOption){
+    argInfo: POPT_ARG_CALLBACK|POPT_CBFLAG_POST,
+    arg:     dv_display_popt_callback,
+	       descrip: (char *)result, /* data passed to callback */
+	       }; /* callback */
+
 
 #endif /* HAVE_LIBPOPT */
 
@@ -744,7 +750,7 @@ dv_display_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv, gint width, gin
       goto fail;
     }
 #else /* HAVE_LIBXV */
-    fprintf(stderr, "Attempt to display via Xv failed\n");
+    fprintf(stderr, "Playdv not compiled with Xv support, sorry.\n");
     goto fail;
 #endif /* HAVE_LIBXV */
     break;

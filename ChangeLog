@@ -1,3 +1,7 @@
+2002-11-26 Charles 'Buck' Krasic <krasic@acm.org>
+
+	* fixes to display.c so it builds with --disable-xv
+
 2002-11-11  Dan Dennedy  <dan@dennedy.org>
 	* apply XvShm portability patch to playdv/display.c.
 	* apply build updates from Daniel Kobras to prevent core lib
