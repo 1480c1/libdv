@@ -5,7 +5,7 @@ includedir=@includedir@
 
 Name: libdv 
 Description: DV software codec
-Requires: @REQUIRES@
+Requires: 
 Version: @VERSION@
 Libs: -L${libdir} -ldv @REQUIRES_NOPKGCONFIG@
 Cflags: -I${includedir}

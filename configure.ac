@@ -154,13 +154,8 @@ dnl Checks for libraries.
 if $use_gtk; then
 	REQUIRES='glib >= 1.2.4 gtk+ >= 1.2.4'
 	PKG_CHECK_MODULES(GTK,$REQUIRES)
-else
-	dnl Libs above are required for the apps, but not for the lib itself.
-	REQUIRES=''
 fi
 
-dnl pass-thru to .pc files
-AC_SUBST(REQUIRES)
 dnl used in Makefile.am
 AC_SUBST(GTK_CFLAGS)
 AC_SUBST(GTK_LIBS)

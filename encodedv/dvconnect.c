@@ -128,6 +128,7 @@ static int broken_frames = 0;
    ------------------------------------------------------------------------ */
 
 static int max_buffer_blocks = 25*10;
+static int ceil_buffer_blocks = 0;
 
 struct buf_node {
 	unsigned char data[144000]; /* FIXME: We are wasting space on NTSC! */
@@ -588,11 +589,19 @@ static int fill_buffer(unsigned char* targetbuf, unsigned int * packet_sizes)
 	if (!f_node) {
 		if (!is_eof) {
 			if (!underrun_data_frame) {
-				fprintf(stderr, "Buffer underrun "
+				fprintf(stderr, "Buffer underrun ");
+				if (ceil_buffer_blocks > 0 &&
+				    max_buffer_blocks < ceil_buffer_blocks) {
+					max_buffer_blocks += 25;
+					fprintf(stderr,
 					"(raising buffer limit +25 => %d)!\n",
 					max_buffer_blocks);
+				} else {
+					fprintf(stderr,
+						"(not raising buffer space, "
+					        "hard limit reached)\n");
+				}
 
-				max_buffer_blocks += 25;
 
 				pthread_mutex_lock(&wakeup_rev_mutex);
 				pthread_cond_wait(&wakeup_rev_cond, 
@@ -1058,6 +1067,14 @@ int main(int argc, const char** argv)
 	setpriority (PRIO_PROCESS, 0, -20);
 	if (rt_raisepri (1) != 0) {
 		setpriority (PRIO_PROCESS, 0, -20);
+	}
+
+	if (mlockall(MCL_CURRENT | MCL_FUTURE) == -1) {
+		if (verbose_mode)
+			fprintf(stderr, "Cannot disable swapping\n");
+	} else {
+		/* Prevent excessive underruns from locking down all mem. */
+		ceil_buffer_blocks = 10*max_buffer_blocks;
 	}
 
 	if ( device == NULL )
