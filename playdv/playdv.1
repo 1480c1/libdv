@@ -46,6 +46,12 @@ the file names and may be given in \fIprintf\fR-style taking one numeric
 argument that gets replaced with the current frame number. Like
 capture%05d.ppm for files capture00001.ppm, capture00002.ppm, etc.
 Use \fI-\fR to stream the frames to stdout.
+.TP
+\fB\-\-no\-mmap\fR
+don't use mmap for reading (useful for pipes).
+.TP
+\fB\-l\fR, \fB\-\-loop\-count\fR=\fIcount\fR
+loop playback \fIcount=\fR times, 0 for infinite.
 .PP
 Audio Output Options
 .TP

@@ -23,6 +23,10 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif // HAVE_CONFIG_H
+
 #include "libdv/dv_types.h"
 
 #include <stdio.h>
@@ -32,10 +36,6 @@
 #include <fcntl.h>
 #include <setjmp.h>
 #include <string.h>
-
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif // HAVE_CONFIG_H
 
 #if HAVE_LIBPOPT
 #include <popt.h>

@@ -28,6 +28,8 @@
 # include <config.h>
 #endif
 
+#define _FILE_OFFSET_BITS 64
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/time.h>
@@ -64,7 +66,8 @@
 #define DV_PLAYER_OPT_AUTOHELP        7
 #define DV_PLAYER_OPT_DUMP_FRAMES     8
 #define DV_PLAYER_OPT_NO_MMAP         9
-#define DV_PLAYER_NUM_OPTS            10
+#define DV_PLAYER_OPT_LOOP_COUNT      10
+#define DV_PLAYER_NUM_OPTS            11
 
 /* Book-keeping for mmap */
 typedef struct dv_mmap_region_s {
@@ -85,6 +88,7 @@ typedef struct {
   gint             no_mmap;
   gint             arg_num_frames;
   char*            arg_dump_frames;
+  gint             arg_loop_count;
 #if HAVE_LIBPOPT
   struct poptOption option_table[DV_PLAYER_NUM_OPTS+1]; 
 #endif /* HAVE_LIBPOPT */
@@ -99,6 +103,7 @@ dv_player_new(void)
   if(!(result->display = dv_display_new())) goto no_display;
   if(!(result->oss = dv_oss_new())) goto no_oss;
   if(!(result->decoder = dv_decoder_new(TRUE, FALSE, FALSE))) goto no_decoder;
+  result->arg_loop_count = 1;
 
 #if HAVE_LIBPOPT
   result->option_table[DV_PLAYER_OPT_VERSION] = (struct poptOption) {
@@ -143,6 +148,15 @@ dv_player_new(void)
     arg:        &result->no_mmap,
     descrip:    "don't use mmap for reading. (usefull for pipes)"
   }; /* no mmap */
+
+  result->option_table[DV_PLAYER_OPT_LOOP_COUNT] = (struct poptOption) {
+    longName:   "loop-count", 
+    shortName:  'l', 
+    argInfo:    POPT_ARG_INT, 
+    arg:        &result->arg_loop_count,
+    argDescrip: "count",
+    descrip:    "loop playback <count> times, 0 for infinite",
+  }; /* loop count */
 
   result->option_table[DV_PLAYER_OPT_OSS_INCLUDE] = (struct poptOption) {
     argInfo: POPT_ARG_INCLUDE_TABLE,
@@ -372,12 +386,14 @@ main(int argc,char *argv[])
 
   gettimeofday(dv_player->tv+0,NULL);
 
+restart:
+
   dv_player->decoder->prev_frame_decoded = 0;
   for(offset=0;
       offset <= eof || dv_player->no_mmap; 
       offset += dv_player->decoder->frame_size) {
 
-    /*
+     /*
      * Map the frame's data into memory
      */
     mmap_unaligned (fd,dv_player->no_mmap, 
@@ -479,6 +495,13 @@ main(int argc,char *argv[])
   } /* while */
 
  end_of_file:
+  
+  /* Handle looping */
+  if (--dv_player->arg_loop_count != 0) {
+    lseek( fd, 0, SEEK_SET);
+    goto restart;
+  }
+  
   gettimeofday(dv_player->tv+1,NULL);
   timersub(dv_player->tv+1,dv_player->tv+0,dv_player->tv+2);
   seconds = (double)dv_player->tv[2].tv_usec / 1000000.0; 

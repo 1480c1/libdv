@@ -23,6 +23,11 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif // HAVE_CONFIG_H
+
+#define _FILE_OFFSET_BITS 64
 
 #include <stdio.h>
 #include <sys/ioctl.h>
@@ -36,10 +41,6 @@
 
 #include <pthread.h>
 #include <signal.h>
-
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif // HAVE_CONFIG_H
 
 #if HAVE_LIBPOPT
 #include <popt.h>

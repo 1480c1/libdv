@@ -1,3 +1,17 @@
+2002-12-31 Dan Dennedy   <dan@dennedy.org>
+	* playdv.c: apply patch from Timothy Shead to add --loop-count.
+	* dvconnect.c, playdv.c: large file support.
+	* all: apply patch from Daniel Kobras to qualify global symbols.
+	* all: cleanup includes to include config.h at top of each .c and
+	  to include libdv files from local instead of system local path.
+	* enc_output.c: fix misleading comments for 12 vs. 16 bit audio.
+	* libdv/Makefile.am: bump libtool versions.
+
+2002-12-03 Charles Yates <charles.yates@pandora.be>
+	*  added audio sample calculator:
+	   libdv/dv_types.h: dv_encoder_t.samples_this_frame,
+	   libdv/dv.h: dv_calculate_samples()
+
 2002-11-26 Charles 'Buck' Krasic <krasic@acm.org>
 
 	* fixes to display.c so it builds with --disable-xv
