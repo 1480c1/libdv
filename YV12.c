@@ -73,7 +73,7 @@ dv_YV12_init(void) {
 } /* dv_YV12_init */
 
 void 
-dv_mb420_YV12(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches, gint x, gint y) {
+dv_mb420_YV12(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches) {
   dv_coeff_t		*Y[4], *UV[2], *Ytmp, *UVtmp;
   unsigned char	        *py, *pwy, *puv, *pwuv;
   int			i, j, row, col;
@@ -86,7 +86,7 @@ dv_mb420_YV12(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches, gint x, gi
   UV[1] = mb->b[5].coeffs;
 
   
-  py  = pixels[0] + x + (y * pitches[0]);
+  py  = pixels[0] + mb->x + (mb->y * pitches[0]);
 
   for(i=0; i<4; i+=2) {  // two rows of Y blocks
 
@@ -113,7 +113,7 @@ dv_mb420_YV12(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches, gint x, gi
       i<3;
       i++) { // two Chroma blocks 
 
-    puv = pixels[i] + (x/2) + ((y/2) * pitches[i]);
+    puv = pixels[i] + (mb->x/2) + ((mb->y/2) * pitches[i]);
     UVtmp = UV[i-1];
 
     for(row=0; 
@@ -136,7 +136,7 @@ dv_mb420_YV12(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches, gint x, gi
 #if USE_MMX_ASM
 
 void 
-dv_mb420_YV12_mmx(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches, gint x, gint y) {
+dv_mb420_YV12_mmx(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches) {
   dv_coeff_t		*Y[4], *UV[2], *Ytmp, *UVtmp;
   unsigned char	        *py, *pwy, *puv;
   int			i, j, row;
@@ -148,7 +148,7 @@ dv_mb420_YV12_mmx(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches, gint x
   UV[0] = mb->b[4].coeffs;
   UV[1] = mb->b[5].coeffs;
   
-  py  = pixels[0] + x + (y * pitches[0]);
+  py  = pixels[0] + mb->x + (mb->y * pitches[0]);
 
   movq_m2r(mmx_0x0080s,mm0);
   movq_m2r(mmx_0x10s,mm1);
@@ -189,7 +189,7 @@ dv_mb420_YV12_mmx(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches, gint x
       i<3;
       i++) { // two Chroma blocks 
 
-    puv = pixels[i] + (x/2) + ((y/2) * pitches[i]);
+    puv = pixels[i] + (mb->x/2) + ((mb->y/2) * pitches[i]);
     UVtmp = UV[i-1];
 
     for(row=0; 

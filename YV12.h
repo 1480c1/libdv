@@ -45,11 +45,11 @@
 extern void dv_YV12_init(void);
 
 /* scalar version */
-extern void dv_mb420_YV12(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches, gint x, gint y); 
+extern void dv_mb420_YV12(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches); 
 
 #if USE_MMX_ASM
 /* pentium architecture mmx version */
-extern void dv_mb420_YV12_mmx(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches, gint x, gint y); 
+extern void dv_mb420_YV12_mmx(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches); 
 #endif // USE_MMX_ASM
 
 #endif /* __YV12_H__ */

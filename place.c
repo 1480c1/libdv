@@ -29,19 +29,22 @@
 
 #define DEBUG_HIGHLIGHT_MBS 0
 
+static const gint dv_super_map_vertical[5] = { 2, 6, 8, 0, 4 };
+static const gint dv_super_map_horizontal[5] = { 2, 1, 3, 0, 4 };
+
 void 
 dv_place_init(void) {
   return;
 } // dv_place_init
 
 void
-dv_place_411_macroblock(dv_macroblock_t *mb, gint *x, gint *y) {
+dv_place_411_macroblock(dv_macroblock_t *mb) {
   gint mb_num; // mb number withing the 6 x 5 zig-zag pattern 
   gint mb_num_mod_6, mb_num_div_6; // temporaries
   gint mb_row;    // mb row within sb (de-zigzag)
   gint mb_col;    // mb col within sb (de-zigzag)
   // Column offset of superblocks in macroblocks.  
-  static guint column_offset[] = {0, 4, 9, 13, 18};  
+  static const guint column_offset[] = {0, 4, 9, 13, 18};  
 
   // Consider the area spanned super block as 30 element macroblock
   // grid (6 rows x 5 columns).  The macroblocks are laid out in a in
@@ -70,18 +73,18 @@ dv_place_411_macroblock(dv_macroblock_t *mb, gint *x, gint *y) {
     // Convert from superblock-relative row position to frame relative (in blocks).
     mb_row = mb_row * 2 + mb->i * 6; // each right-edge macroblock is 2 blocks high, and each superblock is 6 blocks high
   } // else
-  *x = mb_col * 8;
-  *y = mb_row * 8;
+  mb->x = mb_col * 8;
+  mb->y = mb_row * 8;
 } // dv_place_411_macroblock
 
 void 
-dv_place_420_macroblock(dv_macroblock_t *mb, gint *x, gint *y) {
+dv_place_420_macroblock(dv_macroblock_t *mb) {
   gint mb_num; // mb number withing the 6 x 5 zig-zag pattern 
   gint mb_num_mod_3, mb_num_div_3; // temporaries
   gint mb_row;    // mb row within sb (de-zigzag)
   gint mb_col;    // mb col within sb (de-zigzag)
   // Column offset of superblocks in macroblocks.  
-  static guint column_offset[] = {0, 9, 18, 27, 36};  
+  static const guint column_offset[] = {0, 9, 18, 27, 36};  
 
   // Consider the area spanned super block as 30 element macroblock
   // grid (6 rows x 5 columns).  The macroblocks are laid out in a in
@@ -103,8 +106,50 @@ dv_place_420_macroblock(dv_macroblock_t *mb, gint *x, gint *y) {
   // Compute frame-relative byte offset of macroblock's top-left corner
   // Convert from superblock-relative row position to frame relative (in blocks).
   mb_row += (mb->i * 3); // each right-edge macroblock is 2 blocks high, and each superblock is 6 blocks high
-  *x = mb_col * 16;
-  *y = mb_row * 16;
+  mb->x = mb_col * 16;
+  mb->y = mb_row * 16;
 } // dv_place_420_macroblock
+
+void
+dv_place_video_segment(dv_decoder_t *dv, dv_videosegment_t *seg) {
+  dv_macroblock_t *mb;
+  gint m; 
+  for (m=0,mb = seg->mb;
+       m<5;
+       m++,mb++) {
+    mb->i = (seg->i + dv_super_map_vertical[m]) % dv->num_dif_seqs;
+    mb->j = dv_super_map_horizontal[m];
+    mb->k = seg->k;
+    // calculate x,y
+    if(dv->sampling == e_dv_sample_411)
+      dv_place_411_macroblock(mb); 
+    else
+      dv_place_420_macroblock(mb);
+  } // for m
+} // dv_place_video_segment
+
+void
+dv_place_frame(dv_decoder_t *dv) {
+  dv_frame_t *frame = &dv->frame;
+  dv_videosegment_t *seg;
+  gint ds, v; // dif sequence, video segment
+  guint dif = 0;
+  for (ds=0; ds < dv->num_dif_seqs; ds++) { 
+    dif += 6; // skip the first 6 dif blocks in a dif sequence 
+    // Loop through video segments 
+    for (v=0; v<27;v++) {
+	if(!(v % 3)) dif++; 
+	seg = &frame->ds[ds].seg[v];
+	seg->i = ds;
+	seg->k = v;
+	seg->isPAL = (dv->system == e_dv_system_625_50);
+	dif+=5;
+	dv_place_video_segment(dv,seg);
+    } // for v
+  } // for ds
+} /* dv_place_frame */
+
+
+
 
 

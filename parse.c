@@ -509,3 +509,70 @@ gint dv_parse_video_segment(dv_videosegment_t *seg, guint quality) {
 } // dv_parse_video_segment 
 #endif
 
+gint 
+dv_parse_id(bitstream_t *bs,dv_id_t *id) {
+  id->sct = bitstream_get(bs,3);
+  bitstream_flush(bs,5);
+  id->dsn = bitstream_get(bs,4);
+  id->fsc = bitstream_get(bs,1);
+  bitstream_flush(bs,3);
+  id->dbn = bitstream_get(bs,8);
+  return 0;
+} // dv_parse_id
+
+gint
+dv_parse_header(dv_decoder_t *dv, guchar *buffer) {
+  dv_header_t *header = &dv->header;
+  bitstream_t *bs;
+  dv_id_t id;
+  if(!(bs = bitstream_init())) goto no_bitstream;
+  bitstream_new_buffer(bs,buffer,6*80);
+  dv_parse_id(bs,&id);
+  if (id.sct != 0) goto parse_error;            // error, if not header
+  header->dsf = bitstream_get(bs,1);
+  if (bitstream_get(bs,1) != 0) goto parse_error; // error, bit incorrect
+  bitstream_flush(bs,11);
+  header->apt = bitstream_get(bs,3);
+  header->tf1 = bitstream_get(bs,1);
+  bitstream_flush(bs,4);
+  header->ap1 = bitstream_get(bs,3);
+  header->tf2 = bitstream_get(bs,1);
+  bitstream_flush(bs,4);
+  header->ap2 = bitstream_get(bs,3);
+  header->tf3 = bitstream_get(bs,1);
+  bitstream_flush(bs,4);
+  header->ap3 = bitstream_get(bs,3);
+  bitstream_flush_large(bs,576);		// skip rest of DIF block
+
+  dv->system = ((header->dsf) ? e_dv_system_625_50 : e_dv_system_525_60);
+  dv->std = ((header->apt) ? e_dv_std_smpte_314m : e_dv_std_iec_61834);
+  dv->width = 720;
+  dv->sampling = ((dv->system == e_dv_system_625_50) && (dv->std == e_dv_std_iec_61834)) ? e_dv_sample_420 : e_dv_sample_411;
+  if(dv->system == e_dv_system_625_50) {
+    dv->num_dif_seqs = 12;
+    dv->height = 576;
+    dv->frame_size = 12 * 150 * 80;
+  } else {
+    dv->num_dif_seqs = 10;
+    dv->height = 480;
+    dv->frame_size = 10 * 150 * 80;
+  } // else
+
+  dv_parse_id(bs,&id);				// should be SC1
+  bitstream_flush_large(bs,616);
+  dv_parse_id(bs,&id);				// should be SC2
+  bitstream_flush_large(bs,616);
+
+  dv_parse_id(bs,&id);				// should be VA1
+  bitstream_flush_large(bs,616);
+  dv_parse_id(bs,&id);				// should be VA2
+  bitstream_flush_large(bs,616);
+  dv_parse_id(bs,&id);				// should be VA3
+  bitstream_flush_large(bs,616);
+  return(0);
+
+ parse_error:
+ no_bitstream:
+  return(-1);
+} // dv_parse_header
+

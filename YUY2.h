@@ -46,13 +46,13 @@
 extern void dv_YUY2_init(void);
 
 /* scalar versions */
-extern void dv_mb411_YUY2(dv_macroblock_t *mb, guchar *pixels, gint pitch, gint x, gint y);
-extern void dv_mb420_YUY2(dv_macroblock_t *mb, guchar *pixels, gint pitch, gint x, gint y);
+extern void dv_mb411_YUY2(dv_macroblock_t *mb, guchar *pixels, gint pitch);
+extern void dv_mb411_right_YUY2(dv_macroblock_t *mb, guchar *pixels, gint pitch);
 
 #if USE_MMX_ASM
 /* pentium architecture mmx versions */
-extern void dv_mb411_YUY2_mmx(dv_macroblock_t *mb, guchar *pixels, gint pitch, gint x, gint y);
-extern void dv_mb420_YUY2_mmx(dv_macroblock_t *mb, guchar *pixels, gint pitch, gint x, gint y);
+extern void dv_mb411_YUY2_mmx(dv_macroblock_t *mb, guchar *pixels, gint pitch);
+extern void dv_mb411_right_YUY2_mmx(dv_macroblock_t *mb, guchar *pixels, gint pitch);
 #endif // USE_MMX_ASM
 
 #endif // __YUY2_H__

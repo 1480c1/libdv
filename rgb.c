@@ -115,7 +115,7 @@ dv_rgb_init(void) {
 } /* dv_rgb_init */
 
 void 
-dv_mb411_rgb(dv_macroblock_t *mb, guchar *pixels, gint pitch, gint x, gint y) {
+dv_mb411_rgb(dv_macroblock_t *mb, guchar *pixels, gint pitch) {
   dv_coeff_t *Y[4], *cr_frame, *cb_frame;
   guint8 *prgb, *pwrgb;
   int i,j,k, row;
@@ -127,7 +127,7 @@ dv_mb411_rgb(dv_macroblock_t *mb, guchar *pixels, gint pitch, gint x, gint y) {
   cr_frame = mb->b[4].coeffs;
   cb_frame = mb->b[5].coeffs;
 
-  prgb = pixels + (x * 3)  + (y * pitch);
+  prgb = pixels + (mb->x * 3)  + (mb->y * pitch);
 
   for (row = 0; row < 8; ++row) { // Eight rows
     pwrgb = prgb;
@@ -158,7 +158,7 @@ dv_mb411_rgb(dv_macroblock_t *mb, guchar *pixels, gint pitch, gint x, gint y) {
 
 
 void 
-dv_mb411_rgb_right(dv_macroblock_t *mb, guchar *pixels, gint pitch, gint x, gint y) {
+dv_mb411_right_rgb(dv_macroblock_t *mb, guchar *pixels, gint pitch) {
   dv_coeff_t *Ytmp;
   dv_coeff_t *Y[4], *cr_frame, *cb_frame;
   guint8 *prgb, *pwrgb;
@@ -169,7 +169,7 @@ dv_mb411_rgb_right(dv_macroblock_t *mb, guchar *pixels, gint pitch, gint x, gint
   Y[2] = mb->b[2].coeffs;
   Y[3] = mb->b[3].coeffs;
 
-  prgb = pixels + (x * 3) + (y * pitch);
+  prgb = pixels + (mb->x * 3) + (mb->y * pitch);
 
   for (j = 0; j < 4; j += 2) { // Two rows of blocks j, j+1
     
@@ -214,10 +214,10 @@ dv_mb411_rgb_right(dv_macroblock_t *mb, guchar *pixels, gint pitch, gint x, gint
     } // for row
 
   } // for j
-} /* dv_mb411_rgb_right */
+} /* dv_mb411_right_rgb */
 
 void 
-dv_mb420_rgb(dv_macroblock_t *mb, guchar *pixels, gint pitch, gint x, gint y) {
+dv_mb420_rgb(dv_macroblock_t *mb, guchar *pixels, gint pitch) {
   dv_coeff_t *Y[4], *cr_frame, *cb_frame;
   guint8 *prgb, *pwrgb0, *pwrgb1;
   int i, j, k, row, col;
@@ -229,7 +229,7 @@ dv_mb420_rgb(dv_macroblock_t *mb, guchar *pixels, gint pitch, gint x, gint y) {
   cr_frame = mb->b[4].coeffs;
   cb_frame = mb->b[5].coeffs;
 
-  prgb = pixels + (x * 3) + (y * pitch);
+  prgb = pixels + (mb->x * 3) + (mb->y * pitch);
 
   for (j = 0; j < 4; j += 2) { // Two rows of blocks j, j+1
     

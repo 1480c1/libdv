@@ -87,7 +87,7 @@ dv_display_show(dv_display_t *dv_dpy) {
 #endif // HAVE_GTK
     break;
   case e_dv_dpy_SDL:
-#ifdef HAVE_SDL
+#if HAVE_SDL
     SDL_UnlockYUVOverlay(dv_dpy->overlay);
     SDL_DisplayYUVOverlay(dv_dpy->overlay, &dv_dpy->rect);
     SDL_LockYUVOverlay(dv_dpy->overlay);
