@@ -739,8 +739,6 @@ dv_format_wide (dv_decoder_t *dv)
 {
   uint8_t  id;
 
-  if (dv -> std == e_dv_std_smpte_314m)
-    return 0;
   if ((id = dv -> vaux_pack [0x61]) != 0xff) {
     if (dv -> vaux_data [id] [1] & 0x07) {
       return 1;
