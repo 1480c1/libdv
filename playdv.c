@@ -37,6 +37,9 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <fcntl.h>
+#if HAVE_LIBPOPT
+#include <popt.h>
+#endif // HAVE_LIBPOPT
 
 #include "dv.h"
 #include "display.h"
@@ -84,8 +87,133 @@ static dv_mmap_region_t mmap_region;
 static struct stat statbuf;
 static struct timeval tv[3];
 
-int main(int argc,char *argv[]) {
+static gint arg_disable_audio;
+static gint arg_disable_video;
+static gint arg_block_quality = 3;
+static gint arg_monochrome;
+static gint arg_audio_frequency;
+static gint arg_audio_quantization;
+static gint arg_display;
+static gint arg_num_frames;
+static gint arg_video_system;
+static gchar * arg_audio_file;
+static gchar * arg_audio_device;
 
+#if HAVE_LIBPOPT
+struct poptOption optionsTable[] = {
+  { longName: "version", 
+    shortName: 'v', 
+    argInfo: POPT_ARG_NONE, 
+    arg: NULL,
+    val: 'v', 
+    descrip: "show playdv version number",
+    argDescrip: NULL
+  },
+  { longName: "disable-audio", 
+    shortName: '\0', 
+    argInfo: POPT_ARG_NONE, 
+    arg: &arg_disable_audio,
+    val: 0, 
+    descrip: "skip audio decoding",
+    argDescrip: NULL
+  },
+  { longName: "disable-video", 
+    shortName: '\0', 
+    argInfo: POPT_ARG_NONE, 
+    arg: &arg_disable_video,
+    val: 0, 
+    descrip: "skip video decoding",
+    argDescrip: NULL
+  },
+  { longName: "quality", 
+    shortName: 'q', 
+    argInfo: POPT_ARG_INT, 
+    arg: &arg_block_quality,
+    val: 0, 
+    descrip: "set video quality level (coeff. parsing):"
+    "  1=DC and no ACs,"
+    " 2=DC and single-pass for ACs ,"
+    " 3=DC and multi-pass for ACs [default]",
+    argDescrip: "(1|2|3)"
+  },
+  { longName: "monochrome", 
+    shortName: 'm', 
+    argInfo: POPT_ARG_NONE, 
+    arg: &arg_monochrome,
+    val: 0, 
+    descrip: "skip decoding of color blocks",
+    argDescrip: NULL
+  },
+  { longName: "frequency", 
+    shortName: 'f', 
+    argInfo: POPT_ARG_INT, 
+    arg: &arg_audio_frequency,
+    val: 0, 
+    descrip: "audio frequency: 0=autodetect [default], 1=32 kHz, 2=44.1 kHz, 3=48 kHz",
+    argDescrip: "(0|1|2|3)"
+  },
+  { longName: "quantization", 
+    shortName: 'Q', 
+    argInfo: POPT_ARG_INT, 
+    arg: &arg_audio_quantization,
+    val: 0, 
+    descrip: "force audio quantization: 0=autodetect [default], 1=12 bit, 2=16bit",
+    argDescrip: "(0|1|2)"
+  },
+  { longName: "num-frames", 
+    shortName: 'n', 
+    argInfo: POPT_ARG_INT, 
+    arg: &arg_num_frames,
+    val: 0, 
+    descrip: "stop after <count> frames",
+    argDescrip: "count",
+  },
+  { longName: "video system", 
+    shortName: 'V', 
+    argInfo: POPT_ARG_INT, 
+    arg: &arg_video_system,
+    val: 0, 
+    descrip: "select video system:" 
+    "0=autoselect [default]," 
+    " 1=525/60 4:1:1 (NTSC),"
+    " 2=625/50 4:2:0 (PAL,IEC 61834 DV),"
+    " 3=625/50 4:1:1 (PAL,SMPTE 314M DV)",
+    argDescrip: "(0|1|2)",
+  },
+
+  { longName: "display", 
+    shortName: 'd', 
+    argInfo: POPT_ARG_INT, 
+    arg: &arg_display,
+    val: 0, 
+    descrip: "video display method: 0=autoselect [default], 1=gtk, 2=Xv, 3=SDL",
+    argDescrip: "(0|1|2|3)",
+  },
+  { longName: "audio-device", 
+    shortName: '\0', 
+    argInfo: POPT_ARG_STRING, 
+    arg: &arg_audio_device,
+    val: 0, 
+    descrip: "target audio device; e.g. /dev/dsp [default]",
+    argDescrip: "devicename",
+  },
+  { longName: "audio-file", 
+    shortName: '\0', 
+    argInfo: POPT_ARG_STRING, 
+    arg: &arg_audio_file,
+    val: 0, 
+    descrip: "send raw decoded audio to file, skipping audio ioctls",
+    argDescrip: "filename",
+  },
+  POPT_AUTOHELP
+  { NULL, 0, 0, NULL, 0, 0 }
+}; /* optionsTable */
+#endif // HAVE_LIBPOPT
+
+int 
+main(int argc,char *argv[]) 
+{
+  const char *filename;     /* name of input file */
   dv_display_t *dv_dpy = NULL;
   dv_oss_t      dv_oss;
   int fd;
@@ -95,10 +223,35 @@ int main(int argc,char *argv[]) {
   gdouble seconds;
   gboolean benchmark_mode = FALSE, audio_present;
   gint16 *audio_buffers[4];
+#if HAVE_LIBPOPT
+  int rc;             /* return code from popt */
+  poptContext optCon; /* context for parsing command-line options */
+
+  /* Parse options using popt */
+  optCon = poptGetContext(NULL, argc, (const char **)argv, optionsTable, 0);
+  poptSetOtherOptionHelp(optCon, "<filename>");
+
+  while ((rc = poptGetNextOpt(optCon)) > 0) {
+    switch (rc) {
+      default:
+      break;
+    } /* switch */
+  } /* while */
+
+  if (rc < -1) goto bad_arg;
+
+  filename = poptGetArg(optCon);
+  if((filename == NULL) || !(poptPeekArg(optCon) == NULL)) goto bad_filename;
+  poptFreeContext(optCon);
+#else
+  /* No popt, no usage and no options!  HINT: get popt if you don't
+   * have it yet, it's at: ftp://ftp.redhat.com/pub/redhat/code/popt 
+   */
+  filename = argv[1];
+#endif // HAVE_LIBOPT
 
   /* Open the input file, do fstat to get it's total size */
-  if (argc != 2) goto usage;
-  if(-1 == (fd = open(argv[1],O_RDONLY))) goto openfail;
+  if(-1 == (fd = open(filename,O_RDONLY))) goto openfail;
   if(fstat(fd, &statbuf)) goto fstatfail;
   eof = statbuf.st_size;
 
@@ -140,14 +293,12 @@ int main(int argc,char *argv[]) {
       dv_oss_play(&dv.audio, &dv_oss, audio_buffers);
     } // if
 
-#if 0
     // Parse and decode video
     dv_decode_full_frame(&dv, mmap_region.data_start, dv_dpy->color_space, dv_dpy->pixels, dv_dpy->pitches);
 
     // Display
 
     dv_display_show(dv_dpy);
-#endif
 
     frame_count++;
     if(benchmark_mode && (frame_count >= 150)) break;
@@ -167,11 +318,20 @@ int main(int argc,char *argv[]) {
   exit(0);
 
   /* Error handling section */
-
- no_display:
+ bad_arg:
+  /* an error occurred during option processing */
+  fprintf(stderr, "%s: %s\n",
+	  poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
+	  poptStrerror(rc));
   exit(-1);
- usage:
-  fprintf(stderr, "Usage: %s file\n", argv[0]);
+
+#if HAVE_LIBPOPT
+ bad_filename:
+  poptPrintUsage(optCon, stderr, 0);
+  fprintf(stderr, "Specify a single <filename> argument; e.g. pond.dv\n");
+  exit(-1);
+#endif
+ no_display:
   exit(-1);
  openfail:
   perror("open:");

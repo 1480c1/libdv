@@ -81,6 +81,12 @@ if $use_xv; then
       AC_CHECK_LIB(Xv,XvQueryAdaptors,)
 fi
 AC_CHECK_LIB(m, sqrt)
+AC_CHECK_LIB(popt, poptGetContext,,
+      [
+	AC_MSG_WARN(playdv needs the popt package for command line parsing.
+ 		    The source archive for popt is available at:  
+			ftp://ftp.redhat.com/pub/redhat/code/popt)
+      ])
 
 dnl Checks for header files.
 AC_PATH_X
