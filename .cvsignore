@@ -27,9 +27,7 @@ libdv*tar.gz
 libdv.la
 libdv.pc
 libdv.spec
-libtool
 ltconfig
-ltmain.sh
 mkinstalldirs
 ppmqscale
 scan_packet_headers

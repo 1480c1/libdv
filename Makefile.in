@@ -202,7 +202,8 @@ AUX_DIST = $(ac_aux_dir)/config.guess \
 
 EXTRA_DIST = bootstrap COPYRIGHT README.encoder README.dvconnect \
                             @PACKAGE@.spec @PACKAGE@.spec.in @PACKAGE@.pc @PACKAGE@.pc.in \
-							Makefile.in aclocal.m4 configure config.h.in
+							Makefile.in aclocal.m4 configure config.h.in \
+							install-sh depcomp missing config.guess config.sub
 
 MAINTAINERCLEANFILES = Makefile.in aclocal.m4 configure config.h.in \
                             stamp-h.in config.log config.status $(AUX_DIST)
