@@ -672,6 +672,18 @@ dv_get_vaux_pack (dv_decoder_t *dv, uint8_t pack_id, uint8_t *data)
 /* ---------------------------------------------------------------------------
  */
 int
+dv_get_ssyb_pack (dv_decoder_t *dv, uint8_t pack_id, uint8_t *data)
+{
+  uint8_t  id;
+  if ((id = dv -> ssyb_pack [pack_id]) == 0xff) 
+    return -1;
+  memcpy (data, dv -> ssyb_data [id], 4);
+  return 0;
+} /* dv_get_vaux_pack */
+
+/* ---------------------------------------------------------------------------
+ */
+int
 dv_frame_is_color (dv_decoder_t *dv)
 {
   uint8_t  id;

@@ -47,7 +47,7 @@ void _dv_bitstream_next_buffer(bitstream_t * bs) {
 
 void _dv_bitstream_byte_align(bitstream_t *bs) {
   //byte align the bitstream
-bs->bitsread += bs->bits_left & 7;
+  bs->bitsread += bs->bits_left & 7;
   bs->bits_left = bs->bits_left & ~7;
   if (!bs->bits_left) {
     bs->current_word = bs->next_word;

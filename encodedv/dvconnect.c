@@ -355,7 +355,7 @@ int capture_raw(const char* filename, int channel, int nbuffers,
 	if (!filename || strcmp(filename, "-") == 0) {
 		dst_fp = stdout;
 	} else {
-		dst_fp = fopen(filename, "rb");
+		dst_fp = fopen(filename, "wb");
 		if (!dst_fp) {
 			perror("fopen input file");
 			return(-1);

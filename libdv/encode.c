@@ -1491,6 +1491,7 @@ dv_encoder_new(int rem_ntsc_setup, int clamp_luma, int clamp_chroma) {
   result->rem_ntsc_setup = rem_ntsc_setup;
   result->clamp_luma = clamp_luma;
   result->clamp_chroma = clamp_chroma;
+  result->force_dct = DV_DCT_AUTO;
 
   dv_init( clamp_luma, clamp_chroma);
 
@@ -1666,6 +1667,7 @@ static void yv12_to_ycb( uint8_t **in, int isPAL, short *img_y, short *img_cr, s
  * @param out A pointer to the output buffer, which should alreayd be
  *          allocated width*height*2 bytes. The function will clear the buffer
  *          before filling it.
+ * @return -1 for failure, 0 for success
  */
 int dv_encode_full_frame(dv_encoder_t *dv_enc, uint8_t **in,
 			dv_color_space_t color_space, uint8_t *out)
@@ -1792,6 +1794,7 @@ void swab(const void*, void*, ssize_t);
  * @param frequency The sampling rate of the input must be one of 32000,
  *          44100, or 48000.
  * @param frame_buf A pointer to a DV frame
+ * @return -1 for failure, 0 for success
  * 
  * @todo handle 4 channels
  */

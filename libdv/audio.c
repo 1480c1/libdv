@@ -839,7 +839,8 @@ dv_audio_mix4ch (dv_audio_t *dv_audio, int16_t **outbufs)
     sptr = outbufs [num_ch + 2];
     for (i = k = 0; i < current_samples; ++i)
     {
-      *dptr++ = (*dptr / ch0_div) + (*sptr++ / ch1_div);
+      *dptr = (*dptr / ch0_div) + (*sptr++ / ch1_div);
+       dptr++;
     }
   }
   dv_audio -> raw_samples_this_frame [0] = dv_audio -> samples_this_frame = current_samples;

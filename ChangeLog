@@ -1,3 +1,13 @@
+2003-06-13  Dan Dennedy <dan@dennedy.org>
+	* added dv_get_ssyb_pack()
+	* encode.c: bugfix default encoding params result in poor quality due to 
+	  not setting DCT method.
+	* dvconnect.c: bugfix fopen mode on capture spotted by Marko Mäkelä.
+	* dv.c, audio.c: cleanup compilation warnings.
+
+2003-05-17  Charles Yates <charles.yates@pandora.be>
+	* parse.c: bugfix memory leak spotted by Jamie Shutler and Mike Grant.
+
 2003-01-19 Stefan Lucke <Stefan.Lucke1@epost.de>
         * 4 channel audio support for 32kHz 12bit
           default behaviour is mixing both channels (res = ch0 / 2 + ch1 / 2),
