@@ -22,7 +22,7 @@ _dv_idct_block_mmx_x86_64:
 /* void _dv_idct_88(dv_coeff_t *block) */
 	/* argument block=rdi */
 	
-	lea	 preSC(%rip), %r11
+	mov	 preSC@GOTPCREL(%rip), %r11
 
 /* 
  *	column 0: even part

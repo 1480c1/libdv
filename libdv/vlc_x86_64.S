@@ -16,28 +16,28 @@ dv_decode_vlc:
 	/* klass = dv_vlc_classes[maxbits][(bits & (dv_vlc_class_index_mask[maxbits])) >> */
 	/*         (dv_vlc_class_index_rshift[maxbits])];  */
 /*	xor  %rbp,%rbp */
-	lea  dv_vlc_class_index_mask(%rip),%r11            /* use %rip for PIC code */
+	mov  dv_vlc_class_index_mask@GOTPCREL(%rip),%r11    /* use %rip for PIC code */
  	mov  (%r11,%rbx,4),%ebp           /* int32 */      /* dv_vlc_class_index_mask[maxbits] */
 	and  %eax,%ebp                                     /* bits & */
-	lea  dv_vlc_class_index_rshift(%rip),%rcx
+	mov  dv_vlc_class_index_rshift@GOTPCREL(%rip),%rcx
 	mov  (%rcx,%rbx,4),%ecx           /* int32 */      /* dv_vlc_class_index_rshift[maxbits] */
 	sar  %cl,%ebp                                      /* >> */
-	lea  dv_vlc_classes(%rip),%rcx
+	mov  dv_vlc_classes@GOTPCREL(%rip),%rcx
 	mov  (%rcx,%rbx,8),%rcx           /* ptr */        /* dv_vlc_classes[maxbits], a pointer */
 	movsbq  (%rcx,%rbp,1),%rbp        /* int8 */       /* klass = */
 
 	/* *result = dv_vlc_lookups[klass][(bits & (dv_vlc_index_mask[klass])) >> */
 	/*           (dv_vlc_index_rshift[klass])];   */
 /*	xor  %rbx,%rbx */
-	lea  dv_vlc_index_mask(%rip),%r11
+	mov  dv_vlc_index_mask@GOTPCREL(%rip),%r11
 	mov  (%r11,%rbp,4),%ebx          /* int32 */       /* (dv_vlc_index_mask[klass]) */
 /*	xor  %rcx,%rcx */
-	lea  dv_vlc_index_rshift(%rip),%r11
+	mov  dv_vlc_index_rshift@GOTPCREL(%rip),%r11
 	mov  (%r11,%rbp,4),%ecx          /* int32 */       /* dv_vlc_index_rshift[klass] */
 	and  %eax,%ebx                                     /* bits &  */
 	sar  %cl,%ebx                                      /* >> */
 
-	lea  dv_vlc_lookups(%rip),%r11
+	mov  dv_vlc_lookups@GOTPCREL(%rip),%r11
 	mov  (%r11,%rbp,8),%rbp          /* ptr */         /* dv_vlc_lookups[klass] */
 	mov  (%rbp,%rbx,4),%ebp          /* int32 */       /* *result = */
 
@@ -57,7 +57,7 @@ dv_decode_vlc:
 	mov  %ebp,%ecx
 	sar  $8,%ecx
 	and  $0xff,%ecx                /* result->len */
-	lea  sign_mask(%rip),%rbx
+	mov  sign_mask@GOTPCREL(%rip),%rbx
 	mov  (%rbx,%rcx,4),%ebx        /* int32 */
 	and  %ebx,%eax
 	neg  %eax
@@ -109,17 +109,17 @@ __dv_decode_vlc:
 	mov  %rax,%rbp
 	and  $0xfe00,%ebp
 	sar  $9,%ebp
-	lea  dv_vlc_class_lookup5(%rip),%r11
+	mov  dv_vlc_class_lookup5@GOTPCREL(%rip),%r11
 	movsbq  (%r11,%rbp),%rbp        /* int8 klass */
 
-	lea  dv_vlc_index_mask(%rip),%rbx
+	mov  dv_vlc_index_mask@GOTPCREL(%rip),%rbx
 	mov  (%rbx,%rbp,4),%ebx         /* int32 */
-	lea  dv_vlc_index_rshift(%rip),%rcx
+	mov  dv_vlc_index_rshift@GOTPCREL(%rip),%rcx
 	mov  (%rcx,%rbp,4),%ecx         /* int32 */
 	and  %eax,%ebx
 	sar  %cl,%ebx			/* %rbx is klass */
 
-	lea  dv_vlc_lookups(%rip),%r11
+	mov  dv_vlc_lookups@GOTPCREL(%rip),%r11
 	mov  (%r11,%rbp,8),%rbp         /* ptr */
 	mov  (%rbp,%rbx,4),%ebp         /* int32 */
 
@@ -138,7 +138,7 @@ __dv_decode_vlc:
 	mov  %ebp,%ecx
 	sar  $8,%ecx
 	and  $0xff,%ecx
-	lea  sign_mask(%rip),%r11
+	mov  sign_mask@GOTPCREL(%rip),%r11
 	mov  (%r11,%rcx,4),%ecx        /* int32 */
 	and  %ecx,%eax
 	neg  %eax
@@ -253,7 +253,7 @@ readloop:
 
 	/* Attempt to use the shortcut first.  If it hits, then
 	   this vlc term has been decoded. */
-	lea	dv_vlc_class1_shortcut(%rip),%r10
+	mov	dv_vlc_class1_shortcut@GOTPCREL(%rip),%r10
 	mov	(%r10,%rcx,4),%r11d    /* record32 dv_vlc_tab_t */
 	test	$0x80,%r11d
 	
@@ -267,17 +267,17 @@ readloop:
 
 	/* %rax is bits */
 	
-	lea  dv_vlc_class_lookup5(%rip),%r10
+	mov  dv_vlc_class_lookup5@GOTPCREL(%rip),%r10
 	movsbq  (%r10,%rcx,1),%rcx     /* int8 */
 
 /*	xor  %r12,%r12 */
-	lea  dv_vlc_index_mask(%rip),%r10
+	mov  dv_vlc_index_mask@GOTPCREL(%rip),%r10
 	mov  (%r10,%rcx,4),%r12d       /* int32 */
 	
-	lea  dv_vlc_lookups(%rip),%r10
+	mov  dv_vlc_lookups@GOTPCREL(%rip),%r10
 	mov  (%r10,%rcx,8),%r11       /* ptr->record32 */
 	
-	lea  dv_vlc_index_rshift(%rip),%r10
+	mov  dv_vlc_index_rshift@GOTPCREL(%rip),%r10
 	mov  (%r10,%rcx,4),%ecx        /* int32 */
 	
 	and  %eax,%r12d
@@ -303,7 +303,7 @@ readloop:
 	mov  %r11d,%ecx
 	sar  $8,%ecx
 	and  $0xff,%ecx
-	lea  sign_mask(%rip),%r10
+	mov  sign_mask@GOTPCREL(%rip),%r10
 	mov  (%r10,%rcx,4),%ecx      /* int32 */
 	and  %ecx,%eax
 	neg  %eax
@@ -388,7 +388,8 @@ slowpath:
 	mov	%r11,%rsi        /* bits */
 	mov	%rax,%rdi        /* bits_left */
 	lea	vlc(%rip),%rdx   /* *vlc */
-	call	dv_decode_vlc
+	mov	dv_decode_vlc@GOTPCREL(%rip),%r11
+	call	*%r11
 	pop	%rdx
 	pop	%rsi
 	pop	%rdi
@@ -473,7 +474,7 @@ macloop:
 	movl	%r11d,dv_macroblock_t_eob_count(%r13) /* int32 */
 
 	/* mb->i = (seg->i + dv_super_map_vertical[m]) % (seg->isPAL?12:10); */
-	lea	dv_super_map_vertical(%rip),%r11
+	mov	dv_super_map_vertical@GOTPCREL(%rip),%r11
 	movl	(%r11,%rax,4),%r11d                     /* int32 */
 /*	xor	%rcx,%rcx */
 	movl	dv_videosegment_t_i(%r12),%ecx          /* int32 */
@@ -493,7 +494,7 @@ skarly:
 	movl	%r11d,dv_macroblock_t_i(%r13)         /* int32 */
 
 	/*  mb->j = dv_super_map_horizontal[m]; */		
-	lea	dv_super_map_horizontal(%rip),%r11
+	mov	dv_super_map_horizontal@GOTPCREL(%rip),%r11
 	movl	(%r11,%rax,4),%r11d                   /* int32 */
 	movl	%r11d,dv_macroblock_t_j(%r13)         /* int32 */
 
@@ -546,7 +547,8 @@ blkloop:
 
 	/* bl->reorder = &dv_reorder[bl->dct_mode][1]; */
 	shl	$6,%rax                          /* *64 */
-	lea	(dv_reorder+1)(%rip),%rcx
+	mov	dv_reorder@GOTPCREL(%rip),%rcx
+	add	$1,%rcx
 	add	%rcx,%rax
 	mov	%rax,dv_block_t_reorder(%r15)    /* ptr */
 
@@ -557,13 +559,13 @@ blkloop:
 	/* bl->offset= mb_start + dv_parse_bit_start[b]; */
 /*	xor	%rcx,%rcx */
 	movl	mb_start(%rip),%ecx             /* int32 */
-	lea	dv_parse_bit_start(%rip),%rax
+	mov	dv_parse_bit_start@GOTPCREL(%rip),%rax
 	mov	(%rax,%r12,4),%eax              /* int32 */
 	add	%rcx,%rax
 	movl	%eax,dv_block_t_offset(%r15)    /* int32 */
 
 	/* bl->end= mb_start + dv_parse_bit_end[b]; */
-	lea	dv_parse_bit_end(%rip),%rax
+	mov	dv_parse_bit_end@GOTPCREL(%rip),%rax
 	mov	(%rax,%r12,4),%eax            /* int32 */
 	add	%ecx,%eax
 	mov	%eax,dv_block_t_end(%r15)     /* int32 */
@@ -603,7 +605,8 @@ do_ac_pass:
 	mov	dv_videosegment_t_bs(%rdi),%rdi   /* passed in rdi was seg, now passing seg->bs */
 	mov	%r13,%rsi                         /* mb */
 	mov	%r15,%rdx                         /* bl */
-	call	dv_parse_ac_coeffs_pass0
+	mov     dv_parse_ac_coeffs_pass0@GOTPCREL(%rip),%r11
+	call	*%r11
 	pop	%rdi
 	pop	%rsi
 	pop	%rdx
@@ -635,10 +638,12 @@ done_ac:
 	mov	%rsi,%rax	            /* quality */
 	and	$DV_QUALITY_AC_MASK,%rax
 	cmp	$DV_QUALITY_AC_2,%rax
+
+	jne	done
+	mov	dv_parse_ac_coeffs@GOTPCREL(%rip),%r11
+	jmp	*%r11
 	
-	jz	dv_parse_ac_coeffs
-	
-	mov	$0,%rax
+done:	mov	$0,%rax
 	
 	ret
 

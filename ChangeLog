@@ -1,3 +1,7 @@
+2004-12-12  Dan Dennedy <dan@dennedy.org>
+	* *_x86_64.S: apply patch from Dean Kolosiek to fix linker
+	  compatibility.
+	
 2004-11-29  Charles "Buck" Krasic  <krasic@acm.org>
 	* libdv 0.104 release
 

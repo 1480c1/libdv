@@ -73,10 +73,10 @@ _dv_quant_88_inverse_x86_64:
 	/*  pq = dv_quant_shifts[qno + dv_quant_offset[class]]; */
 	mov	%rsi,%rax	/* qno */
 	mov	%rdx,%r12	/* class */
-	lea	dv_quant_offset(%rip),%rcx
+	mov	dv_quant_offset@GOTPCREL(%rip),%rcx
 	movzbq	(%rcx,%r12,1),%rcx   /* dv_quant_offset[class] */
 	add	%rcx,%rax                       /* qno + */
-	lea	dv_quant_shifts(%rip),%r11
+	mov	dv_quant_shifts@GOTPCREL(%rip),%r11
 	lea	(%r11,%rax,4),%r11	/* r11 is pq = dv_quant_shifts[...] */
 
 	/* extra = (class == 3); */
@@ -217,10 +217,10 @@ _dv_quant_x86_64:
 	mov	%rsi,%rax	/* qno */
 	mov	%rdx,%r12	/* class */
 
-	lea	dv_quant_offset(%rip),%rcx
+	mov	dv_quant_offset@GOTPCREL(%rip),%rcx
 	movzbq	(%rcx,%r12,1),%rcx
 	add	%rcx,%rax
-	lea	dv_quant_shifts(%rip),%r11
+	mov	dv_quant_shifts@GOTPCREL(%rip),%r11
 	lea	(%r11,%rax,4),%r11	/* r11 is pq */
 
 	/* extra = (class == 3); */
