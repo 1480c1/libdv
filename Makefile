@@ -3,7 +3,7 @@ CPPFLAGS += -I. $(shell glib-config --cflags) $(shell gtk-config --cflags) $(she
 #CFLAGS += -mcpu=i686 -g -pg -ax -O6 -funroll-all-loops -Wall  $(CPPFLAGS) # for line by line profiling with gprof
 #CFLAGS += -mcpu=i686 -s -O6 -funroll-all-loops -Wall  $(CPPFLAGS) # for maximum speed
 CFLAGS += -mcpu=i686 -g -O -fstrict-aliasing -Wall  $(CPPFLAGS) # for debugging
-LDFLAGS += $(shell glib-config --libs) $(shell gtk-config --libs) $(shell sdl-config --libs) -lm
+LDFLAGS += $(shell glib-config --libs) $(shell gtk-config --libs) $(shell sdl-config --libs) -lm -lXv
 
 CPPFLAGS += -DUSE_MMX_ASM=1 -DHAVE_XV40x=1 -DHAVE_GTK=1 -DHAVE_SDL=1
 asm = vlc_x86.S quant_x86.S idct_block_mmx.S 
