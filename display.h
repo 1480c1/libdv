@@ -27,7 +27,7 @@
 #ifndef __DISPLAY_H__
 #define __DISPLAY_H__
 
-#ifdef HAVE_XV40x
+#if HAVE_XV40x
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
@@ -35,12 +35,12 @@
 #include <X11/extensions/Xvlib.h>
 #endif // HAVE_XV40x
 
-#ifdef HAVE_SDL
+#if HAVE_SDL
 #include <SDL/SDL.h>
 #include <SDL/SDL_syswm.h>
 #endif // HAVE_SDL
 
-#ifdef HAVE_GTK
+#if HAVE_GTK
 #include <gtk/gtk.h>
 #endif
 
@@ -68,7 +68,7 @@ typedef struct {
   guint32           len; 
   guint32           format;   /* fourcc code for YUV modes */
 
-#ifdef HAVE_XV40x
+#if HAVE_XV40x
   /* -----------------------------------------------------------
    * Xv specific members
    */
@@ -83,14 +83,14 @@ typedef struct {
   XvImage          *xv_image;
 #endif
 
-#ifdef HAVE_GTK
+#if HAVE_GTK
   /* -----------------------------------------------------------
    * GDK specific members
    */
   GtkWidget	   *window, *image;
 #endif
 
-#ifdef HAVE_SDL
+#if HAVE_SDL
   SDL_Surface* sdl_screen;
   SDL_Overlay *overlay;
   SDL_Rect rect;
