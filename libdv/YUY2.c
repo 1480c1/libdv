@@ -46,11 +46,23 @@ static unsigned char	real_ylut_setup[768],  *ylut_setup;
 /* Define some constants used in MMX range mapping and clamping logic */
 static mmx_t		mmx_0x0010s = (mmx_t) 0x0010001000100010LL,
 			mmx_0x0080s = (mmx_t) 0x0080008000800080LL,
+			mmx_0x8080s = (mmx_t) 0x8080808080808080LL,
 			mmx_0x7f7fs = (mmx_t) 0x7f7f7f7f7f7f7f7fLL,
 			mmx_0x7f00s = (mmx_t) 0x7f007f007f007f00LL,
-			mmx_0x7f24s = (mmx_t) 0x7f247f247f247f24LL,
-			mmx_0x7f94s = (mmx_t) 0x7f947f947f947f94LL,
-			mmx_0xff00s = (mmx_t) 0xff00ff00ff00ff00LL;
+			mmx_0x7f24s = (mmx_t) 0x7f227f227f227f22LL,
+			mmx_0x7f94s = (mmx_t) 0x7f927f927f927f92LL,
+			mmx_0xff00s = (mmx_t) 0xff00ff00ff00ff00LL,
+			mmx_zero = (mmx_t) 0x0000000000000000LL,
+			mmx_cch  = (mmx_t) 0x0f000f000f000f00LL,
+			mmx_ccl  = (mmx_t) 0x1f001f001f001f00LL,
+			mmx_ccb  = (mmx_t) 0x1000100010001000LL,
+			mmx_clh  = (mmx_t) 0x0014001400140014LL,
+			mmx_cll  = (mmx_t) 0x0024002400240024LL,
+			mmx_clb  = (mmx_t) 0x0010001000100010LL,
+			mmx_cbh  = (mmx_t) 0x0f140f140f140f14LL,
+			mmx_cbl  = (mmx_t) 0x1f241f241f241f24LL,
+			mmx_cbb  = (mmx_t) 0x1010101010101010LL;
+
 #endif // ARCH_X86
 
 void 
@@ -460,10 +472,8 @@ dv_mb411_right_YUY2_mmx(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
   emms();
 } /* dv_mb411_right_YUY2_mmx */
 
-
 /* ----------------------------------------------------------------------------
  */
-/* TODO: chroma clamping */
 void
 dv_mb420_YUY2_mmx (dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
                    int clamp_luma, int clamp_chroma) {
@@ -483,12 +493,22 @@ dv_mb420_YUY2_mmx (dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
   inc_l2 = pitches[0];
   inc_l4 = pitches[0]*2;
 
-  if (clamp_luma == TRUE) {
-    movq_m2r (mmx_0x7f94s, mm6); // hi clamp
-    movq_m2r (mmx_0x7f24s, mm5); // lo clamp
+  if (clamp_luma && clamp_chroma) {
+    movq_m2r (mmx_cbh, mm5);
+    movq_m2r (mmx_cbl, mm6);
+    movq_m2r (mmx_cbb, mm7);
+  } else if (clamp_luma) {
+    movq_m2r (mmx_clh, mm5);
+    movq_m2r (mmx_cll, mm6);
+    movq_m2r (mmx_clb, mm7);
+  } else if (clamp_chroma) {
+    movq_m2r (mmx_cch, mm5);
+    movq_m2r (mmx_ccl, mm6);
+    movq_m2r (mmx_ccb, mm7);
   } else {
-    movq_m2r (mmx_0x7f7fs, mm6); // no clamp
-    movq_m2r (mmx_0x7f00s, mm5); // no clamp
+    movq_m2r (mmx_zero, mm5);
+    movq_m2r (mmx_zero, mm6);
+    movq_m2r (mmx_zero, mm7);
   }
 
   for (j = 0; j < 4; j += 2) { // Two rows of blocks j, j+1
@@ -500,61 +520,59 @@ dv_mb420_YUY2_mmx (dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
 
 	/* -------------------------------------------------------------------
 	 */
-	movq_m2r (*cb_frame, mm2);
-	paddw_m2r (mmx_0x0080s, mm2);
+	movq_m2r (*cb_frame, mm2);	/* mm2 = b1 b2 b3 b4	*/
+	movq_m2r (*cr_frame, mm3);	/* mm3 = r1 r2 r3 r4	*/
+	movq_r2r (mm2, mm4);		/* mm4 = b1 b2 b3 b4	*/
+	punpcklwd_r2r (mm3, mm4);	/* mm4 = b3 r3 b4 r4	*/
 
-	psllw_i2r (8, mm2);
-	movq_m2r (*cr_frame, mm3);
+	movq_m2r (Ytmp0[0], mm0);	/* mm0 = y1 y2 y3 y4	*/
+	movq_r2r (mm0, mm1);
 
-	paddw_m2r (mmx_0x0080s, mm3);
-	psllw_i2r (8, mm3);
+	punpcklwd_r2r (mm4, mm0);	/* mm0 = b4 y3 r4 y4	*/
+	punpckhwd_r2r (mm4, mm1);	/* mm1 = b3 y1 r3 y2	*/
 
-	movq_r2r (mm2, mm4);
-	punpcklwd_r2r (mm3, mm4);
-
-	/* -------------------------------------------------------------------
-	 */
-	movq_m2r (Ytmp0[0], mm0);
-	paddsw_r2r (mm6, mm0);
-	psubusw_r2r (mm5, mm0);
-	if (clamp_luma == TRUE)
-	  paddw_m2r (mmx_0x0010s, mm0);
-	por_r2r (mm4, mm0);
-
-	movq_m2r (Ytmp0[8], mm1);
-	paddsw_r2r (mm6, mm1);
-
+	packsswb_r2r (mm1, mm0);	/* mm0 = b3 y1 r3 y2 b4 y3 r4 y4	*/
+	paddb_m2r (mmx_0x8080s, mm0);
+	paddusb_r2r (mm5, mm0);		/* clamp high		*/
+	psubusb_r2r (mm6, mm0);		/* clamp low		*/
+	paddusb_r2r (mm7, mm0);		/* to black level	*/
 	movq_r2m (mm0, pwyuv0[0]);
 
-	psubusw_r2r (mm5, mm1);
-	if (clamp_luma == TRUE)
-	  paddw_m2r (mmx_0x0010s, mm1);
-	por_r2r (mm4, mm1);
+	movq_m2r (Ytmp0[8], mm0);
+	movq_r2r (mm0, mm1);
 
-	movq_r2m (mm1, pwyuv1[0]);
+	punpcklwd_r2r (mm4, mm0);
+	punpckhwd_r2r (mm4, mm1);
+	packsswb_r2r (mm1, mm0);
+	paddb_m2r (mmx_0x8080s, mm0);
+	paddusb_r2r (mm5, mm0);		/* clamp high		*/
+	psubusb_r2r (mm6, mm0);		/* clamp low		*/
+	paddusb_r2r (mm7, mm0);		/* to black level	*/
+	movq_r2m (mm0, pwyuv1[0]);
 
 	movq_r2r (mm2, mm4);
-
 	punpckhwd_r2r (mm3, mm4);
-
 	movq_m2r (Ytmp0[4], mm0);
-	paddsw_r2r (mm6, mm0);
-	psubusw_r2r (mm5, mm0);
-	if (clamp_luma == TRUE)
-	  paddw_m2r (mmx_0x0010s, mm0);
-	por_r2r (mm4, mm0);
-
-	movq_m2r (Ytmp0[12], mm1);
-	paddsw_r2r (mm6, mm1);
-
+	movq_r2r (mm0, mm1);
+	punpcklwd_r2r (mm4, mm0);
+	punpckhwd_r2r (mm4, mm1);
+	packsswb_r2r (mm1, mm0);
+	paddb_m2r (mmx_0x8080s, mm0);
+	paddusb_r2r (mm5, mm0);		/* clamp high		*/
+	psubusb_r2r (mm6, mm0);		/* clamp low		*/
+	paddusb_r2r (mm7, mm0);		/* to black level	*/
 	movq_r2m (mm0, pwyuv0[8]);
 
-	psubusw_r2r (mm5, mm1);
-	if (clamp_luma == TRUE)
-	  paddw_m2r (mmx_0x0010s, mm1);
-	por_r2r (mm4, mm1);
-
-	movq_r2m (mm1, pwyuv1[8]);
+	movq_m2r (Ytmp0[12], mm0);
+	movq_r2r (mm0, mm1);
+	punpcklwd_r2r (mm4, mm0);
+	punpckhwd_r2r (mm4, mm1);
+	packsswb_r2r (mm1, mm0);
+	paddb_m2r (mmx_0x8080s, mm0);
+	paddusb_r2r (mm5, mm0);		/* clamp high		*/
+	psubusb_r2r (mm6, mm0);		/* clamp low		*/
+	paddusb_r2r (mm7, mm0);		/* to black level	*/
+	movq_r2m (mm0, pwyuv1[8]);
 
 	pwyuv0 += 16;
 	pwyuv1 += 16;
@@ -567,7 +585,91 @@ dv_mb420_YUY2_mmx (dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
   }
   emms ();
 }
+/* ----------------------------------------------------------------------------
+ */
+void
+dv_mb420_YUY2_hh_mmx (dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
+                   int clamp_luma, int clamp_chroma) {
+    dv_coeff_t		*Y [4], *Ytmp0, *cr_frame, *cb_frame;
+    unsigned char	*pyuv,
+			*pwyuv0;
+    int			i, j, row, inc_l2;
 
+  pyuv = pixels[0] + (mb->x * 2) + (mb->y * pitches[0]) / 2;
+
+  Y [0] = mb->b[0].coeffs;
+  Y [1] = mb->b[1].coeffs;
+  Y [2] = mb->b[2].coeffs;
+  Y [3] = mb->b[3].coeffs;
+  cr_frame = mb->b[4].coeffs;
+  cb_frame = mb->b[5].coeffs;
+  inc_l2 = pitches[0];
+
+  if (clamp_luma && clamp_chroma) {
+    movq_m2r (mmx_cbh, mm5);
+    movq_m2r (mmx_cbl, mm6);
+    movq_m2r (mmx_cbb, mm7);
+  } else if (clamp_luma) {
+    movq_m2r (mmx_clh, mm5);
+    movq_m2r (mmx_cll, mm6);
+    movq_m2r (mmx_clb, mm7);
+  } else if (clamp_chroma) {
+    movq_m2r (mmx_cch, mm5);
+    movq_m2r (mmx_ccl, mm6);
+    movq_m2r (mmx_ccb, mm7);
+  } else {
+    movq_m2r (mmx_zero, mm5);
+    movq_m2r (mmx_zero, mm6);
+    movq_m2r (mmx_zero, mm7);
+  }
+
+  for (j = 0; j < 4; j += 2) { // Two rows of blocks j, j+1
+    for (row = 0; row < 8; row+=2) { // 4 pairs of two rows
+      pwyuv0 = pyuv;
+      for (i = 0; i < 2; ++i) { // Two columns of blocks
+        Ytmp0 = Y[j + i];
+
+	/* -------------------------------------------------------------------
+	 */
+	movq_m2r (*cb_frame, mm2);	/* mm2 = b1 b2 b3 b4	*/
+	movq_m2r (*cr_frame, mm3);	/* mm3 = r1 r2 r3 r4	*/
+	movq_r2r (mm2, mm4);		/* mm4 = b1 b2 b3 b4	*/
+	punpcklwd_r2r (mm3, mm4);	/* mm4 = b3 r3 b4 r4	*/
+
+	movq_m2r (Ytmp0[0], mm0);	/* mm0 = y1 y2 y3 y4	*/
+	movq_r2r (mm0, mm1);
+
+	punpcklwd_r2r (mm4, mm0);	/* mm0 = b4 y3 r4 y4	*/
+	punpckhwd_r2r (mm4, mm1);	/* mm1 = b3 y1 r3 y2	*/
+
+	packsswb_r2r (mm1, mm0);	/* mm4 = b3 y1 r3 y2 b4 y3 r4 y4	*/
+	paddb_m2r (mmx_0x8080s, mm0);
+	paddusb_r2r (mm5, mm0);		/* clamp high		*/
+	psubusb_r2r (mm6, mm0);		/* clamp low		*/
+	paddusb_r2r (mm7, mm0);		/* to black level	*/
+	movq_r2m (mm0, pwyuv0[0]);
+
+	movq_r2r (mm2, mm4);
+	punpckhwd_r2r (mm3, mm4);
+	movq_m2r (Ytmp0[4], mm0);
+	movq_r2r (mm0, mm1);
+	punpcklwd_r2r (mm4, mm0);	/* mm4 = b4 y3 r4 y4	*/
+	punpckhwd_r2r (mm4, mm1);	/* mm5 = b3 y1 r3 y2	*/
+	packsswb_r2r (mm1, mm0);	/* mm4 = b3 y1 r3 y2 b4 y3 r4 y4	*/
+	paddb_m2r (mmx_0x8080s, mm0);
+	paddusb_r2r (mm5, mm0);		/* clamp high		*/
+	psubusb_r2r (mm6, mm0);		/* clamp low		*/
+	paddusb_r2r (mm7, mm0);		/* to black level	*/
+	movq_r2m (mm0, pwyuv0[8]);
+
+	pwyuv0 += 16;
+        cb_frame += 4;
+	cr_frame += 4;
+        Y[j + i] = Ytmp0 + 16;
+      }
+      pyuv += inc_l2;
+    }
+  }
+  emms ();
+}
 #endif // ARCH_X86
-
-
