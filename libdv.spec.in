@@ -25,9 +25,12 @@ was developed according to the official standards for DV video, IEC
 %doc ChangeLog COPYING README README.encoder AUTHORS NEWS INSTALL TODO COPYRIGHT 
 %{_mandir}/man1/playdv.1.gz
 %{_mandir}/man1/encodedv.1.gz
+%{_mandir}/man1/dubdv.1.gz
+%{_mandir}/man1/dvconnect.1.gz
 %{_bindir}/playdv
 %{_bindir}/encodedv
 %{_bindir}/dvconnect
+%{_bindir}/dubdv
 %{_libdir}/libdv.so*
 
 

@@ -1,3 +1,7 @@
+2004-01-16  Charles 'Buck' Krasic  <krasic@acm.org>
+
+	* libdv 0.100 release
+
 2004-01-16  Dan Dennedy <dan@dennedy.org>
 	* libdv/dv.c: bugfix smpte314m should always indicate not wide.
 
