@@ -24,7 +24,7 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#define BENCHMARK_MODE 1
+#define BENCHMARK_MODE 0
 #if BENCHMARK_MODE
 #define GTKDISPLAY 0
 #else
