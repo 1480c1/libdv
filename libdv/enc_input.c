@@ -357,7 +357,7 @@ static void ppm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 	dv_block_t* bl = mb->b;
 
 #if !ARCH_X86
-	if (isPAL || mb->x == DV_WIDTH- 16) { /* PAL or rightmost NTSC block */
+	if (isPAL) { /* PAL */
 		int i,j;
 		for (j = 0; j < 8; j++) {
 			for (i = 0; i < 8; i++) {
@@ -380,6 +380,43 @@ static void ppm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 					      + x / 2 + i]
 					+ img_cb[(y + 2*j + 1) * DV_WIDTH/2
 						+ x / 2 + i]) >> 1;
+			}
+		}
+	} else if (x == DV_WIDTH- 16) { /* rightmost NTSC block */
+		int i,j;
+		for (j = 0; j < 8; j++) {
+			for (i = 0; i < 8; i++) {
+				bl[0].coeffs[8 * i + j] = 
+					img_y[(y + j) * DV_WIDTH +  x + i];
+				bl[1].coeffs[8 * i + j] = 
+					img_y[(y + j) * DV_WIDTH +  x + 8 + i];
+				bl[2].coeffs[8 * i + j] = 
+					img_y[(y + 8 + j) * DV_WIDTH + x + i];
+				bl[3].coeffs[8 * i + j] = 
+					img_y[(y + 8 + j) * DV_WIDTH 
+					     + x + 8 + i];
+			}
+			for (i = 0; i < 4; i++) {
+				bl[4].coeffs[8 * i + j] = 
+					(img_cr[(y + j) * DV_WIDTH/2
+					       + x / 2 + i*2]
+					 + img_cr[(y + j) * DV_WIDTH/2 
+						 + x / 2 + 1 + i*2]) >> 1;
+				bl[5].coeffs[8 * i + j] = 
+					(img_cb[(y + j) * DV_WIDTH/2
+					       + x / 2 + i*2]
+					 + img_cb[(y + j) * DV_WIDTH/2 
+						 + x / 2 + 1 + i*2]) >> 1;
+				bl[4].coeffs[8 * (i + 4) + j] = 
+					(img_cr[(y + j + 8) * DV_WIDTH/2
+					       + x / 2 + i*2]
+					 + img_cr[(y + j + 8) * DV_WIDTH/2 
+						 + x / 2 + 1 + i*2]) >> 1;
+				bl[5].coeffs[8 * (i + 4) + j] = 
+					(img_cb[(y + j + 8) * DV_WIDTH/2
+					       + x / 2 + i*2]
+					 + img_cb[(y + j + 8) * DV_WIDTH/2 
+						 + x / 2 + 1 + i*2]) >> 1;
 			}
 		}
 	} else {                        /* NTSC */
@@ -420,7 +457,7 @@ static void ppm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 		}
 	}
 #else
-	if (isPAL || mb->x == DV_WIDTH- 16) { /* PAL or rightmost NTSC block */
+	if (isPAL) { /* PAL */
 		short* start_y = img_y + y * DV_WIDTH + x;
 		ppm_copy_y_block_mmx(bl[0].coeffs, start_y);
 		ppm_copy_y_block_mmx(bl[1].coeffs, start_y + 8);
@@ -430,7 +467,41 @@ static void ppm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 					 img_cr+y * DV_WIDTH/2+ x/2);
 		ppm_copy_pal_c_block_mmx(bl[5].coeffs,
 					 img_cb+y * DV_WIDTH/2+ x/2);
-	} else {                              /* NTSC */
+	} else if (mb->x == DV_WIDTH- 16) { /* rightmost NTSC block */
+		short* start_y = img_y + y * DV_WIDTH + x;
+		int i,j;
+
+		ppm_copy_y_block_mmx(bl[0].coeffs, start_y);
+		ppm_copy_y_block_mmx(bl[1].coeffs, start_y + 8);
+		ppm_copy_y_block_mmx(bl[2].coeffs, start_y + 8 * DV_WIDTH);
+		ppm_copy_y_block_mmx(bl[3].coeffs, start_y + 8 * DV_WIDTH + 8);
+
+		for (j = 0; j < 8; j++) {
+			for (i = 0; i < 4; i++) {
+				bl[4].coeffs[8 * j + i] = 
+					(img_cr[(y + j) * DV_WIDTH/2
+					       + x / 2 + i*2]
+					 + img_cr[(y + j) * DV_WIDTH/2 
+						 + x / 2 + 1 + i*2]) >> 1;
+				bl[5].coeffs[8 * j + i] = 
+					(img_cb[(y + j) * DV_WIDTH/2
+					       + x / 2 + i*2]
+					 + img_cb[(y + j) * DV_WIDTH/2 
+						 + x / 2 + 1 + i*2]) >> 1;
+				bl[4].coeffs[8 * j + i + 4] = 
+					(img_cr[(y + j + 8) * DV_WIDTH/2
+					       + x / 2 + i*2]
+					 + img_cr[(y + j + 8) * DV_WIDTH/2 
+						 + x / 2 + 1 + i*2]) >> 1;
+				bl[5].coeffs[8 * j + i + 4] = 
+					(img_cb[(y + j + 8) * DV_WIDTH/2
+					       + x / 2 + i*2]
+					 + img_cb[(y + j + 8) * DV_WIDTH/2 
+						 + x / 2 + 1 + i*2]) >> 1;
+			}
+		}
+
+	} else { /* NTSC */
 		short* start_y = img_y + y * DV_WIDTH + x;
 		ppm_copy_y_block_mmx(bl[0].coeffs, start_y);
 		ppm_copy_y_block_mmx(bl[1].coeffs, start_y + 8);
@@ -544,6 +615,24 @@ static int pgm_skip(const char* filename, int * isPAL)
 	return rval;
 }
 
+static inline short pgm_get_cr_ntsc(int y, int x)
+{
+	return ((((short) real_readbuf[DV_NTSC_HEIGHT * DV_WIDTH+ DV_WIDTH/2
+				      + y * DV_WIDTH + x]) - 128)
+		+ (((short) real_readbuf[DV_NTSC_HEIGHT * DV_WIDTH+DV_WIDTH/2
+					+ y * DV_WIDTH + x + 1]) - 128))
+						<< (DCT_YUV_PRECISION - 1);
+}
+
+static inline short pgm_get_cb_ntsc(int y, int x)
+{
+	return ((((short) real_readbuf[DV_NTSC_HEIGHT * DV_WIDTH
+				      + y * DV_WIDTH + x]) - 128)
+		+ (((short) real_readbuf[DV_NTSC_HEIGHT * DV_WIDTH
+					+ y * DV_WIDTH + x + 1]) - 128))
+						<< (DCT_YUV_PRECISION - 1);
+}
+
 #if !ARCH_X86
 static inline short pgm_get_y(int y, int x)
 {
@@ -566,24 +655,6 @@ static inline short pgm_get_cb_pal(int y, int x)
 
 }
 
-static inline short pgm_get_cr_ntsc(int y, int x)
-{
-	return ((((short) real_readbuf[DV_NTSC_HEIGHT * DV_WIDTH+ DV_WIDTH/2
-				      + y * DV_WIDTH + x]) - 128)
-		+ (((short) real_readbuf[DV_NTSC_HEIGHT * DV_WIDTH+DV_WIDTH/2
-					+ y * DV_WIDTH + x + 1]) - 128))
-						<< (DCT_YUV_PRECISION - 1);
-}
-
-static inline short pgm_get_cb_ntsc(int y, int x)
-{
-	return ((((short) real_readbuf[DV_NTSC_HEIGHT * DV_WIDTH
-				      + y * DV_WIDTH + x]) - 128)
-		+ (((short) real_readbuf[DV_NTSC_HEIGHT * DV_WIDTH
-					+ y * DV_WIDTH + x + 1]) - 128))
-						<< (DCT_YUV_PRECISION - 1);
-}
-
 #else
 extern void pgm_copy_y_block_mmx(short * dst, unsigned char * src);
 extern void pgm_copy_pal_c_block_mmx(short * dst, unsigned char * src);
@@ -596,7 +667,7 @@ static void pgm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 	int x = mb->x;
 	dv_block_t* bl = mb->b;
 #if !ARCH_X86
-	if (isPAL || mb->x == DV_WIDTH- 16) { /* PAL or rightmost NTSC block */
+	if (isPAL) { /* PAL */
 		int i,j;
 		for (j = 0; j < 8; j++) {
 			for (i = 0; i < 8; i++) {
@@ -610,22 +681,46 @@ static void pgm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 					pgm_get_cb_pal(y/2+j, x/2+i);
 			}
 		}
-	} else {                        /* NTSC */
+	} else if (x == DV_WIDTH- 16) { /* rightmost NTSC block */
 		int i,j;
-		for (i = 0; i < 8; i++) {
-			for (j = 0; j < 8; j++) {
+		for (j = 0; j < 8; j++) {
+			for (i = 0; i < 8; i++) {
+				bl[0].coeffs[8*i + j] = pgm_get_y(y+j,x+i);
+				bl[1].coeffs[8*i + j] = pgm_get_y(y+j,x+8+i);
+				bl[2].coeffs[8*i + j] = pgm_get_y(y+8+j,x+i);
+				bl[3].coeffs[8*i + j] = pgm_get_y(y+8+j,x+8+i);
+			}
+			for (i = 0; i < 4; i++) {
+				bl[4].coeffs[8*j + i*2] = 
+					bl[4].coeffs[8*j + i*2 + 1] = 
+					pgm_get_cr_ntsc(y/2 + j, x/2 + i * 2);
+				bl[5].coeffs[8*j + i*2] = 
+					bl[5].coeffs[8*j + i*2 + 1] = 
+					pgm_get_cb_ntsc(y/2 + j, x/2 + i * 2);
+				bl[4].coeffs[8*j + (i+4)*2] = 
+					bl[4].coeffs[8*j + (i+4)*2 + 1] = 
+					pgm_get_cr_ntsc(y/2 + j +8, x/2 + i * 2);
+				bl[5].coeffs[8*j + (i+4)*2] = 
+					bl[5].coeffs[8*j + (i+4)*2 + 1] = 
+					pgm_get_cb_ntsc(y/2 + j +8, x/2 + i * 2);
+			}
+		}
+	} else { /* NTSC */
+		int i,j;
+		for (j = 0; j < 8; j++) {
+			for (i = 0; i < 8; i++) {
 				bl[0].coeffs[8*i + j] = pgm_get_y(y+j,x+i);
 				bl[1].coeffs[8*i + j] = pgm_get_y(y+j,x+8+i);
 				bl[2].coeffs[8*i + j] = pgm_get_y(y+j,x+16+i);
 				bl[3].coeffs[8*i + j] = pgm_get_y(y+j,x+24+i);
 			}
-			for (j = 0; j < 4; j++) {
-				bl[4].coeffs[8*i + j*2] = 
-					bl[4].coeffs[8*i + j*2 + 1] = 
-					pgm_get_cr_ntsc(y + j, x/2 + i * 2);
-				bl[5].coeffs[8*i + j*2] = 
-					bl[5].coeffs[8*i + j*2 + 1] = 
-					pgm_get_cb_ntsc(y + j, x/2 + i * 2);
+			for (i = 0; i < 4; i++) {
+				bl[4].coeffs[8*j + i*2] = 
+					bl[4].coeffs[8*j + i*2 + 1] = 
+					pgm_get_cr_ntsc(y/2 + i, x/2 + j * 2);
+				bl[5].coeffs[8*j + i*2] = 
+					bl[5].coeffs[8*j + i*2 + 1] = 
+					pgm_get_cb_ntsc(y/2 + i, x/2 + j * 2);
 			}
 		}
 	}
@@ -642,14 +737,12 @@ static void pgm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 		}
 	}
 #else
-	if (isPAL || mb->x == DV_WIDTH- 16) { /* PAL or rightmost NTSC block */
+	if (isPAL) { /* PAL */
 		unsigned char* start_y = real_readbuf + y * DV_WIDTH + x;
 		unsigned char* img_cr = real_readbuf 
-			+ (isPAL ? (DV_WIDTH * DV_PAL_HEIGHT)
-			   : (DV_WIDTH * DV_NTSC_HEIGHT)) + DV_WIDTH / 2;
+			+ DV_WIDTH * DV_PAL_HEIGHT + DV_WIDTH / 2;
 		unsigned char* img_cb = real_readbuf 
-			+ (isPAL ? (DV_WIDTH * DV_PAL_HEIGHT) 
-			   : (DV_WIDTH * DV_NTSC_HEIGHT));
+			+ DV_WIDTH * DV_PAL_HEIGHT;
 
 		pgm_copy_y_block_mmx(bl[0].coeffs, start_y);
 		pgm_copy_y_block_mmx(bl[1].coeffs, start_y + 8);
@@ -659,6 +752,39 @@ static void pgm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 					 img_cr + y * DV_WIDTH / 2 + x / 2);
 		pgm_copy_pal_c_block_mmx(bl[5].coeffs,
 					 img_cb + y * DV_WIDTH / 2 + x / 2);
+	} else if (x == DV_WIDTH- 16) {  /* rightmost NTSC block */
+		unsigned char* start_y = real_readbuf + y * DV_WIDTH + x;
+#if 0
+		unsigned char* img_cr = real_readbuf 
+			+ (isPAL ? (DV_WIDTH * DV_PAL_HEIGHT)
+			   : (DV_WIDTH * DV_NTSC_HEIGHT)) + DV_WIDTH / 2;
+		unsigned char* img_cb = real_readbuf 
+			+ (isPAL ? (DV_WIDTH * DV_PAL_HEIGHT) 
+			   : (DV_WIDTH * DV_NTSC_HEIGHT));
+#endif
+		int i,j;
+
+		pgm_copy_y_block_mmx(bl[0].coeffs, start_y);
+		pgm_copy_y_block_mmx(bl[1].coeffs, start_y + 8);
+		pgm_copy_y_block_mmx(bl[2].coeffs, start_y + 8 * DV_WIDTH);
+		pgm_copy_y_block_mmx(bl[3].coeffs, start_y + 8 * DV_WIDTH + 8);
+
+		for (j = 0; j < 8; j++) {
+			for (i = 0; i < 4; i++) {
+				bl[4].coeffs[8*j + i*2] = 
+					bl[4].coeffs[8*j + i*2 + 1] = 
+					pgm_get_cr_ntsc(y/2 + j, x/2 + i * 2);
+				bl[5].coeffs[8*j + i*2] = 
+					bl[5].coeffs[8*j + i*2 + 1] = 
+					pgm_get_cb_ntsc(y/2 + j, x/2 + i * 2);
+				bl[4].coeffs[8*j + (i+4)*2] = 
+					bl[4].coeffs[8*j + (i+4)*2 + 1] = 
+					pgm_get_cr_ntsc(y/2 + j +8, x/2 + i * 2);
+				bl[5].coeffs[8*j + (i+4)*2] = 
+					bl[5].coeffs[8*j + (i+4)*2 + 1] = 
+					pgm_get_cb_ntsc(y/2 + j +8, x/2 + i * 2);
+			}
+		}
 	} else {                              /* NTSC */
 		unsigned char* start_y = real_readbuf + y * DV_WIDTH + x;
 		unsigned char* img_cr = real_readbuf 
@@ -778,6 +904,24 @@ static int video_load(const char* filename, int * isPAL)
 	return 0;
 }
 
+static inline short video_get_cr_ntsc(int y, int x)
+{
+	return ((((short) real_readbuf[DV_NTSC_HEIGHT * DV_WIDTH
+				      + y * DV_WIDTH + x]) - 128)
+		+ (((short) real_readbuf[DV_NTSC_HEIGHT * DV_WIDTH
+					+ y * DV_WIDTH + x + 1]) - 128))
+						<< (DCT_YUV_PRECISION - 1);
+}
+
+static inline short video_get_cb_ntsc(int y, int x)
+{
+	return ((((short) real_readbuf[DV_NTSC_HEIGHT * DV_WIDTH*3/2
+				      + y * DV_WIDTH + x]) - 128)
+		+ (((short) real_readbuf[DV_NTSC_HEIGHT * DV_WIDTH*3/2
+					+ y * DV_WIDTH + x + 1]) - 128))
+						<< (DCT_YUV_PRECISION - 1);
+}
+
 #if !ARCH_X86
 static inline short video_get_y(int y, int x)
 {
@@ -803,24 +947,6 @@ static inline short video_get_cb_pal(int y, int x)
 		   - 128)) << (DCT_YUV_PRECISION - 1);
 }
 
-static inline short video_get_cr_ntsc(int y, int x)
-{
-	return ((((short) real_readbuf[DV_NTSC_HEIGHT * DV_WIDTH
-				      + y * DV_WIDTH + x]) - 128)
-		+ (((short) real_readbuf[DV_NTSC_HEIGHT * DV_WIDTH
-					+ y * DV_WIDTH + x + 1]) - 128))
-						<< (DCT_YUV_PRECISION - 1);
-}
-
-static inline short video_get_cb_ntsc(int y, int x)
-{
-	return ((((short) real_readbuf[DV_NTSC_HEIGHT * DV_WIDTH*3/2
-				      + y * DV_WIDTH + x]) - 128)
-		+ (((short) real_readbuf[DV_NTSC_HEIGHT * DV_WIDTH*3/2
-					+ y * DV_WIDTH + x + 1]) - 128))
-						<< (DCT_YUV_PRECISION - 1);
-}
-
 
 #else
 extern void video_copy_y_block_mmx(short * dst, unsigned char * src);
@@ -835,7 +961,7 @@ static void video_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 	int x = mb->x;
 	dv_block_t* bl = mb->b;
 #if !ARCH_X86
-	if (isPAL || mb->x == DV_WIDTH- 16) { /* PAL or rightmost NTSC block */
+	if (isPAL) { /* PAL */
 		int i,j;
 		for (j = 0; j < 8; j++) {
 			for (i = 0; i < 8; i++) {
@@ -849,6 +975,27 @@ static void video_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 					video_get_cb_pal(y/2+j, x/2+i);
 			}
 		}
+	} else if ( x == DV_WIDTH- 16) { /* rightmost NTSC block */
+		int i,j;
+		for (j = 0; j < 8; j++) {
+			for (i = 0; i < 8; i++) {
+				bl[0].coeffs[8*i + j] = video_get_y(y+j,x+i);
+				bl[1].coeffs[8*i + j] = video_get_y(y+j,x+8+i);
+				bl[2].coeffs[8*i + j] = video_get_y(y+8+j,x+i);
+				bl[3].coeffs[8*i + j] = video_get_y(y+8+j,x+8+i);
+			}
+			for (i = 0; i < 4; i++) {
+				bl[4].coeffs[8*i + j] = 
+					video_get_cr_ntsc(y/2+j, x/2+i);
+				bl[5].coeffs[8*i + j] = 
+					video_get_cb_ntsc(y/2+j, x/2+i);
+				bl[4].coeffs[8*(i+4) + j] = 
+					video_get_cr_ntsc(y/2+j+8, x/2+i);
+				bl[5].coeffs[8*(i+4) + j] = 
+					video_get_cb_ntsc(y/2+j+8, x/2+i);
+			}
+		}
+		
 	} else {                        /* NTSC */
 		int i,j;
 		for (i = 0; i < 8; i++) {
@@ -877,7 +1024,7 @@ static void video_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 		}
 	}
 #else
-	if (isPAL || mb->x == DV_WIDTH- 16) { /* PAL or rightmost NTSC block */
+	if (isPAL) { /* PAL */
 		unsigned char* start_y = real_readbuf + y * DV_WIDTH + x;
 		unsigned char* img_cr = real_readbuf 
 			+ (isPAL ? DV_WIDTH * DV_PAL_HEIGHT * 3/2  
@@ -894,6 +1041,36 @@ static void video_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 					 img_cr + y * DV_WIDTH / 2 + x / 2);
 		video_copy_pal_c_block_mmx(bl[5].coeffs,
 					 img_cb + y * DV_WIDTH / 2 + x / 2);
+	} else if (x == DV_WIDTH- 16) {       /* rightmost NTSC block */
+		unsigned char* start_y = real_readbuf + y * DV_WIDTH + x;
+#if 0
+		unsigned char* img_cr = real_readbuf 
+			+ (isPAL ? DV_WIDTH * DV_PAL_HEIGHT * 3/2  
+			   : DV_WIDTH * DV_NTSC_HEIGHT * 3/2);
+		unsigned char* img_cb = real_readbuf 
+			+ (isPAL ? DV_WIDTH * DV_PAL_HEIGHT
+			   : DV_WIDTH * DV_NTSC_HEIGHT);
+#endif
+		int i,j;
+
+		video_copy_y_block_mmx(bl[0].coeffs, start_y);
+		video_copy_y_block_mmx(bl[1].coeffs, start_y + 8);
+		video_copy_y_block_mmx(bl[2].coeffs, start_y + 8 * DV_WIDTH);
+		video_copy_y_block_mmx(bl[3].coeffs, start_y + 8 * DV_WIDTH+8);
+		
+
+		for (j = 0; j < 8; j++) {
+			for (i = 0; i < 4; i++) {
+				bl[4].coeffs[8*j + i] = 
+					video_get_cr_ntsc(y/2+j, x/2+i);
+				bl[5].coeffs[8*j + i] = 
+					video_get_cb_ntsc(y/2+j, x/2+i);
+				bl[4].coeffs[8*j + (i+4)] = 
+					video_get_cr_ntsc(y/2+j+8, x/2+i);
+				bl[5].coeffs[8*j + (i+4)] = 
+					video_get_cb_ntsc(y/2+j+8, x/2+i);
+			}
+		}
 	} else {                              /* NTSC */
 		unsigned char* start_y = real_readbuf + y * DV_WIDTH + x;
 		unsigned char* img_cr = real_readbuf 
@@ -957,12 +1134,10 @@ void ycb_fill_macroblock(dv_encoder_t *dv_enc, dv_macroblock_t *mb)
 	int y = mb->y;
 	int x = mb->x;
 	dv_block_t *bl = mb->b;
-	int b;
-	int need_dct_248_rows[6];
 
 
 #if !ARCH_X86
-	if (dv_enc->isPAL || mb->x == DV_WIDTH- 16) { /* PAL or rightmost NTSC block */
+	if (dv_enc->isPAL) { /* PAL */
 		int i,j;
 		for (j = 0; j < 8; j++) {
 			for (i = 0; i < 8; i++) {
@@ -985,6 +1160,57 @@ void ycb_fill_macroblock(dv_encoder_t *dv_enc, dv_macroblock_t *mb)
 					      + x / 2 + i]
 					+ dv_enc->img_cb[(y + 2*j + 1) * DV_WIDTH/2
 						+ x / 2 + i]) >> 1;
+
+				if (dv_enc->clamp_luma == TRUE) {
+					bl[0].coeffs[8 * i + j] = CLAMP(bl[0].coeffs[8 * i + j],16-128,235-128);
+					bl[1].coeffs[8 * i + j] = CLAMP(bl[1].coeffs[8 * i + j],16-128,235-128);
+					bl[2].coeffs[8 * i + j] = CLAMP(bl[2].coeffs[8 * i + j],16-128,235-128);
+					bl[3].coeffs[8 * i + j] = CLAMP(bl[3].coeffs[8 * i + j],16-128,235-128);
+				}
+				if (dv_enc->clamp_chroma == TRUE) {
+					bl[4].coeffs[8 * i + j] = CLAMP(bl[4].coeffs[8 * i + j],16-128,240-128);
+					bl[5].coeffs[8 * i + j] = CLAMP(bl[5].coeffs[8 * i + j],16-128,240-128);
+				}
+			}
+		}
+	} else if (x == DV_WIDTH- 16) { /* rightmost NTSC block */
+		int i,j;
+		for (j = 0; j < 8; j++) {
+			for (i = 0; i < 8; i++) {
+				bl[0].coeffs[8 * i + j] = 
+					dv_enc->img_y[(y + j) * DV_WIDTH +  x + i];
+				bl[1].coeffs[8 * i + j] = 
+					dv_enc->img_y[(y + j) * DV_WIDTH +  x + 8 + i];
+				bl[2].coeffs[8 * i + j] = 
+					dv_enc->img_y[(y + 8 + j) * DV_WIDTH + x + i];
+				bl[3].coeffs[8 * i + j] = 
+					dv_enc->img_y[(y + 8 + j) * DV_WIDTH 
+					     + x + 8 + i];
+			}
+
+			for (i = 0; i < 4; i++) {
+				bl[4].coeffs[8 * i + j] = 
+					(dv_enc->img_cr[(y + j) * DV_WIDTH/2
+					       + x / 2 + i*2]
+					 + dv_enc->img_cr[(y + j) * DV_WIDTH/2 
+						 + x / 2 + 1 + i*2]) >> 1;
+				bl[5].coeffs[8 * i + j] = 
+					(dv_enc->img_cb[(y + j) * DV_WIDTH/2
+					       + x / 2 + i*2]
+					 + dv_enc->img_cb[(y + j) * DV_WIDTH/2 
+						 + x / 2 + 1 + i*2]) >> 1;
+				bl[4].coeffs[8 * (i + 4) + j] = 
+					(dv_enc->img_cr[(y + j + 8) * DV_WIDTH/2
+					       + x / 2 + i*2]
+					 + dv_enc->img_cr[(y + j + 8) * DV_WIDTH/2 
+						 + x / 2 + 1 + i*2]) >> 1;
+				bl[5].coeffs[8 * (i + 4) + j] = 
+					(dv_enc->img_cb[(y + j + 8) * DV_WIDTH/2
+					       + x / 2 + i*2]
+					 + dv_enc->img_cb[(y + j + 8) * DV_WIDTH/2 
+						 + x / 2 + 1 + i*2]) >> 1;
+			}
+			for (i = 0; i < 8; i++) {
 				if (dv_enc->clamp_luma == TRUE) {
 					bl[0].coeffs[8 * i + j] = CLAMP(bl[0].coeffs[8 * i + j],16-128,235-128);
 					bl[1].coeffs[8 * i + j] = CLAMP(bl[1].coeffs[8 * i + j],16-128,235-128);
@@ -1020,6 +1246,16 @@ void ycb_fill_macroblock(dv_encoder_t *dv_enc, dv_macroblock_t *mb)
 					 + dv_enc->img_cb[(y + j) * DV_WIDTH/2 
 						 + x / 2 + 1 + i*2]) >> 1;
 
+				if (dv_enc->clamp_luma == TRUE) {
+					bl[0].coeffs[8 * i + j] = CLAMP(bl[0].coeffs[8 * i + j],16-128,235-128);
+					bl[1].coeffs[8 * i + j] = CLAMP(bl[1].coeffs[8 * i + j],16-128,235-128);
+					bl[2].coeffs[8 * i + j] = CLAMP(bl[2].coeffs[8 * i + j],16-128,235-128);
+					bl[3].coeffs[8 * i + j] = CLAMP(bl[3].coeffs[8 * i + j],16-128,235-128);
+				}
+				if (dv_enc->clamp_chroma == TRUE) {
+					bl[4].coeffs[8 * i + j] = CLAMP(bl[4].coeffs[8 * i + j],16-128,240-128);
+					bl[5].coeffs[8 * i + j] = CLAMP(bl[5].coeffs[8 * i + j],16-128,240-128);
+				}
 			}
 		}
 	}
@@ -1036,7 +1272,10 @@ void ycb_fill_macroblock(dv_encoder_t *dv_enc, dv_macroblock_t *mb)
 		}
 	}
 #else
-	if (dv_enc->isPAL || mb->x == DV_WIDTH- 16) { /* PAL or rightmost NTSC block */
+	int b;
+	int need_dct_248_rows[6];
+
+	if (dv_enc->isPAL) { /* PAL or rightmost NTSC block */
 		short* start_y = dv_enc->img_y + y * DV_WIDTH + x;
 		ppm_copy_y_block_mmx(bl[0].coeffs, start_y);
 		ppm_copy_y_block_mmx(bl[1].coeffs, start_y + 8);
@@ -1046,6 +1285,39 @@ void ycb_fill_macroblock(dv_encoder_t *dv_enc, dv_macroblock_t *mb)
 					 dv_enc->img_cr+y * DV_WIDTH/2+ x/2);
 		ppm_copy_pal_c_block_mmx(bl[5].coeffs,
 					 dv_enc->img_cb+y * DV_WIDTH/2+ x/2);
+	} else if (x == DV_WIDTH- 16) { /* rightmost NTSC block */
+		short* start_y = dv_enc->img_y + y * DV_WIDTH + x;
+		int i,j;
+
+		ppm_copy_y_block_mmx(bl[0].coeffs, start_y);
+		ppm_copy_y_block_mmx(bl[1].coeffs, start_y + 8);
+		ppm_copy_y_block_mmx(bl[2].coeffs, start_y + 8 * DV_WIDTH);
+		ppm_copy_y_block_mmx(bl[3].coeffs, start_y + 8 * DV_WIDTH + 8);
+
+		for (j = 0; j < 8; j++) {
+			for (i = 0; i < 4; i++) {
+				bl[4].coeffs[8 * j + i] = 
+					(dv_enc->img_cr[(y + j) * DV_WIDTH/2
+					       + x / 2 + i*2]
+					 + dv_enc->img_cr[(y + j) * DV_WIDTH/2 
+						 + x / 2 + 1 + i*2]) >> 1;
+				bl[5].coeffs[8 * j + i] = 
+					(dv_enc->img_cb[(y + j) * DV_WIDTH/2
+					       + x / 2 + i*2]
+					 + dv_enc->img_cb[(y + j) * DV_WIDTH/2 
+						 + x / 2 + 1 + i*2]) >> 1;
+				bl[4].coeffs[8 * j + i + 4] = 
+					(dv_enc->img_cr[(y + j + 8) * DV_WIDTH/2
+					       + x / 2 + i*2]
+					 + dv_enc->img_cr[(y + j + 8) * DV_WIDTH/2 
+						 + x / 2 + 1 + i*2]) >> 1;
+				bl[5].coeffs[8 * j + i + 4] = 
+					(dv_enc->img_cb[(y + j + 8) * DV_WIDTH/2
+					       + x / 2 + i*2]
+					 + dv_enc->img_cb[(y + j + 8) * DV_WIDTH/2 
+						 + x / 2 + 1 + i*2]) >> 1;
+			}
+		}
 	} else {                              /* NTSC */
 		short* start_y = dv_enc->img_y + y * DV_WIDTH + x;
 		ppm_copy_y_block_mmx(bl[0].coeffs, start_y);

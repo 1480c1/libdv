@@ -1490,6 +1490,7 @@ dv_encoder_new(int rem_ntsc_setup, int clamp_luma, int clamp_chroma) {
 
   dv_init( clamp_luma, clamp_chroma);
 
+  result->frame_count = 0;
   return(result);
   
 no_cb:
@@ -1767,7 +1768,7 @@ int dv_encode_full_frame(dv_encoder_t *dv_enc, uint8_t **in,
 		} 
 	} 
 	
-	write_meta_data(target, 0, dv_enc->isPAL, dv_enc->is16x9, &now);
+	write_meta_data(target, dv_enc->frame_count++, dv_enc->isPAL, dv_enc->is16x9, &now);
 
 	return 0;
 }
@@ -1812,3 +1813,4 @@ int dv_encode_full_audio(dv_encoder_t *dv_enc, int16_t **pcm,
 
 	return raw_insert_audio(frame_buf, &audio, dv_enc->isPAL);
 }
+

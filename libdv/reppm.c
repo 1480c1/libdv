@@ -79,7 +79,10 @@ int main( int argc, char **argv)
 	encoder->force_dct = DV_DCT_AUTO;
 	
 	for (i = 0; i < TIMES; i++) {
+		time_t now = time(NULL);
 		dv_encode_full_frame(encoder, pixels, e_dv_color_rgb, dv_buffer);
+		dv_encode_metadata(dv_buffer, encoder->isPAL, encoder->is16x9, &now, 0);
+		dv_encode_timecode(dv_buffer, encoder->isPAL, 0);
 	
 		memset(video_buffer,0,sizeof(video_buffer));
 		dv_parse_header(decoder, dv_buffer);

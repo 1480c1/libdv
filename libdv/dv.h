@@ -77,6 +77,9 @@ extern int          dv_encode_full_frame(dv_encoder_t *dv_enc, uint8_t **in,
 	
 extern int          dv_encode_full_audio(dv_encoder_t *dv_enc, int16_t **pcm, 
 					  int channels, int frequency, uint8_t *frame);
+extern void         dv_encode_metadata(uint8_t *target, int isPAL, int is16x9,
+					  time_t *datetime, int frame);
+extern void         dv_encode_timecode(uint8_t *target, int isPAL, int frame);
 
 /*@}*/
 

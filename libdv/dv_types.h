@@ -480,6 +480,7 @@ typedef struct {
   int    rem_ntsc_setup;
   int    clamp_luma;
   int    clamp_chroma;
+  int    frame_count;
   /* the below are private */
   short *img_y;
   short *img_cr;

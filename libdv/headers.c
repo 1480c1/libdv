@@ -25,6 +25,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 #include "headers.h"
 
@@ -88,7 +89,7 @@ static void write_timecode_62(unsigned char* target, struct tm * now)
 	target[0] = 0x62;
 	target[1] = 0xff;
 	write_bcd(target + 2, now->tm_mday);
-	write_bcd(target + 3, now->tm_mon);
+	write_bcd(target + 3, now->tm_mon+1);
 	write_bcd(target + 4, now->tm_year % 100);
 }
 
@@ -258,5 +259,86 @@ void write_meta_data(unsigned char* target, int frame, int isPAL,
 		write_video_headers(target, frame, ds);
 		write_audio_headers(target, frame, ds);
 		target += 144 * 80;
+	}
+}
+
+
+/** @brief Write the recording datetime and timecode into a frame of DV video.
+ *
+ * @param target A pointer to a buffer containing one DV frame,
+ *        which should already be allocated width*height*2 bytes.
+ * @param isPAL Set true (non-zero) to encode the data in PAL format.
+ * @param is16x9 Set true (non-zero) to set the flag bits in the DV
+ *          header to indicate widescreen video.
+ * @param timecode A time structure containing the date and time to write.
+ * @param frame A zero-based running frame counter that is used both in the
+ *        frame field of timecode as well as the timestamp on video and audio
+ *        DIF blocks.
+ */
+void dv_encode_metadata(uint8_t *target, int isPAL, int is16x9, time_t *datetime, int frame)
+{
+	int numDIFseq;
+	int ds;
+	struct tm now_t;
+
+	numDIFseq = isPAL ? 12 : 10;
+
+	if (frame % (isPAL ? 25 : 30) == 0) {
+		(*datetime)++;
+	}
+
+	if (localtime_r(datetime, &now_t) != NULL )
+	{
+		for (ds = 0; ds < numDIFseq; ds++) { 
+			target +=   1 * 80;
+			write_subcode_blocks(target, ds, frame, &now_t, isPAL);
+			target +=   2 * 80;
+			write_vaux_blocks(target, ds, &now_t, isPAL, is16x9);
+			target +=   3 * 80;
+			target += 144 * 80;
+		}
+	}
+}
+
+
+/** @brief Convert a frame count into a timecode and write into DV frame.
+ *
+ * @param target A pointer to a buffer containing the DV frame to affect.
+ * @param isPAL Set true (non-zero) to base the timecode on PAL framerate,
+ *              or false (zero) to use NTSC timecode base.
+ * @param frame A zero-based running frame counter.
+ */
+void dv_encode_timecode(uint8_t* target, int isPAL, int frame)
+{
+	int numDIFseq  = isPAL ? 12 : 10;
+	unsigned char* buf = target;
+	int ds;
+	struct tm time;
+	int cur = frame;
+	int fps = isPAL ? 25 : 30;
+
+	if (cur == 0) {
+		time.tm_hour = 0;
+		time.tm_min = 0;
+		time.tm_sec = 0;
+	} else {
+		time.tm_hour = cur / (fps * 3600);
+		cur -= time.tm_hour * (fps * 3600);
+		time.tm_min = cur / (fps * 60);
+		cur -= time.tm_min * (fps * 60);
+		time.tm_sec = cur / fps;
+		cur -= time.tm_sec * fps;
+	}
+
+	for (ds = 0; ds < numDIFseq; ds++) { 
+		buf +=   1 * 80;
+		if (ds >= 6) {
+			write_timecode_13(buf + 6, &time, cur, isPAL);
+			write_timecode_13(buf + 80 + 6, &time, cur, isPAL);
+			write_timecode_13(buf + 6 + 3*8, &time, cur, isPAL);
+			write_timecode_13(buf + 80 + 6 + 3*8, &time, cur, isPAL);
+		}
+		buf +=   5 * 80;
+		buf += 144 * 80;
 	}
 }

@@ -1,3 +1,14 @@
+2002-07-24  Dan Dennedy <dan@dennedy.org>
+	* enc_input.c: applied patch from Peter Schlaile for
+	  NTSC encoding, and tested and debugged ppm and pgm input filters
+	  and encode functions.
+
+2002-07-05  Dan Dennedy <dan@dennedy.org>
+	* dv.h, headers.c: added dv_encode_metadata() to write
+	  recording datetime and timcode.
+	* dv.h, headers.c: added dv_encode_timecode() to write
+	  a frame count as timecode.
+
 2002-06-27  Dan Dennedy <dan@dennedy.org>
 	* YUY2.c:dv_YUY2_init(): clamp y lut to 0..255 when clamp_luma is false.
 	* playdv/oss.c: init audio format in native instead of little endian.
