@@ -339,14 +339,14 @@ int capture_raw(const char* filename, int channel, int nbuffers,
 		int start_frame, int end_frame, int verbose_mode,
 		char *device)
 {
-        int viddev;
-        unsigned char *recv_buf;
-        struct video1394_mmap v;
-        struct video1394_mmap_v2 v2;
-        struct video1394_wait w;
+	int viddev;
+	unsigned char *recv_buf;
+	struct video1394_mmap v;
+	struct video1394_mmap_v2 v2;
+	struct video1394_wait w;
 	int unused_buffers;
-        unsigned char outbuf[2*65536];
-        int outbuf_used = 0;
+	unsigned char outbuf[2*65536];
+	int outbuf_used = 0;
 
 	cap_start_frame = start_frame;
 	cap_num_frames = end_frame - start_frame;
@@ -362,10 +362,10 @@ int capture_raw(const char* filename, int channel, int nbuffers,
 		}
 	}
 
-        if ((viddev = open(device, O_RDWR)) < 0) {
+	if ((viddev = open(device, O_RDWR)) < 0) {
 		perror("open video1394 device");
-                return -1;
-        }
+		return -1;
+	}
 
 	v.channel = channel;
 	v.sync_tag = 0;
@@ -398,14 +398,14 @@ int capture_raw(const char* filename, int channel, int nbuffers,
 		}
 
 		break;
-	};
+	}
 
-        if ((recv_buf = (unsigned char *) mmap(
-                0, v.nb_buffers*v.buf_size, PROT_READ|PROT_WRITE,
-                MAP_SHARED, viddev, 0)) == (unsigned char *)-1) {
-                perror("mmap videobuffer");
-                return -1;
-        }
+	if ((recv_buf = (unsigned char *) mmap(
+			0, v.nb_buffers*v.buf_size, PROT_READ|PROT_WRITE,
+			MAP_SHARED, viddev, 0)) == (unsigned char *)-1) {
+		perror("mmap videobuffer");
+		return -1;
+	}
 
 	pthread_mutex_init(&queue_mutex, NULL);
 	pthread_mutex_init(&wakeup_mutex, NULL);
@@ -419,68 +419,65 @@ int capture_raw(const char* filename, int channel, int nbuffers,
         unused_buffers = v.nb_buffers;
         w.buffer = 0;
        
-        while (cap_num_frames != 0) {
-		struct video1394_wait wcopy;
-		unsigned char * curr;
-                int ofs;
-
-                while (unused_buffers--) {
-                        unsigned char * curr = recv_buf+ v.buf_size * w.buffer;
-
-                        memset(curr, 0, v.buf_size);
-                        
-			wcopy = w;
-
-                        if (ioctl(viddev,VIDEO1394_LISTEN_QUEUE_BUFFER,
-				  &wcopy) < 0) {
-                                perror("VIDEO1394_LISTEN_QUEUE_BUFFER");
-                        }
-                        w.buffer++;
-                        w.buffer %= v.nb_buffers;
-                }
-                wcopy = w;
-                if (ioctl(viddev, VIDEO1394_LISTEN_WAIT_BUFFER, &wcopy) < 0) {
-                        perror("VIDEO1394_LISTEN_WAIT_BUFFER");
-                }
-                curr = recv_buf + v.buf_size * w.buffer;
-                ofs = 0;
-
-                while (ofs < VBUF_SIZE) {
-                        while (outbuf_used < 4 && ofs < VBUF_SIZE) {
-                                outbuf[outbuf_used++] = curr[ofs++];
-                        }
-                        if (ofs != VBUF_SIZE) {
-                                int len = outbuf[2] + (outbuf[3] << 8) + 8;
-                                if (ofs + len - outbuf_used > VBUF_SIZE) {
-                                        memcpy(outbuf + outbuf_used, curr+ofs, 
-                                               VBUF_SIZE - ofs);
-                                        outbuf_used += VBUF_SIZE - ofs;
-                                        ofs = VBUF_SIZE;
-                                } else {
-                                        memcpy(outbuf + outbuf_used,
-                                               curr + ofs, len - outbuf_used);
-                                        ofs += len - outbuf_used;
-                                        outbuf_used = 0;
-                                        handle_packet(outbuf, len - 8);
-                                }
-                        }
-                }
-
-                unused_buffers = 1;
-        }
-
-	if (broken_frames) {
-		fprintf(stderr, "\nCaptured %d broken frames!\n",
-			broken_frames);
+	while (cap_num_frames != 0) {
+	struct video1394_wait wcopy;
+	unsigned char * curr;
+	int ofs;
+	
+	while (unused_buffers--) {
+		unsigned char * curr = recv_buf+ v.buf_size * w.buffer;
+		
+		memset(curr, 0, v.buf_size);
+		
+		wcopy = w;
+		
+		if (ioctl(viddev,VIDEO1394_LISTEN_QUEUE_BUFFER, &wcopy) < 0) {
+			perror("VIDEO1394_LISTEN_QUEUE_BUFFER");
+		}
+		w.buffer++;
+		w.buffer %= v.nb_buffers;
+	}
+	wcopy = w;
+	if (ioctl(viddev, VIDEO1394_LISTEN_WAIT_BUFFER, &wcopy) < 0) {
+		perror("VIDEO1394_LISTEN_WAIT_BUFFER");
+	}
+	curr = recv_buf + v.buf_size * w.buffer;
+	ofs = 0;
+	
+	while (ofs < VBUF_SIZE) {
+		while (outbuf_used < 4 && ofs < VBUF_SIZE) {
+			outbuf[outbuf_used++] = curr[ofs++];
+		}
+		if (ofs != VBUF_SIZE) {
+			int len = outbuf[2] + (outbuf[3] << 8) + 8;
+			if (ofs + len - outbuf_used > VBUF_SIZE) {
+				memcpy(outbuf + outbuf_used, curr+ofs, 
+				VBUF_SIZE - ofs);
+				outbuf_used += VBUF_SIZE - ofs;
+				ofs = VBUF_SIZE;
+			} else {
+				memcpy(outbuf + outbuf_used,
+				curr + ofs, len - outbuf_used);
+				ofs += len - outbuf_used;
+				outbuf_used = 0;
+				handle_packet(outbuf, len - 8);
+			}
+		}
+	}
+	unused_buffers = 1;
 	}
 
-        munmap(recv_buf, v.nb_buffers * v.buf_size);
-        
-        if (ioctl(viddev, VIDEO1394_UNLISTEN_CHANNEL, &v.channel)<0) {
-                perror("VIDEO1394_UNLISTEN_CHANNEL");
-        }
+	if (broken_frames) {
+		fprintf(stderr, "\nCaptured %d broken frames!\n", broken_frames);
+	}
 
-        close(viddev);
+	munmap(recv_buf, v.nb_buffers * v.buf_size);
+	
+	if (ioctl(viddev, VIDEO1394_UNLISTEN_CHANNEL, &v.channel)<0) {
+		perror("VIDEO1394_UNLISTEN_CHANNEL");
+	}
+	
+	close(viddev);
 
 	pthread_join(file_io_thread, NULL);
 
@@ -488,13 +485,14 @@ int capture_raw(const char* filename, int channel, int nbuffers,
 		fclose(dst_fp);
 	}
 
-        return 0;
+	return 0;
 }
 
 /* ------------------------------------------------------------------------
    - sender
    ------------------------------------------------------------------------ */
 
+static const char*const* src_filenames;
 static FILE* src_fp;
 static int is_eof = 0;
 static unsigned char * underrun_data_frame = NULL;
@@ -531,6 +529,27 @@ void sig_int_send_handler(int signum)
 	is_eof = 1;
 }
 
+static int
+open_next_input(void)
+{
+	if (src_fp && src_fp != stdin) {
+		fclose (src_fp);
+		src_fp = NULL;
+	}
+	if (!src_filenames || !*src_filenames)
+		return 1;
+	if (!strcmp (*src_filenames++, "-"))
+		src_fp = stdin;
+	else {
+		src_fp = fopen(src_filenames[-1], "rb");
+		if (!src_fp) {
+			perror("fopen input file");
+			return 1;
+		}
+	}
+	return 0;
+}
+
 
 void fill_buf_queue(int fire)
 {
@@ -538,8 +557,11 @@ void fill_buf_queue(int fire)
 
 	while ((f = get_free_block()) != NULL) {
 		int isPAL;
+again:
 		if (read_frame(src_fp, f->data, &isPAL) < 0) {
-			is_eof = 1;
+			is_eof = open_next_input ();
+			if (!is_eof)
+				goto again;
 			push_back(&free_list, f);
 			return;
 		}
@@ -636,39 +658,39 @@ static int fill_buffer(unsigned char* targetbuf, unsigned int * packet_sizes)
 		cip_counter = cip_n;
 	}
 
-        for (i = 0; i < TARGETBUFSIZE && vdata < frame_size; i++) {
-                unsigned char* p = targetbuf;
-                int want_sync = 0;
+	for (i = 0; i < TARGETBUFSIZE && vdata < frame_size; i++) {
+		unsigned char* p = targetbuf;
+		int want_sync = 0;
 		cip_counter += cip_n;
-
+		
 		if (cip_counter > cip_d) {
 			want_sync = 1;
 			cip_counter -= cip_d;
 		}
-
-                *p++ = 0x01; /* Source node ID ! */
-                *p++ = 0x78; /* Packet size in quadlets (480 / 4) */
-                *p++ = 0x00;
-                *p++ = continuity_counter;
-                
-                *p++ = 0x80; /* const */
+		
+		*p++ = 0x01; /* Source node ID ! */
+		*p++ = 0x78; /* Packet size in quadlets (480 / 4) */
+		*p++ = 0x00;
+		*p++ = continuity_counter;
+		
+		*p++ = 0x80; /* const */
 		*p++ = isPAL ? 0x80 : 0x00;
-                *p++ = 0xff; /* timestamp */
-                *p++ = 0xff; /* timestamp */
-                
-                /* Timestamping is now done in the kernel driver! */
-                if (!want_sync) { /* video data */
-                        continuity_counter++;
-
-                        memcpy(p, frame + vdata, 480);
-                        p += 480;
-                        vdata += 480;
-                }
-
-                *packet_sizes++ = p - targetbuf;
-                targetbuf += MAX_PACKET_SIZE;
-        }
-        *packet_sizes++ = 0;
+		*p++ = 0xff; /* timestamp */
+		*p++ = 0xff; /* timestamp */
+		
+		/* Timestamping is now done in the kernel driver! */
+		if (!want_sync) { /* video data */
+			continuity_counter++;
+			
+			memcpy(p, frame + vdata, 480);
+			p += 480;
+			vdata += 480;
+		}
+		
+		*packet_sizes++ = p - targetbuf;
+		targetbuf += MAX_PACKET_SIZE;
+	}
+	*packet_sizes++ = 0;
 
 	push_back(&free_list, f_node);
 
@@ -679,34 +701,31 @@ static int fill_buffer(unsigned char* targetbuf, unsigned int * packet_sizes)
         return 0;
 }
 
-int send_raw(const char* filename, int channel, int nbuffers, int start_frame,
-	     int end_frame, int verbose_mode, 
-	     const char * underrun_data_filename, char *device)
+int send_raw(const char*const* filenames, int channel, int nbuffers,
+		int start_frame, int end_frame, int verbose_mode, 
+		const char * underrun_data_filename, char *device)
 {
-        int viddev;
-        unsigned char *send_buf;
-        struct video1394_mmap v;
-        struct video1394_mmap_v2 v2;
-        struct video1394_queue_variable w;
+	int viddev;
+	unsigned char *send_buf;
+	struct video1394_mmap v;
+	struct video1394_mmap_v2 v2;
+	struct video1394_queue_variable w;
 	int unused_buffers;
 	int got_frame;
-        unsigned int packet_sizes[321];
+	unsigned int packet_sizes[321];
 
-	if (!filename || strcmp(filename, "-") == 0) {
+	src_filenames = filenames;
+	if (!*src_filenames) {
+		src_filenames = 0;
 		src_fp = stdin;
-	} else {
-		src_fp = fopen(filename, "rb");
-		if (!src_fp) {
-			perror("fopen input file");
-			return -1;
-		}
 	}
-
+	else if (open_next_input ())
+		return -1;
+  
 	if (underrun_data_filename) {
 		FILE * fp = fopen(underrun_data_filename, "rb");
 		if (!fp) {
 			perror("fopen underrun data file");
-			fclose(src_fp);
 			return -1;
 		}
 		underrun_data_frame = (unsigned char*) malloc(144000);
@@ -714,14 +733,13 @@ int send_raw(const char* filename, int channel, int nbuffers, int start_frame,
 			       &underrun_frame_ispal) < 0) {
 			fprintf(stderr, "Short read on reading underrun data "
 				"frame...\n");
-			fclose(src_fp);
 			fclose(fp);
 			return -1;
 		}
 		fclose(fp);
 	}
 
-	if (start_frame > 0) {
+	while (start_frame > 0) {
 		int isPAL,i;
 		unsigned char frame[144000]; /* PAL is large enough... */
 
@@ -731,28 +749,38 @@ int send_raw(const char* filename, int channel, int nbuffers, int start_frame,
 					start_frame - i);
 			}
 			if (read_frame(src_fp, frame, &isPAL) < 0) {
-				return -1;
+				break;
 			}
 		}
+		start_frame -= i;
+		if (!start_frame)
+			break;
+		if (open_next_input ())
+			return -1;
 	}
 
-        if ((viddev = open(device,O_RDWR)) < 0) {
+	if ((viddev = open(device,O_RDWR)) < 0) {
 		perror("open video1394 device");
-                return -1;
-        }
+		if (src_fp && src_fp != stdin)
+			fclose (src_fp);
+		return -1;
+  	}
                       
-        v.channel = channel;
-        v.sync_tag = 0;
-        v.nb_buffers = nbuffers;
-        v.buf_size = TARGETBUFSIZE * MAX_PACKET_SIZE; 
-        v.packet_size = MAX_PACKET_SIZE;
-        v.flags = VIDEO1394_VARIABLE_PACKET_SIZE;
-        w.channel = v.channel;
+	v.channel = channel;
+	v.sync_tag = 0;
+	v.nb_buffers = nbuffers;
+	v.buf_size = TARGETBUFSIZE * MAX_PACKET_SIZE; 
+	v.packet_size = MAX_PACKET_SIZE;
+	v.flags = VIDEO1394_VARIABLE_PACKET_SIZE;
+	w.channel = v.channel;
 
 	switch (video1394_version) {
 	case 1:
 		if (ioctl(viddev, VIDEO1394_TALK_CHANNEL, &v) < 0) {
 			perror("VIDEO1394_TALK_CHANNEL");
+			close (viddev);
+			if (src_fp && src_fp != stdin)
+				fclose (src_fp);
 			return -1;
 		}
 
@@ -768,19 +796,25 @@ int send_raw(const char* filename, int channel, int nbuffers, int start_frame,
 
 		if (ioctl(viddev, VIDEO1394_TALK_CHANNEL, &v2) < 0) {
 			perror("VIDEO1394_TALK_CHANNEL");
+			close (viddev);
+			if (src_fp && src_fp != stdin)
+				fclose (src_fp);
 			return -1;
 		}
 
 		break;
-	};
+	}
 
 
-        if ((send_buf = (unsigned char *) mmap(
-                0, v.nb_buffers * v.buf_size, PROT_READ|PROT_WRITE,
-                MAP_SHARED, viddev, 0)) == (unsigned char *)-1) {
-                perror("mmap videobuffer");
-                return -1;
-        }
+	if ((send_buf = (unsigned char *) mmap(
+			0, v.nb_buffers * v.buf_size, PROT_READ|PROT_WRITE,
+			MAP_SHARED, viddev, 0)) == (unsigned char *)-1) {
+		perror("mmap videobuffer");
+		close (viddev);
+		if (src_fp && src_fp != stdin)
+		fclose (src_fp);
+		return -1;
+	}
 
 	if (verbose_mode) {
 		fprintf(stderr, "Filling buffers...\r");
@@ -805,62 +839,58 @@ int send_raw(const char* filename, int channel, int nbuffers, int start_frame,
 		fprintf(stderr, "Transmitting...\r");
 	}
 
-        unused_buffers = v.nb_buffers;
-        w.buffer = 0;
-        got_frame = 1;
-        w.packet_sizes = packet_sizes;
+	unused_buffers = v.nb_buffers;
+	w.buffer = 0;
+	got_frame = 1;
+	w.packet_sizes = packet_sizes;
 	memset(packet_sizes, 0, sizeof(packet_sizes));
 
-        for (;start_frame < end_frame;) {
-                while (unused_buffers--) {
-                        got_frame = (fill_buffer(
-                                send_buf + w.buffer * v.buf_size,
-                                packet_sizes) < 0) ? 0 : 1;
-
-                        if (!got_frame) {
-                                break;
-                        }
-                        if (ioctl(viddev, VIDEO1394_TALK_QUEUE_BUFFER, &w)<0) {
-                                perror("VIDEO1394_TALK_QUEUE_BUFFER");
-                        }
+	for (;start_frame < end_frame;) {
+		while (unused_buffers--) {
+			got_frame = (fill_buffer(
+			send_buf + w.buffer * v.buf_size,
+			packet_sizes) < 0) ? 0 : 1;
+			
+			if (!got_frame) {
+				break;
+			}
+			if (ioctl(viddev, VIDEO1394_TALK_QUEUE_BUFFER, &w)<0) {
+				perror("VIDEO1394_TALK_QUEUE_BUFFER");
+			}
 			if (verbose_mode) {
 				fprintf(stderr, "Sent frame %8d\r",
-					start_frame);
+				start_frame);
 			}
-                        w.buffer ++;
-                        w.buffer %= v.nb_buffers;
+			w.buffer ++;
+			w.buffer %= v.nb_buffers;
 			start_frame++;
-                }
-                if (!got_frame) {
-                        break;
-                }
-                if (ioctl(viddev, VIDEO1394_TALK_WAIT_BUFFER, &w) < 0) {
-                        perror("VIDEO1394_TALK_WAIT_BUFFER");
-                }
-                unused_buffers = 1;
-        }
-
-        w.buffer = (v.nb_buffers + w.buffer - 1) % v.nb_buffers;
-
-        if (ioctl(viddev, VIDEO1394_TALK_WAIT_BUFFER, &w) < 0) {
-                perror("VIDEO1394_TALK_WAIT_BUFFER");
-        }
-
-        munmap(send_buf, v.nb_buffers * v.buf_size);
-        
-        if (ioctl(viddev, VIDEO1394_UNTALK_CHANNEL, &v.channel)<0) {
-                perror("VIDEO1394_UNTALK_CHANNEL");
-        }
-
-        close(viddev);
+		}
+		if (!got_frame) {
+			break;
+		}
+		if (ioctl(viddev, VIDEO1394_TALK_WAIT_BUFFER, &w) < 0) {
+			perror("VIDEO1394_TALK_WAIT_BUFFER");
+		}
+		unused_buffers = 1;
+	}
+  
+	w.buffer = (v.nb_buffers + w.buffer - 1) % v.nb_buffers;
+	
+	if (ioctl(viddev, VIDEO1394_TALK_WAIT_BUFFER, &w) < 0) {
+		perror("VIDEO1394_TALK_WAIT_BUFFER");
+	}
+	
+	munmap(send_buf, v.nb_buffers * v.buf_size);
+	
+	if (ioctl(viddev, VIDEO1394_UNTALK_CHANNEL, &v.channel)<0) {
+		perror("VIDEO1394_UNTALK_CHANNEL");
+	}
+	
+	close(viddev);
 
 	pthread_join(file_io_thread, NULL);
 
-	if (src_fp != stdin) {
-		fclose(src_fp);
-	}
-
-        return 0;
+  return 0;
 }
 
 int rt_raisepri (int pri)
@@ -910,7 +940,6 @@ int rt_raisepri (int pri)
 int main(int argc, const char** argv)
 {
 #if HAVE_LIBPOPT
-	const char* filename;
 	int verbose_mode = 0;
 	int send_mode = 0;
 	int channel = 63;
@@ -1047,7 +1076,7 @@ int main(int argc, const char** argv)
 
         optCon = poptGetContext(NULL, argc, 
                                 (const char **)argv, option_table, 0);
-        poptSetOtherOptionHelp(optCon, "<raw dv file or - for stdin/stdout>");
+        poptSetOtherOptionHelp(optCon, "<raw dv files or '-- -' for stdin/stdout>");
 
         while ((rc = poptGetNextOpt(optCon)) > 0) {
                 switch (rc) {
@@ -1077,10 +1106,8 @@ int main(int argc, const char** argv)
 	}
 	if (buffers < 0) {
 		fprintf(stderr, "Number of buffers should be > 0!\n");
-	        return -1;
+		return -1;
 	}
-
-        filename = poptGetArg(optCon);
 
 	setpriority (PRIO_PROCESS, 0, -20);
 	if (rt_raisepri (1) != 0) {
@@ -1088,13 +1115,13 @@ int main(int argc, const char** argv)
 	}
 
 	if ( device == NULL )
-                device = "/dev/video1394";
+		device = "/dev/video1394";
 
 	if (send_mode) {
-		send_raw(filename, channel, buffers, start, end, verbose_mode,
-			 underrun_data, device);
+		send_raw(poptGetArgs(optCon), channel, buffers, start, end,
+			verbose_mode, underrun_data, device);
 	} else {
-		capture_raw(filename, channel, buffers, start, end, 
+		capture_raw(poptGetArg(optCon), channel, buffers, start, end, 
 			    verbose_mode, device);
 	}
 	return 0;
@@ -1103,17 +1130,4 @@ int main(int argc, const char** argv)
 
 #endif
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 

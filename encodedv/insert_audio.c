@@ -81,8 +81,10 @@ int read_frame(FILE* in_vid, unsigned char* frame_buf, int * isPAL)
 #define OPT_VERBOSE         1
 #define OPT_AUDIO_INPUT     2
 #define OPT_OUTPUT          3
-#define OPT_AUTOHELP        4
-#define NUM_OPTS            5
+#define OPT_TRUNCATE        4
+#define OPT_REPEAT          5
+#define OPT_AUTOHELP        6
+#define NUM_OPTS            7
 
 int main(int argc, const char** argv)
 {
@@ -96,6 +98,8 @@ int main(int argc, const char** argv)
 	int gotframe = 0;
 	int have_pipes = 0;
 	int verbose_mode = 0;
+	int truncate_mode = 0;
+	int repeat_count = 0;
 	int count;
 	const char* audio_input_filter_str = "wav";
 	const char* output_filter_str = "raw";
@@ -140,6 +144,21 @@ int main(int argc, const char** argv)
 		argInfo:    POPT_ARG_STRING, 
 		descrip:    "choose output-filter [>raw<]"
 	}; /* output */
+
+ 	option_table[OPT_TRUNCATE] = (struct poptOption) {
+ 		longName:   "truncate", 
+ 		shortName:  't', 
+ 		arg:        &truncate_mode,
+ 		descrip:    "truncate output at end of input"
+ 	}; /* truncate */
+
+ 	option_table[OPT_REPEAT] = (struct poptOption) {
+ 		longName:   "repeat", 
+ 		shortName:  'r', 
+ 		arg:        &repeat_count,
+ 		argInfo:    POPT_ARG_INT,
+ 		descrip:    "repeat the first video frame this many times"
+ 	}; /* repeat */
 
 	option_table[OPT_AUTOHELP] = (struct poptOption) {
 		argInfo: POPT_ARG_INCLUDE_TABLE,
@@ -273,11 +292,22 @@ int main(int argc, const char** argv)
 
 	now = time(NULL);
 
+ 	/* repeat the first frame if needed */
+ 	gotframe = read_frame(in_vid, frame_buf, &isPAL);
+ 	if (gotframe)
+		while (repeat_count--)
+			if (output_filter->store(frame_buf, audio_info, 1,
+ 						isPAL, 0, now) != 0)
+ 				return -1;
+ 
 	for (;;) {
-		gotframe = read_frame(in_vid, frame_buf, &isPAL);
+		if (!gotframe && truncate_mode)
+			return 0; /* truncate audio at end of video */
 
 		if (audio_input_filter->load(audio_info, isPAL) != 0) {
-			if (have_pipes) {
+			/* end of audio stream */
+			if (!truncate_mode) {
+				/* copy the rest with original audio */
 				while (gotframe) {
 					fwrite(frame_buf, 1,
 					       isPAL ? 144000 : 120000,
@@ -292,7 +322,7 @@ int main(int argc, const char** argv)
 					 isPAL, 0, now) != 0) {
 			return -1;
 		}
-		
+		gotframe = read_frame(in_vid, frame_buf, &isPAL);
 	}
 }
 
