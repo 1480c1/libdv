@@ -93,27 +93,27 @@ void dv_ycrcb_420_to_rgb32(gint8 *y_frame, gint8 *cr_frame, gint8 *cb_frame, gui
 	j++,cr_frame++,cb_frame++) {
       cr = *cr_frame; // +128 
       cb = *cb_frame; // +128;
-      impact[0] = 409 * cb;
+      impact[0] = 409 * cr;
       impact[1] = 100 * cb;
       impact[2] = 208 * cr;
-      impact[3] = 516 * cr;
+      impact[3] = 516 * cb;
 
       y = 298 * (*y_frame++ + 128 - 16);
       r = (y                            + (impact[0])) / 256;
       g = (y - (impact[1]) - (impact[2])) / 256;
-      b = (y + (impact[2]                            )) / 256;
-      *rgb_frame++ = CLAMP(r,0,255);
-      *rgb_frame++ = CLAMP(g,0,255);
+      b = (y + (impact[3]                            )) / 256;
       *rgb_frame++ = CLAMP(b,0,255);
+      *rgb_frame++ = CLAMP(g,0,255);
+      *rgb_frame++ = CLAMP(r,0,255);
       rgb_frame++;
 
       y = 298 * (*y_frame++ + 128 - 16);
       r = (y                            + (impact[0])) / 256;
       g = (y - (impact[1]) - (impact[2])) / 256;
-      b = (y + (impact[2]                            )) / 256;
-      *rgb_frame++ = CLAMP(r,0,255);
-      *rgb_frame++ = CLAMP(g,0,255);
+      b = (y + (impact[3]                            )) / 256;
       *rgb_frame++ = CLAMP(b,0,255);
+      *rgb_frame++ = CLAMP(g,0,255);
+      *rgb_frame++ = CLAMP(r,0,255);
       rgb_frame++;
 
       rgb = rgb_frame + ((720-2)*4);
@@ -121,19 +121,19 @@ void dv_ycrcb_420_to_rgb32(gint8 *y_frame, gint8 *cr_frame, gint8 *cb_frame, gui
       y = 298 * (*(y_frame+(720-2)) + 128 - 16);
       r = (y                            + (impact[0])) / 256;
       g = (y - (impact[1]) - (impact[2])) / 256;
-      b = (y + (impact[2]                            )) / 256;
-      *rgb++ = CLAMP(r,0,255);
-      *rgb++ = CLAMP(g,0,255);
+      b = (y + (impact[3]                            )) / 256;
       *rgb++ = CLAMP(b,0,255);
+      *rgb++ = CLAMP(g,0,255);
+      *rgb++ = CLAMP(r,0,255);
       rgb++;
 
       y = 298 * (*(y_frame+(720-1)) + 128 - 16);
       r = (y                            + (impact[0])) / 256;
       g = (y - (impact[1]) - (impact[2])) / 256;
-      b = (y + (impact[2]                            )) / 256;
-      *rgb++ = CLAMP(r,0,255);
-      *rgb++ = CLAMP(g,0,255);
+      b = (y + (impact[3]                            )) / 256;
       *rgb++ = CLAMP(b,0,255);
+      *rgb++ = CLAMP(g,0,255);
+      *rgb++ = CLAMP(r,0,255);
 
     } // for i
     y_frame += 720;
