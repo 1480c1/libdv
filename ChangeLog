@@ -1,5 +1,9 @@
 2001-06-24  Charles 'Buck' Krasic  <krasic@acm.org>
 
+	* Version 0.9
+
+	* Apply Stefan Lucke's Xv/PPC/PAL patch.
+
 	* Move bootstrap to bleeding edge autotools, with checks in
 	  bootstrap for the proper versions.  Add support for pkgconfig.
  
