@@ -1,3 +1,8 @@
+2001-02-08  Charles 'Buck' Krasic  <krasic@acm.org>
+
+	* Add --enable-gprof to configure.  Disable SDL by default.  Minor
+	  fixups in display.c for missing #if HAVE_GTK and #if HAVE_SDL.
+
 2001-02-07  Charles 'Buck' Krasic  <krasic@acm.org>
 
 	* Version 0.4.

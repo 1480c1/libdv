@@ -182,17 +182,20 @@ dv_display_exit(dv_display_t *dv_dpy) {
 #endif /* HAVE_LIBXV */
     break;
   case e_dv_dpy_gtk:
-    /* TODO: cleanup gtk and gdk stuff */
+#if HAVE_GTK
     gtk_main_quit();
     if(dv_dpy->pixels[0]) {
       free(dv_dpy->pixels[0]);
       dv_dpy->pixels[0] = NULL;
     } /* if */
+#endif /* HAVE_GTK */
     break;
   case e_dv_dpy_XShm:
     break;
   case e_dv_dpy_SDL:
+#if HAVE_SDL
     SDL_Quit();
+#endif /* HAVE_SDL */
     break;
   } /* switch */
 
