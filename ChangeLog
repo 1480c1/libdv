@@ -1,3 +1,6 @@
+2003-07-06 Stefan Lucke <stefan@lucke.in-berlin.de>
+        * renamed config.h to dv_config.h to resolve conflicts with
+
 2003-07-05 Stefan Lucke <stefan@lucke.in-berlin.de>
         * added audio correction for single sample failure (by Jan Schmidt)
 
