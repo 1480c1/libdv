@@ -209,7 +209,7 @@ mm_support(void)
 		"Return:\n\t"
 		: "=a" (rval)
 		: /* no input */
-		: "eax", "ebx", "ecx", "edx"
+		: "ebx", "ecx", "edx"
 	);
 
 	/* Return */
