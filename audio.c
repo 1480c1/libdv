@@ -407,7 +407,8 @@ gint
 dv_decode_audio_block(dv_audio_t *dv_audio, guint8 *inbuf, gint ds, gint audio_dif, gint16 **outbufs) 
 {
   gint channel, bp, i_base, i, stride;
-  guint16 *samples, *ysamples, *zsamples;
+  gint16 *samples, *ysamples, *zsamples;
+  gint16 y,z;
   gint32 msb_y, msb_z, lsb;
   gint half_ds;
 
@@ -460,11 +461,13 @@ dv_decode_audio_block(dv_audio_t *dv_audio, guint8 *inbuf, gint ds, gint audio_d
       msb_z = inbuf[bp+1];
       lsb   = inbuf[bp+2];  
 
-      ysamples[i] = ((msb_y << 4) & 0xff0) | ((lsb >> 4) & 0xf);
-      zsamples[i] = ((msb_z << 4) & 0xff0) | (lsb & 0xf);
+      y = ((msb_y << 4) & 0xff0) | ((lsb >> 4) & 0xf);
+      if(y > 2047) y -= 4096;
+      z = ((msb_z << 4) & 0xff0) | (lsb & 0xf);
+      if(z > 2047) z -= 4096;
 
-      ysamples[i] = dv_upsample(ysamples[i]); 
-      zsamples[i] = dv_upsample(zsamples[i]);
+      ysamples[i] = dv_upsample(y); 
+      zsamples[i] = dv_upsample(z);
     } //for 
 
   } else {
