@@ -51,11 +51,11 @@
 #define SET_COEFF(COEFFS,REORDER,VALUE) COEFFS[*REORDER++] = VALUE
 #endif
 
-static gint    dv_parse_bit_start[6] = { 4*8+12,  18*8+12, 32*8+12, 46*8+12, 60*8+12, 70*8+12 };
-static gint    dv_parse_bit_end[6]   = {       18*8, 32*8, 46*8, 60*8, 70*8, 80*8 };
+gint    dv_parse_bit_start[6] = { 4*8+12,  18*8+12, 32*8+12, 46*8+12, 60*8+12, 70*8+12 };
+gint    dv_parse_bit_end[6]   = { 18*8,    32*8,    46*8,    60*8,    70*8,    80*8 };
 
-static gint     dv_super_map_vertical[5] = { 2, 6, 8, 0, 4 };
-static gint     dv_super_map_horizontal[5] = { 2, 1, 3, 0, 4 };
+gint     dv_super_map_vertical[5] = { 2, 6, 8, 0, 4 };
+gint     dv_super_map_horizontal[5] = { 2, 1, 3, 0, 4 };
 
 static gint8  dv_88_reorder_prime[64] = {
 0, 1, 8, 16, 9, 2, 3, 10,		17, 24, 32, 25, 18, 11, 4, 5,
@@ -64,7 +64,7 @@ static gint8  dv_88_reorder_prime[64] = {
 58, 59, 52, 45, 38, 31, 39, 46,		53, 60, 61, 54, 47, 55, 62, 63 
 };
 
-static gint8  dv_reorder[2][64] = {
+gint8  dv_reorder[2][64] = {
   { 0 },
   {
     0, 32, 1, 33, 8, 40, 2, 34,		9, 41, 16, 48, 24, 56, 17, 49,
@@ -205,7 +205,7 @@ static gint dv_find_spilled_vlc(dv_videosegment_t *seg, dv_macroblock_t *mb, dv_
 } // dv_find_spilled_vlc
 
 
-static gint dv_parse_ac_coeffs(dv_videosegment_t *seg) {
+gint dv_parse_ac_coeffs(dv_videosegment_t *seg) {
   dv_vlc_t         vlc;
   gint             m, b, pass;
   gint             bits_left;
@@ -347,15 +347,11 @@ static gint dv_parse_ac_coeffs(dv_videosegment_t *seg) {
 } // dv_parse_ac_coeffs
 
 void dv_parse_ac_coeffs_pass0(bitstream_t *bs,
-			      gint m, 
-			      gint b,
 			      dv_macroblock_t *mb,
 			      dv_block_t *bl);
 
 #if ! USE_MMX_ASM
-static __inline__ void dv_parse_ac_coeffs_pass0(bitstream_t *bs,
-						gint m, 
-						gint b,
+__inline__ void dv_parse_ac_coeffs_pass0(bitstream_t *bs,
 						dv_macroblock_t *mb,
 						dv_block_t *bl) {
   dv_vlc_t         vlc;
@@ -419,6 +415,7 @@ static __inline__ void dv_parse_ac_coeffs_pass0(bitstream_t *bs,
  * in a single frame, that more tolerant aproaches.
  *
  *  */
+#if ! USE_MMX_ASM
 gint dv_parse_video_segment(dv_videosegment_t *seg) {
   gint             m, b;
   gint             mb_start;
@@ -470,11 +467,12 @@ gint dv_parse_video_segment(dv_videosegment_t *seg) {
       bl->end= mb_start + dv_parse_bit_end[b];
       bl->reorder = &dv_reorder[bl->dct_mode][1];
       bl->reorder_sentinel = bl->reorder + 63;
-      dv_parse_ac_coeffs_pass0(bs,m,b,mb,bl);
+      dv_parse_ac_coeffs_pass0(bs,mb,bl);
       bitstream_seek_set(bs,bl->end);
     } // for b
   } // for m
   // Phase 2:  do the 3 pass AC vlc decode
   return(dv_parse_ac_coeffs(seg));
 } // dv_parse_video_segment 
+#endif
 
