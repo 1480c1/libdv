@@ -311,6 +311,8 @@ void dv_construct_vlc_table() {
     dv_vlc_lookup5[i].len = 1 + 15;
   } // for
 
+  /* Build dv_vlc_class1_shortcut[] by attempting to match class 1 and
+     class 2 vlcs. */
   for (i = 0; i < 128; i++) {
     guint bits = i << 9;
     guint ms7 = ((bits & 0xfe00) >> 9);
@@ -320,6 +322,7 @@ void dv_construct_vlc_table() {
       /* class 1 */
       result = &dv_vlc_lookup1[i >> 2];
     } else if (ms7 <= 0x7b) {
+      /* class 2 */
       result = &dv_vlc_lookup2[(bits & dv_vlc_index_mask[2]) >> dv_vlc_index_rshift[2]];
       if (result->len > 7)
 	result = NULL;
@@ -327,6 +330,7 @@ void dv_construct_vlc_table() {
       result = NULL;
     }
 
+    /* result is non-NULL if a vlc matched. */
     if (result) {
       dv_vlc_class1_shortcut[i] = *result;
       if ((result->amp > 0) && ((bits >> sign_rshift[result->len]) & 1))
