@@ -70,8 +70,12 @@
 #define MIN(a,b) ((a)<(b)?(a):(b))
 #define MAX(a,b) ((a)<(b)?(b):(a))
 
-int dv_use_mmx;
-pthread_mutex_t dv_mutex = PTHREAD_MUTEX_INITIALIZER;
+  int                 dv_use_mmx;
+  static int          all_renderer_count = 0;
+  static size_t       all_renderer_size = 0;
+  static dv_renderer  **all_renderer;
+
+  pthread_mutex_t dv_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 #if HAVE_LIBPOPT
 /* ---------------------------------------------------------------------------
@@ -100,6 +104,12 @@ dv_decoder_new(int add_ntsc_setup, int clamp_luma, int clamp_chroma) {
   result->clamp_luma = clamp_luma;
   result->clamp_chroma = clamp_chroma;
   dv_init(result, clamp_luma, clamp_chroma);
+
+#if ARCH_X86
+  dv_select_renderer_by_name (result, "YUY2_mmx_palfix");
+#else
+  dv_select_renderer_by_name (result, "YUY2_palfix");
+#endif
 
   result->video = dv_video_new();
   if(!result->video) goto no_video;
@@ -184,36 +194,36 @@ dv_decoder_free( dv_decoder_t *decoder)
 void
 dv_add_renderer (dv_decoder_t *decoder, dv_renderer *renderer)
 {
-  if (!decoder -> all_renderer) {
-    if ((decoder -> all_renderer = malloc (8 * sizeof (dv_renderer *)))) {
-      decoder -> all_renderer_count = 0;
-      decoder -> all_renderer_size = 8;
+  if (!all_renderer) {
+    if ((all_renderer = malloc (8 * sizeof (dv_renderer *)))) {
+      all_renderer_count = 0;
+      all_renderer_size = 8;
     } else {
       fprintf (stderr, "dv_add_renderer: failed to malloc all_renderer array\n");
-      decoder -> all_renderer_count = 0;
-      decoder -> all_renderer_size = 0;
+      all_renderer_count = 0;
+      all_renderer_size = 0;
     }
-  } else if (decoder -> all_renderer_count == decoder -> all_renderer_size) {
+  } else if (all_renderer_count == all_renderer_size) {
       void  *tmp;
 
-    if ((tmp = realloc (decoder -> all_renderer,
-                       2 * decoder -> all_renderer_size * sizeof (dv_renderer *)))) {
-      decoder -> all_renderer = tmp;
-      decoder -> all_renderer_size *= 2;
+    if ((tmp = realloc (all_renderer,
+                       2 * all_renderer_size * sizeof (dv_renderer *)))) {
+      all_renderer = tmp;
+      all_renderer_size *= 2;
     } else {
       fprintf (stderr,
                "dv_add_renderer: failed to realloc all_renderer array (old count = %d)\n",
-               decoder -> all_renderer_size);
+               all_renderer_size);
     }
   }
-  if (decoder -> all_renderer_count < decoder -> all_renderer_size) {
-    decoder -> all_renderer [decoder -> all_renderer_count] = renderer;
-    decoder -> all_renderer_count++;
+  if (all_renderer_count < all_renderer_size) {
+    all_renderer [all_renderer_count] = renderer;
+    all_renderer_count++;
   }
       fprintf (stderr, "dv_add_renderer: now at %d/%d (%d bytes) name = %s\n",
-               decoder -> all_renderer_count,
-               decoder -> all_renderer_size,
-               decoder -> all_renderer_size * sizeof (dv_renderer *),
+               all_renderer_count,
+               all_renderer_size,
+               all_renderer_size * sizeof (dv_renderer *),
                renderer -> name);
   decoder -> current_renderer = renderer;
 }
@@ -228,10 +238,10 @@ dv_select_renderer (dv_decoder_t *decoder, int four_cc, int attr)
 {
     int i;
 
-  for (i = 0; i < decoder -> all_renderer_count; ++i) {
-    if (decoder -> all_renderer [i] -> attr == attr &&
-        decoder -> all_renderer [i] -> four_cc == four_cc) {
-      decoder -> current_renderer = decoder -> all_renderer [i];
+  for (i = 0; i < all_renderer_count; ++i) {
+    if (all_renderer [i] -> attr == attr &&
+        all_renderer [i] -> four_cc == four_cc) {
+      decoder -> current_renderer = all_renderer [i];
       fprintf (stderr,
                "dv_select_renderer: width (%d/%d) high (%d/%d) %s\n",
                decoder -> current_renderer -> widths [0],
@@ -259,9 +269,9 @@ dv_select_renderer_by_name (dv_decoder_t *decoder, char *name)
 {
     int i;
 
-  for (i = 0; i < decoder -> all_renderer_count; ++i) {
-    if (!strcmp (decoder -> all_renderer [i] -> name, name)) {
-      decoder -> current_renderer = decoder -> all_renderer [i];
+  for (i = 0; i < all_renderer_count; ++i) {
+    if (!strcmp (all_renderer [i] -> name, name)) {
+      decoder -> current_renderer = all_renderer [i];
       fprintf (stderr,
                "dv_select_renderer: width (%d/%d) high (%d/%d) (%s) %s\n",
                decoder -> current_renderer -> widths [0],
@@ -277,6 +287,24 @@ dv_select_renderer_by_name (dv_decoder_t *decoder, char *name)
            "dv_select_renderer: selection failed for name:(%s)\n",
            name);
   return 0;
+}
+
+/* ---------------------------------------------------------------------------
+ */
+void
+dv_renderer_info (char ***info)
+{
+    int i;
+
+  if (!info)
+    return;
+  if (*info)
+    free (*info);
+  if ((*info = calloc (all_renderer_count + 1, sizeof (size_t)))) {
+    for (i = 0; i < all_renderer_count; ++i) {
+      (*info) [i] = all_renderer [i] -> name;
+    }
+  }
 }
 
 /* ---------------------------------------------------------------------------

@@ -491,10 +491,7 @@ typedef struct dv_decoder_s {
   dv_header_t         header;
   dv_audio_t          *audio;
   dv_video_t          *video;
-  dv_renderer         *current_renderer,
-                      **all_renderer;
-  int                 all_renderer_count;
-  size_t              all_renderer_size;
+  dv_renderer         *current_renderer;
   int                 arg_video_system;
   int                 add_ntsc_setup;
   int                 clamp_luma;

@@ -1,3 +1,14 @@
+2003-11-15  Stefan Lucke <stefan@lucke.in-berlin.de> BRANCH: dv_stefan_lucke
+  * new fkt: void dv_renderer_names (char ***info)
+             get names of available renderers. see sample code in playdv.
+  * changed global renderer info to static (removed from decoder).
+    added renderer selection to dv_decoder_new ().
+    (so kino main view works with this branch, small preview doesn't)
+  * new fkt: int dv_is_progressive (dv_decoder_t *dv)
+             return: -1 unknown, 0 NO, 1 YES
+  * fixed PAL decoding for YUY2 and RGB output format
+  * render functions are selectable at runtime
+
 2003-11-10  Dan Dennedy  <dan@dennedy.org>
 	* libdv/dv.c, encode.dv: bugfix thread safetiness of encoder.
 	  In a threaded environment, one should call dv_init() to setup

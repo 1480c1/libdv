@@ -423,25 +423,18 @@ main(int argc,char *argv[])
 
   eof -= dv_player->decoder->frame_size; /* makes loop condition simpler */
 
-//  format = DV_FOURCC_YUY2;
-//  attr = DV_ATTR_HALF_HIGH | DV_ATTR_MMX;
-
-//  format = DV_FOURCC_YUY2;
-//  attr = DV_ATTR_HALF_HIGH | DV_ATTR_MMX;
-
-//  format = DV_FOURCC_YUY2;
-//  attr = DV_ATTR_FULL_HIGH | DV_ATTR_MMX;
-
-//  format = DV_FOURCC_YUY2;
-//  attr = DV_ATTR_FULL_HIGH;
-
-//  format = DV_FOURCC_YV12;
-//  attr = DV_ATTR_FULL_HIGH | DV_ATTR_MMX;
-
-//  format = DV_FOURCC_RGB24;
-//  attr = DV_ATTR_FULL_HIGH;
-
-//  dv_select_renderer (dv_player -> decoder, format, attr);
+  {
+    /* -----------------------------------------------------------------------
+     * demo code for querying renderer names
+     */
+    char **re_info = NULL;
+    int i;
+    dv_renderer_info (&re_info);
+    while (re_info && re_info [i]) {
+      fprintf (stderr, "render name[%d] = %s\n", i, re_info [i]);
+      ++i;
+    }
+  }
   dv_select_renderer_by_name (dv_player -> decoder,
                               dv_player -> arg_renderer_name);
 

@@ -114,6 +114,10 @@ extern int dv_encode_videosegment(dv_encoder_t *dv_enc,
                                   dv_videosegment_t *videoseg, uint8_t *vsbuffer);
 
 /* ---------------------------------------------------------------------------
+ */
+extern void dv_renderer_info (char ***info);
+
+/* ---------------------------------------------------------------------------
  * functions based on vaux data
  * return value: <0 unknown, 0 no, >0 yes
  */
