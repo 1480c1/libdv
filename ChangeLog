@@ -1,5 +1,13 @@
 2003-11-23  Stefan Lucke <stefan@lucke.in-berlin.de>
   * PAL fix for decode color rendering now in head
+  * additional API functions:
+      dv_get_num_samples (dv_decoder_t *dv)
+      dv_get_num_channels (dv_decoder_t *dv)
+      dv_get_raw_samples (dv_decoder_t *dv, int chan)
+      dv_is_4ch (dv_decoder_t *dv)
+      dv_is_PAL (dv_decoder_t *dv)
+      dv_is_progressive (dv_decoder_t *dv)
+      dv_set_quality (dv_decoder_t *dv, int q)
 
 2003-11-17  Dan Dennedy <dan@dennedy.org>
 	* libdv/encode.c: revert change on encoder lookup table allocation.

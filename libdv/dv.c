@@ -647,6 +647,25 @@ dv_report_video_error (dv_decoder_t *dv, uint8_t *data)
 }
 
 /* ---------------------------------------------------------------------------
+ */
+int
+dv_is_PAL (dv_decoder_t *dv)
+{
+  return dv -> system == e_dv_system_625_50;
+}
+
+/* ---------------------------------------------------------------------------
+ */
+int
+dv_set_quality (dv_decoder_t *dv, int q)
+{
+    int old_q = dv -> quality;
+
+  dv -> quality = q;
+  return old_q;
+}
+
+/* ---------------------------------------------------------------------------
  * query functions based upon VAUX data
  */
 
@@ -750,6 +769,22 @@ dv_frame_changed (dv_decoder_t *dv)
       return 1;
     }
     return 0;
+  }
+  return -1;
+}
+
+/* ---------------------------------------------------------------------------
+ */
+int
+dv_is_progressive (dv_decoder_t *dv)
+{
+  uint8_t  id;
+
+  if ((id = dv -> vaux_pack [0x61]) != 0xff) {
+    if (dv -> vaux_data [id] [2] & 0x08) {
+      return 0;
+    }
+    return 1;
   }
   return -1;
 }
