@@ -87,17 +87,21 @@ static dv_mmap_region_t mmap_region;
 static struct stat statbuf;
 static struct timeval tv[3];
 
-static gint arg_disable_audio;
-static gint arg_disable_video;
-static gint arg_block_quality = 3;
-static gint arg_monochrome;
-static gint arg_audio_frequency;
-static gint arg_audio_quantization;
-static gint arg_display;
-static gint arg_num_frames;
-static gint arg_video_system;
-static gchar * arg_audio_file;
-static gchar * arg_audio_device;
+/* Note buggy GCC of RH7.0 screws up if these are statics.
+ * I guess the alias analysis fails to see how they are used in
+ * the table below, and treats them as contants, optimizing away
+ * the branches that depend on them. */
+
+gint arg_disable_audio;
+gint arg_disable_video;
+gint arg_block_quality = 3;
+gint arg_monochrome;
+gint arg_audio_frequency;
+gint arg_audio_quantization;
+gint arg_num_frames;
+gint arg_video_system;
+gchar * arg_audio_file;
+gchar * arg_audio_device;
 
 #if HAVE_LIBPOPT
 struct poptOption optionsTable[] = {
@@ -180,15 +184,6 @@ struct poptOption optionsTable[] = {
     " 3=625/50 4:1:1 (PAL,SMPTE 314M DV)",
     argDescrip: "(0|1|2)",
   },
-
-  { longName: "display", 
-    shortName: 'd', 
-    argInfo: POPT_ARG_INT, 
-    arg: &arg_display,
-    val: 0, 
-    descrip: "video display method: 0=autoselect [default], 1=gtk, 2=Xv, 3=SDL",
-    argDescrip: "(0|1|2|3)",
-  },
   { longName: "audio-device", 
     shortName: '\0', 
     argInfo: POPT_ARG_STRING, 
@@ -204,6 +199,13 @@ struct poptOption optionsTable[] = {
     val: 0, 
     descrip: "send raw decoded audio to file, skipping audio ioctls",
     argDescrip: "filename",
+  },
+  { longName: NULL,
+    shortName: '\0',
+    argInfo: POPT_ARG_INCLUDE_TABLE,
+    arg: &dv_display_option_table,
+    descrip: "Display options",
+    argDescrip: NULL,
   },
   POPT_AUTOHELP
   { NULL, 0, 0, NULL, 0, 0 }
@@ -221,7 +223,7 @@ main(int argc,char *argv[])
   guint frame_count = 0;
   gint i;
   gdouble seconds;
-  gboolean benchmark_mode = FALSE, audio_present;
+  gboolean audio_present;
   gint16 *audio_buffers[4];
 #if HAVE_LIBPOPT
   int rc;             /* return code from popt */
@@ -233,7 +235,10 @@ main(int argc,char *argv[])
 
   while ((rc = poptGetNextOpt(optCon)) > 0) {
     switch (rc) {
-      default:
+    case 'v':
+      goto display_version;
+      break;
+    default:
       break;
     } /* switch */
   } /* while */
@@ -256,7 +261,23 @@ main(int argc,char *argv[])
   eof = statbuf.st_size;
 
   dv_init(&dv);
+#if 0
+  switch(arg_block_quality) {
+  case 1:
+    dv.quality |= DV_QUALITY_DC;
+    break;
+  case 2:
+    dv.quality |= DV_QUALITY_AC_1;
+    break;
+  case 3:
+    dv.quality |= DV_QUALITY_AC_2;
+    break;
+  }
+  if(!arg_monochrome) 
+    dv.quality |= DV_QUALITY_COLOR;
+#else
   dv.quality = DV_QUALITY_BEST;
+#endif
 
   /* Read in header of first frame to see how big frames are */
   mmap_unaligned(fd,0,header_size,&mmap_region);
@@ -267,15 +288,21 @@ main(int argc,char *argv[])
 
   eof -= dv.frame_size; // makes loop condition simpler
 
-  dv_dpy = dv_display_init (&argc, &argv, dv.width, dv.height, dv.sampling, "playdv", "playdv");
-  if(!dv_dpy) goto no_display;
+  if(!arg_disable_video) {
+    dv_dpy = dv_display_init (&argc, &argv, 
+			      dv.width, dv.height, dv.sampling, "playdv", "playdv");
+    if(!dv_dpy) goto no_display;
+  } // if
 
-  if(!dv_oss_init(&dv.audio, &dv_oss)) 
-    dv.audio.num_channels = 0;
+  if(!arg_disable_audio) {
+    if(!dv_oss_init(&dv.audio, &dv_oss)) {
+      dv.audio.num_channels = 0;
+    } // if
 
-  for(i=0; i < dv.audio.num_channels; i++) {
-    if(!(audio_buffers[i] = malloc(DV_AUDIO_MAX_SAMPLES*sizeof(gint16)))) goto no_mem;
-  }
+    for(i=0; i < 4; i++) {
+      if(!(audio_buffers[i] = malloc(DV_AUDIO_MAX_SAMPLES*sizeof(gint16)))) goto no_mem;
+    } // for
+  } // if
 
   gettimeofday(tv+0,NULL);
 
@@ -288,33 +315,48 @@ main(int argc,char *argv[])
     if(MAP_FAILED == mmap_region.map_start) goto map_failed;
 
     // Parse and unshuffle audio
-    if(dv.audio.num_channels) {
+    if(!arg_disable_audio) {
       audio_present = dv_decode_full_audio(&dv, mmap_region.data_start, audio_buffers);
       dv_oss_play(&dv.audio, &dv_oss, audio_buffers);
     } // if
 
-    // Parse and decode video
-    dv_decode_full_frame(&dv, mmap_region.data_start, dv_dpy->color_space, dv_dpy->pixels, dv_dpy->pitches);
+    if(!arg_disable_video) {
+      // Parse and decode video
+      dv_decode_full_frame(&dv, mmap_region.data_start, 
+			   dv_dpy->color_space, dv_dpy->pixels, dv_dpy->pitches);
 
-    // Display
-
-    dv_display_show(dv_dpy);
+      // Display
+      dv_display_show(dv_dpy);
+    } // if 
 
     frame_count++;
-    if(benchmark_mode && (frame_count >= 150)) break;
+    if((arg_num_frames > 0) && (frame_count >= arg_num_frames)) {
+      goto end_of_file;
+    } // if 
 
     // Release the frame's data
     munmap_unaligned(&mmap_region); 
 
   } // while
 
+ end_of_file:
   gettimeofday(tv+1,NULL);
   timersub(tv+1,tv+0,tv+2);
   seconds = (double)tv[2].tv_usec / 1000000.0; 
   seconds += tv[2].tv_sec;
-  fprintf(stderr,"Displayed %d frames in %05.2f seconds (%05.2f fps)\n", frame_count, seconds, (double)frame_count/seconds);
-  dv_display_exit(dv_dpy);
-  dv_oss_close(&dv_oss);
+  fprintf(stderr,"Processed %d frames in %05.2f seconds (%05.2f fps)\n", 
+	  frame_count, seconds, (double)frame_count/seconds);
+  if(!arg_disable_video) {
+    dv_display_exit(dv_dpy);
+  } // if
+  if(!arg_disable_audio) {
+    dv_oss_close(&dv_oss);
+  } // if 
+  exit(0);
+
+ display_version:
+  fprintf(stderr,"playdv: version %s, http://libdv.sourceforge.net/\n",
+	  "CVS 01/10/2001");
   exit(0);
 
   /* Error handling section */

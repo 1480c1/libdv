@@ -45,9 +45,29 @@
 #include <sys/shm.h>
 #endif
 
+#if HAVE_LIBPOPT
+#include <popt.h>
+#endif
+
 static int dv_display_SDL_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name);
 static gboolean dv_display_gdk_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv);
 static gint dv_display_Xv_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name);
+
+static gint arg_display;
+
+#if HAVE_LIBPOPT
+struct poptOption dv_display_option_table[] = {
+  { longName: "display", 
+    shortName: 'd', 
+    argInfo: POPT_ARG_INT, 
+    arg: &arg_display,
+    val: 0, 
+    descrip: "video display method: 0=autoselect [default], 1=gtk, 2=Xv, 3=SDL",
+    argDescrip: "(0|1|2|3)",
+  },
+  { NULL, 0, 0, NULL, 0, 0 },
+}; // dv_display_option_table
+#endif // HAVE_LIBPOPT
 
 #if HAVE_SDL
 static void dv_center_window(SDL_Surface *screen);
@@ -169,7 +189,7 @@ dv_display_gdk_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv) {
  nomem:
 #endif // HAVE_GTK
   return FALSE;
-} /* dv_display_init */
+} /* dv_display_gdk_init */
 
 #if HAVE_LIBXV
 
@@ -340,6 +360,8 @@ dv_display_Xv_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name) {
   XSync(dv_dpy->dpy, False);
 
   ret = 1;
+#else
+  fprintf(stderr, "libdv was compiled without Xv support\n");
 #endif // HAVE_LIBXV
   return ret;
 } /* dv_display_Xv_init */
@@ -423,6 +445,7 @@ dv_display_SDL_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name) {
 
 static int
 dv_display_SDL_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name) {
+  fprintf(stderr,"playdv was compiled without SDL support\n");
   return(FALSE);
 } /* dv_display_SDL_init */
 
@@ -456,16 +479,55 @@ dv_display_init(gint *argc, gchar ***argv, gint width, gint height,
     break;
   } // switch
 
-  /* Try to use Xv first, then SDL */
-  if(dv_display_Xv_init(dv_dpy, w_name, i_name)) {
-    fprintf(stderr, " Using Xv for display\n");
-    dv_dpy->lib = e_dv_dpy_Xv;
-  } else if(dv_display_SDL_init(dv_dpy, w_name, i_name)) {
-    fprintf(stderr, " Using SDL for display\n");
-    dv_dpy->lib = e_dv_dpy_SDL;
-  } else {
-    goto no_YUV;
-  } // else
+  switch(arg_display) {
+  case 0:
+    /* Autoselect */
+    /* Try to use Xv first, then SDL */
+    if(dv_display_Xv_init(dv_dpy, w_name, i_name)) {
+      goto Xv_ok;
+    } else if(dv_display_SDL_init(dv_dpy, w_name, i_name)) {
+      goto SDL_ok;
+    } else {
+      goto use_gtk;
+    } // else
+    break;
+  case 1:
+    /* Gtk */
+    goto use_gtk;
+    break;
+  case 2:
+    /* Xv */
+    if(dv_display_Xv_init(dv_dpy, w_name, i_name)) {
+      goto Xv_ok;
+    } else {
+      fprintf(stderr, "Attempt to display via Xv failed\n");
+      goto fail;
+    }
+    break;
+  case 3:
+    /* SDL */
+    if(dv_display_SDL_init(dv_dpy, w_name, i_name)) {
+      goto SDL_ok;
+    } else {
+      fprintf(stderr, "Attempt to display via SDL failed\n");
+      goto fail;
+    }
+    break;
+  default:
+    break;
+  } // switch
+
+ Xv_ok:
+  fprintf(stderr, " Using Xv for display\n");
+  dv_dpy->lib = e_dv_dpy_Xv;
+  goto yuv_ok;
+
+ SDL_ok:
+  fprintf(stderr, " Using SDL for display\n");
+  dv_dpy->lib = e_dv_dpy_SDL;
+  goto yuv_ok;
+
+ yuv_ok:
 
   dv_dpy->color_space = e_dv_color_yuv;
 
@@ -484,13 +546,16 @@ dv_display_init(gint *argc, gchar ***argv, gint width, gint height,
 
   goto ok;
 
- no_YUV:
+ use_gtk:
 
   /* Try to use GDK since we couldn't get a HW YUV surface */
   dv_dpy->color_space = e_dv_color_rgb;
   dv_dpy->lib = e_dv_dpy_gtk;
   dv_dpy->len = dv_dpy->width * dv_dpy->height * 3;
-  if(!dv_display_gdk_init(dv_dpy, argc, argv)) goto fail;
+  if(!dv_display_gdk_init(dv_dpy, argc, argv)) {
+    fprintf(stderr,"Attempt to use gtk for display failed\n");
+    goto fail;
+  } // if 
   dv_dpy->pitches[0] = width * 3;
   fprintf(stderr, " Using gtk for display\n");
 

@@ -1,5 +1,5 @@
 /* 
- *  parce.c
+ *  parse.c
  *
  *     Copyright (C) Charles 'Buck' Krasic - April 2000
  *     Copyright (C) Erik Walthinsen - April 2000

@@ -42,7 +42,11 @@
 
 #if HAVE_GTK
 #include <gtk/gtk.h>
-#endif
+#endif // HAVE_GTK
+ 
+#if HAVE_LIBPOPT
+#include <popt.h>
+#endif // HAVE_POPT
 
 #include <glib.h>
 #include "dv.h"
@@ -101,6 +105,10 @@ typedef struct {
 #endif
 
 } dv_display_t;
+
+#ifdef HAVE_LIBPOPT
+extern struct poptOption dv_display_option_table[];
+#endif HAVE_LIBPOPT
 
 extern dv_display_t *dv_display_init(int *argc, char ***argv, 
 				     int width, int height, 
