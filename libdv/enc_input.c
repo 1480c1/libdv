@@ -338,7 +338,14 @@ static int ppm_load(const char* filename, int * isPAL)
 
 static int ppm_skip(const char* filename, int * isPAL)
 {
-	return 0;
+	int rval = 0;
+	int height;
+
+	if (strcmp(filename, "-") == 0) {
+		rval = read_ppm_stream(stdin, isPAL, &height);
+	} 
+
+	return rval;
 }
 
 static void ppm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
@@ -523,7 +530,14 @@ static int pgm_load(const char* filename, int * isPAL)
 
 static int pgm_skip(const char* filename, int * isPAL)
 {
-	return 0;
+	int rval = 0;
+	int height;
+
+	if (strcmp(filename, "-") == 0) {
+		rval = read_pgm_stream(stdin, isPAL, &height);
+	} 
+
+	return rval;
 }
 
 #if !ARCH_X86

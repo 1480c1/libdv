@@ -1333,6 +1333,21 @@ int encoder_loop(dv_enc_input_filter_t * input,
 		}
 	}
 
+	if (verbose_mode && start > 0) {
+		fprintf(stderr, "Skipping %d frames (video and audio!!!)\n",
+			start);
+	}
+	for (i = 0; i < start; i++) {
+		snprintf(fbuf, 1024, filename, i);
+		if (audio_input) {
+			if (audio_input->load(audio_info, isPAL) < 0) {
+				return -1;
+			}
+		}
+		if (input->skip(fbuf, &isPAL) < 0) {
+			return -1;
+		}
+	}
 
 	for (i = start; i <= end; i++) {
 		long skip_frame_step;

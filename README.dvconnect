@@ -1,0 +1,28 @@
+dvconnect is a small utility to send / capture raw data from / to the
+camcorder over an OHCI complient IEEE 1394 firewire adapter. It has to be
+an OHCI adapter since we use the video1394 interface. (It could be done for
+receiving without it, but for sending it's the only way to go!)
+
+You should also install the latest CVS version of the ieee1394 subsystem since
+otherwise the necessary patches for DV _sending_ are not included.
+
+dvconnect was written to be simple and fast. 
+If it doesn't work for you, you might want to check out dvgrab from 
+Arne Schirmacher... (http://www.schirmacher.de)
+
+If your harddisk is not fast enough or your system is under load then you
+can use the bag utility from timidity like this:
+
+cat dv-file |bag -b 36000000 |dvconnect -s
+
+Now your system has 10 seconds to catch up if something goes wrong (cron.daily
+or something ;-).
+
+Same goes for capturering:
+
+dvconnect |bag -b 36000000 > dv-file
+
+dvconnect will always warn you, if you got broken frames but only if it is
+in capture mode! A somewhat more sophisticated buffering system is underways.
+(Something like bag but with feedback on buffer usage.)
+

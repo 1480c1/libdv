@@ -9,7 +9,7 @@ CLEANFILES                =
 
 bin_PROGRAMS= encodedv
 
-noinst_PROGRAMS= insert_audio fix_headers scan_packet_headers steal_header ppmqscale 
+noinst_PROGRAMS= insert_audio fix_headers scan_packet_headers steal_header ppmqscale dvconnect
 
 encodedv_SOURCES= encodedv.c 
 encodedv_LDADD= ../libdv/libdv.la
@@ -26,3 +26,4 @@ steal_header_SOURCES = steal_header.c
 
 ppmqscale_SOURCES = ppmqscale.c
 
+dvconnect_SOURCES = dvconnect.c

@@ -49,7 +49,8 @@
 #define DV_PLAYER_OPT_DECODER_INCLUDE 6
 #define DV_PLAYER_OPT_AUTOHELP        7
 #define DV_PLAYER_OPT_DUMP_FRAMES     8
-#define DV_PLAYER_NUM_OPTS            9
+#define DV_PLAYER_OPT_NO_MMAP         9
+#define DV_PLAYER_NUM_OPTS            10
 
 /* Book-keeping for mmap */
 typedef struct dv_mmap_region_s {
@@ -67,6 +68,7 @@ typedef struct {
   struct timeval   tv[3];
   gint             arg_disable_audio;
   gint             arg_disable_video;
+  gint             no_mmap;
   gint             arg_num_frames;
   char*            arg_dump_frames;
 #if HAVE_LIBPOPT
@@ -122,6 +124,12 @@ dv_player_new(void)
     "(or - for stdout)"
   }; /* dump all frames */
 
+  result->option_table[DV_PLAYER_OPT_NO_MMAP] = (struct poptOption) {
+    longName:   "no-mmap", 
+    arg:        &result->no_mmap,
+    descrip:    "don't use mmap for reading. (usefull for pipes)"
+  }; /* no mmap */
+
   result->option_table[DV_PLAYER_OPT_OSS_INCLUDE] = (struct poptOption) {
     argInfo: POPT_ARG_INCLUDE_TABLE,
     arg:     result->oss->option_table,
@@ -164,28 +172,93 @@ dv_player_new(void)
 
 /* I decided to try to use mmap for reading the input.  I got a slight
  * (about %5-10) performance improvement */
-void
-mmap_unaligned(int fd, off_t offset, size_t length, dv_mmap_region_t *mmap_region) {
-  size_t real_length;
-  off_t  real_offset;
-  size_t page_size;
-  size_t start_padding;
-  void *real_start;
+void mmap_unaligned(int fd, int no_mmap, off_t offset, size_t length, 
+		    dv_mmap_region_t *mmap_region) 
+{
+	size_t real_length;
+	off_t  real_offset;
+	size_t page_size;
+	size_t start_padding;
+	void *real_start;
 
-  page_size = getpagesize();
-  start_padding = offset % page_size;
-  real_offset = (offset / page_size) * page_size;
-  real_length = real_offset + start_padding + length;
-  real_start = mmap(0, real_length, PROT_READ, MAP_SHARED, fd, real_offset);
+	static off_t last_offset = 0;
+	static size_t last_length = 0;
+	static size_t overrun_size = 0;
+	static size_t overrun_offset = 0;
+	
+	if (no_mmap) {
+		size_t to_read = length;
+		
+		if (!mmap_region->map_start) {
+			mmap_region->map_start = malloc(144000);
+		}
 
-  mmap_region->map_start = real_start;
-  mmap_region->map_length = real_length;
-  mmap_region->data_start = real_start + start_padding;
+		if (last_offset == offset) {
+			if (last_length < length) {
+				to_read -= last_length;
+			} else if (last_length > length) {
+				overrun_size = last_length - length;
+				overrun_offset = length;
+				last_length = length;
+				return;
+			} else {
+				return;
+			}
+		}
+		last_offset = offset;
+		last_length = length;
+		if (overrun_size) {
+			memmove(mmap_region->map_start, 
+				mmap_region->map_start + overrun_offset,
+				overrun_size);
+			if (to_read > overrun_size) {
+				to_read -= overrun_size;
+				overrun_size = 0;
+			} else {
+				overrun_size -= to_read;
+				overrun_offset += to_read;
+				to_read = 0;
+			}
+		}
+		while (to_read > 0) {
+			int rval = read(fd, mmap_region->map_start 
+					+ length - to_read, to_read);
+			if (rval == 0) {
+				if (to_read != length) {
+					fprintf(stderr, "Short read!\n");
+					exit(-1);
+				}
+				exit(0);
+			}
+			if (rval < 0) {
+				perror("read");
+				exit(-1); 
+			}
+			to_read -= rval;
+		}
+		mmap_region->map_length = length;
+		mmap_region->data_start = mmap_region->map_start;
+	} else {
+		page_size = getpagesize();
+		start_padding = offset % page_size;
+		real_offset = (offset / page_size) * page_size;
+		real_length = real_offset + start_padding + length;
+		real_start = mmap(0, real_length, PROT_READ, MAP_SHARED, 
+				  fd, real_offset);
+		
+		mmap_region->map_start = real_start;
+		mmap_region->map_length = real_length;
+		mmap_region->data_start = real_start + start_padding;
+	}
 } /* mmap_unaligned */
 
-int
-munmap_unaligned(dv_mmap_region_t *mmap_region) {
-  return(munmap(mmap_region->map_start,mmap_region->map_length));
+int munmap_unaligned(dv_mmap_region_t *mmap_region, int no_mmap) 
+{
+	if (no_mmap) {
+		return 0;
+	} else {
+		return(munmap(mmap_region->map_start,mmap_region->map_length));
+	}
 } /* munmap_unaligned */
 
 int 
@@ -235,15 +308,22 @@ main(int argc,char *argv[])
 
   dv_init();
 
-  /* Open the input file, do fstat to get it's total size */
-  if(-1 == (fd = open(filename,O_RDONLY))) goto openfail;
-  if(fstat(fd, &dv_player->statbuf)) goto fstatfail;
-  eof = dv_player->statbuf.st_size;
+  if (strcmp(filename, "-") == 0) {
+	  dv_player->no_mmap = 1;
+	  fd = STDIN_FILENO;
+  } else {
+	  /* Open the input file, do fstat to get it's total size */
+	  if(-1 == (fd = open(filename,O_RDONLY))) goto openfail;
+  }
+  if (!dv_player->no_mmap) {
+	  if(fstat(fd, &dv_player->statbuf)) goto fstatfail;
+	  eof = dv_player->statbuf.st_size;
+  }
 
   dv_player->decoder->quality = dv_player->decoder->video->quality;
 
   /* Read in header of first frame to see how big frames are */
-  mmap_unaligned(fd,0,header_size,&dv_player->mmap_region);
+  mmap_unaligned(fd,dv_player->no_mmap,0,120000,&dv_player->mmap_region);
   if(MAP_FAILED == dv_player->mmap_region.map_start) goto map_failed;
 
   if(dv_parse_header(dv_player->decoder, dv_player->mmap_region.data_start)< 0)
@@ -261,7 +341,7 @@ main(int argc,char *argv[])
 	 dv_player->decoder->audio->num_channels,
 	 (dv_player->decoder->audio->emphasis ? "on" : "off"));
 
-  munmap_unaligned(&dv_player->mmap_region);
+  munmap_unaligned(&dv_player->mmap_region,dv_player->no_mmap);
 
   eof -= dv_player->decoder->frame_size; /* makes loop condition simpler */
 
@@ -282,21 +362,23 @@ main(int argc,char *argv[])
 
   dv_player->decoder->prev_frame_decoded = 0;
   for(offset=0;
-      offset <= eof; 
+      offset <= eof || dv_player->no_mmap; 
       offset += dv_player->decoder->frame_size) {
 
     /*
      * Map the frame's data into memory
      */
-    mmap_unaligned (fd, offset, dv_player->decoder->frame_size, &dv_player->mmap_region);
+    mmap_unaligned (fd,dv_player->no_mmap, 
+		    offset, dv_player->decoder->frame_size, 
+		    &dv_player->mmap_region);
     if (MAP_FAILED == dv_player->mmap_region.map_start) goto map_failed;
     if (dv_parse_header (dv_player->decoder,
         		 dv_player->mmap_region.data_start) > 0) {
       /*
        * video norm has changed so remap region for current frame
        */
-      munmap_unaligned (&dv_player->mmap_region);
-      mmap_unaligned (fd, offset,
+      munmap_unaligned (&dv_player->mmap_region,dv_player->no_mmap);
+      mmap_unaligned (fd, dv_player->no_mmap, offset,
 		      dv_player->decoder->frame_size, &dv_player->mmap_region);
       if (MAP_FAILED == dv_player->mmap_region.map_start) goto map_failed;
       dv_display_set_norm (dv_player->display, dv_player->decoder->system);
@@ -369,7 +451,7 @@ main(int argc,char *argv[])
     } /* if  */
 
     /* Release the frame's data */
-    munmap_unaligned(&dv_player->mmap_region); 
+    munmap_unaligned(&dv_player->mmap_region, dv_player->no_mmap); 
 
   } /* while */
 

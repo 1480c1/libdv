@@ -1,5 +1,12 @@
-2001-04-26  Charles 'Buck' Krasic  <krasic@acm.org>
+2001-06-05  Peter Schlaile <udbz@rz.uni-karlsruhe.de>
+	* Added dvconnect. A small utility to grab and send dv data over
+	  firewire
+	
+	* Added --no-mmap option to playdv in order to handle pipes correctly
+	
+	* Various bugfixes
 
+2001-04-26  Charles 'Buck' Krasic  <krasic@acm.org>
 	* Version 0.8
 
 	* Restructure source: make subdirectories libdv, playdv, and
