@@ -1,3 +1,6 @@
+2004-11-29  Charles "Buck" Krasic  <krasic@acm.org>
+	* libdv 0.104 release
+
 2004-11-29  Dan Dennedy <dan@dennedy.org>
 	* libdv.pc: added -lm to make build more portable.
 
