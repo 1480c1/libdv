@@ -46,7 +46,8 @@
 #define DV_ENCODER_OPT_FPS             11
 #define DV_ENCODER_OPT_FORCE_DCT       12
 #define DV_ENCODER_OPT_16X9            13
-#define DV_ENCODER_NUM_OPTS            14
+#define DV_ENCODER_OPT_STDIN           14
+#define DV_ENCODER_NUM_OPTS            15
 
 int main(int argc, char *argv[])
 {
@@ -69,6 +70,7 @@ int main(int argc, char *argv[])
 	int is16x9 = 0;
 	int err_code;
 	int force_dct = -1;
+	int	isStdin = 0;
 
 #if HAVE_LIBPOPT
 	struct poptOption option_table[DV_ENCODER_NUM_OPTS+1]; 
@@ -180,6 +182,12 @@ int main(int argc, char *argv[])
 		descrip:    "set wide 16 x 9 format"
 	}; /* 16x9 */
 
+	option_table[DV_ENCODER_OPT_STDIN] = (struct poptOption) {
+		longName:   "", 
+		shortName:  '-', 
+		arg:        &isStdin,
+		descrip:    "set stdin input"
+	}; /* stdin */
 
 	option_table[DV_ENCODER_OPT_AUTOHELP] = (struct poptOption) {
 		argInfo: POPT_ARG_INCLUDE_TABLE,
@@ -216,16 +224,22 @@ int main(int argc, char *argv[])
 		exit(-1);
 	}
 
-	filename = poptGetArg(optCon);
-	if(filename == NULL) {
-		poptPrintUsage(optCon, stderr, 0);
-		fprintf(stderr, 
-			"\nSpecify a single <filename pattern> argument; "
-			"e.g. pond%%05d.ppm or - for stdin\n"
-			"(For audio input specify additionally "
-			"the audio source.)\n");
-		exit(-1);
+	if ( !isStdin ) {
+		filename = poptGetArg(optCon);
+		if(filename == NULL) {
+			poptPrintUsage(optCon, stderr, 0);
+			fprintf(stderr, 
+				"\nSpecify a single <filename pattern> argument; "
+				"e.g. pond%%05d.ppm or - for stdin\n"
+				"(For audio input specify additionally "
+				"the audio source.)\n");
+			exit(-1);
+		}
 	}
+	else {
+		filename = "-";
+	}
+ 
 	audio_filename = poptGetArg(optCon);
 	poptFreeContext(optCon);
 
