@@ -1,3 +1,23 @@
+2001-01-16  Charles 'Buck' Krasic  <krasic@acm.org>
+
+	* Add alternate definitions of bitfield structs for architectures
+	  with big-endian bitfields.
+
+	* Add AC_C_BIGENDIAN to configure.in.
+
+	* Makefile.am tweeks: Add ac_c_bigendian_cross.m4 to
+	  AUX_DIST_EXTRA; eliminate duplicate references to header files.
+
+	* Move bitstream_t to dv_types.h.  Remove a few #include
+	  "bitstream.h"'s as a result.
+
+	* Make definition swab32() conditional on WORDS_BIGENDIAN.
+
+	* New autoconf macro for testing endianness.  The stock autoconf
+	  test doesn't work with cross-compiling, and autoconf generates a
+	  warning to that effect.
+
+
 2001-01-14  Charles 'Buck' Krasic  <krasic@acm.org>
 
 	* Add bgr0 support for kino submitted by Arne Schirmacher
