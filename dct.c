@@ -111,7 +111,7 @@ void dct_248(double *block) {
 void idct_block_mmx(gint16 *block);
 
 void idct_88(dv_coeff_t *block) {
-#if 0
+#if !USE_MMX_ASM
   int v,h,y,x,i;
   double temp[64];
 
@@ -128,11 +128,8 @@ void idct_88(dv_coeff_t *block) {
 
   for (i=0;i<64;i++)
     block[i] = temp[i];
-#endif
-  gint i;
-  
+#else
   idct_block_mmx(block);
-#if 1
   emms();
 #endif
 }

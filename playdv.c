@@ -87,6 +87,7 @@ int main(int argc,char *argv[]) {
   static gint frame_count;
   GtkWidget *window,*image;
   guint8 rgb_frame[720*576*4];
+  guint quality = DV_QUALITY_COLOR | DV_QUALITY_AC_2;
 
   if (argc >= 2)
     f = fopen(argv[1],"r");
@@ -165,13 +166,13 @@ int main(int argc,char *argv[]) {
 	videoseg.i = ds;
 	videoseg.k = v;
         videoseg.isPAL = isPAL;
-        lost_coeffs += dv_parse_video_segment(&videoseg);
+        lost_coeffs += dv_parse_video_segment(&videoseg, quality);
         // stage 2: dequant/unweight/iDCT blocks, and place the macroblocks
         for (m=0,mb = videoseg.mb;
 	     m<5;
 	     m++,mb++) {
 	  for (b=0,bl = mb->b;
-	       b<6;
+	       b<((quality & DV_QUALITY_COLOR) ? 6 : 4);
 	       b++,bl++) {
 	    if (bl->dct_mode == DV_DCT_248) { 
 	      quant_248_inverse(bl->coeffs,mb->qno,bl->class_no);

@@ -47,6 +47,17 @@
 #define DV_WEIGHT_BIAS	 0
 #endif
 
+
+#define DV_QUALITY_COLOR       1     /* Clear this bit to make monochrome */
+
+#define DV_QUALITY_AC_MASK     (0x3 << 1)
+#define DV_QUALITY_DC          (0x0 << 1)
+#define DV_QUALITY_AC_1        (0x1 << 1)
+#define DV_QUALITY_AC_2        (0x2 << 1)
+
+#define DV_QUALITY_BEST       (DV_QUALITY_COLOR | DV_QUALITY_AC_2)
+#define DV_QUALITY_FASTEST     0     /* Monochrome, DC coeffs only */
+
 typedef enum sample_s { 
   e_dv_sample_411,
   e_dv_sample_420,

@@ -31,6 +31,6 @@
 #include "dv.h"
 
 extern void dv_parse_init(void);
-extern gint dv_parse_video_segment(dv_videosegment_t *seg);
+extern gint dv_parse_video_segment(dv_videosegment_t *seg, guint quality);
 
 #endif // __PARSE_H__

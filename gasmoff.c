@@ -13,6 +13,8 @@
     printf("#define %-40s %d\n", #S "_" #M, offsetof(S, M))
 #define declaresize(S) \
     printf("#define %-40s %d\n", #S "_size", sizeof(S))
+#define export(S) \
+    printf("#define %-40s %d\n", #S, S)
 
 int main(int argc, char *argv[])
 {
@@ -44,6 +46,14 @@ int main(int argc, char *argv[])
   declare(dv_block_t,		mark);
 
   declare(bitstream_t,	buf);
+
+  export(DV_QUALITY_BEST);
+  export(DV_QUALITY_FASTEST);
+  export(DV_QUALITY_COLOR);
+  export(DV_QUALITY_AC_MASK);
+  export(DV_QUALITY_DC);
+  export(DV_QUALITY_AC_1);
+  export(DV_QUALITY_AC_2);
 
   return 0;
 }

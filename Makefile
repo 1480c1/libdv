@@ -5,9 +5,8 @@ CPPFLAGS += -I. $(shell glib-config --cflags) $(shell gtk-config --cflags)
 CFLAGS += -mcpu=i686 -g -O -fstrict-aliasing -Wall  $(CPPFLAGS) # for debugging
 LDFLAGS += $(shell glib-config --libs) $(shell gtk-config --libs) -lm
 
-asm = idct_block_mmx.S
 CPPFLAGS += -DUSE_MMX_ASM=1
-asm += vlc_x86.S quant_x86.S
+asm += vlc_x86.S quant_x86.S idct_block_mmx.S
 
 sources = playdv.c dct.c idct_248.c weighting.c quant.c vlc.c place.c parse.c bitstream.c ycrcb_to_rgb32.c
 objects= $(sources:.c=.o) $(asm:.S=.o)
@@ -52,4 +51,3 @@ clean:
 ifneq ($(MAKECMDGOALS),clean)
 -include $(deps)
 endif
-

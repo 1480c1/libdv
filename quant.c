@@ -151,13 +151,12 @@ void quant_88_inverse(dv_coeff_t *block,int qno,int class) {
                                    factors that we'll use */
   gint extra;
 
-  extra = DV_WEIGHT_BIAS  + (class == 3);	/* if class==3, shift
-						   everything left one
-						   more place */
+  extra = (class == 3);	/* if class==3, shift
+			   everything left one
+			   more place */
   pq = dv_quant_shifts[qno + dv_quant_offset[class]];
   for (i = 1; i < 64; i++)
     block[i] <<= (pq[dv_88_areas[i]] + extra);
-  block[0] <<= DV_WEIGHT_BIAS;
 }
 #endif
 

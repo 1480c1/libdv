@@ -52,7 +52,9 @@ void weight_88_inverse_float(double *block);
 void weight_init(void) {
   double temp[64];
   int i, z, x;
-  double dv_weight_bias_factor = (double)(1UL << DV_WEIGHT_BIAS);
+#if USE_MMX_ASM
+  const double dv_weight_bias_factor = (double)(1UL << DV_WEIGHT_BIAS);
+#endif
 
   W[0] = 1.0;
   W[1] = CS(4) / (4.0 * CS(7) * CS(2));
@@ -68,8 +70,9 @@ void weight_init(void) {
   weight_88_inverse_float(temp);
 
   for (i=0;i<64;i++) {
-    dv_weight_inverse_88_matrix[i] = (dv_coeff_t)rint(temp[i] * 16.0);
-#if USE_MMX_ASM
+#if !USE_MMX_ASM
+    dv_weight_inverse_88_matrix[i] = (dv_coeff_t)rint(temp[i]);
+#else
     /* If we're using MMX assembler, fold weights into the iDCT
        prescale */
     preSC[i] *= temp[i] * (16.0 / dv_weight_bias_factor);
@@ -129,8 +132,9 @@ void weight_88_inverse_float(double *block) {
 void weight_88_inverse(dv_coeff_t *block) {
   /* When we're using MMX assembler, weights are applied in the 8x8
      iDCT prescale */
-#if 0 // !USE_MMX_ASM
+#if !USE_MMX_ASM
   int i;
+
   for (i=0;i<64;i++) {
     block[i] *= dv_weight_inverse_88_matrix[i];
   }

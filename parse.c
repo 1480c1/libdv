@@ -77,7 +77,11 @@ gint8  dv_reorder[2][64] = {
 void dv_parse_init(void) {
   gint i;
   for(i=0;i<64;i++) {
+#if !USE_MMX_ASM
+    dv_reorder[DV_DCT_88][i] = ((dv_88_reorder_prime[i] / 8) * 8) + (dv_88_reorder_prime[i] % 8);
+#else
     dv_reorder[DV_DCT_88][i] = ((dv_88_reorder_prime[i] % 8) * 8) + (dv_88_reorder_prime[i] / 8);
+#endif
   } // for 
   for(i=0;i<64;i++) {
 #if ZERO_MULT_ZIGZAG
@@ -416,17 +420,24 @@ __inline__ void dv_parse_ac_coeffs_pass0(bitstream_t *bs,
  *
  *  */
 #if ! USE_MMX_ASM
-gint dv_parse_video_segment(dv_videosegment_t *seg) {
+gint dv_parse_video_segment(dv_videosegment_t *seg, guint quality) {
   gint             m, b;
   gint             mb_start;
   gint             dc;
   dv_macroblock_t *mb;
   dv_block_t      *bl;
   bitstream_t     *bs;
+  guint n_blocks;
 
   vlc_trace("S[%d,%d]\n", seg->i,seg->k);
   // Phase 1:  initialize data structures, and get the DC
   bs = seg->bs;
+
+  if (quality & DV_QUALITY_COLOR)
+    n_blocks = 6;
+  else
+    n_blocks = 4;
+
   for(m=0,mb=seg->mb,mb_start=0;
       m<5;
       m++,mb++,mb_start+=(80*8)) {
@@ -451,28 +462,48 @@ gint dv_parse_video_segment(dv_videosegment_t *seg) {
     mb->i = (seg->i + dv_super_map_vertical[m]) % (seg->isPAL?12:10);
     mb->j = dv_super_map_horizontal[m];
     mb->k = seg->k;
-    for(b=0,bl=mb->b;
-	b<6;
-	b++,bl++) {
-      // Pass 0, read bits from individual blocks 
-      // Get DC coeff, mode, and class from start of block
-      dc = bitstream_get(bs,9);  // DC coefficient (twos complement)
-      if(dc > 256) dc -= 513;
-      bl->coeffs[0] = dc;
-      vlc_trace("DC [%d,%d,%d,%d] = %d\n",mb->i,mb->j,mb->k,b,dc);
-      bl->dct_mode = bitstream_get(bs,1);
-      bl->class_no = bitstream_get(bs,2);
-      bl->eob=0;
-      bl->offset= mb_start + dv_parse_bit_start[b];
-      bl->end= mb_start + dv_parse_bit_end[b];
-      bl->reorder = &dv_reorder[bl->dct_mode][1];
-      bl->reorder_sentinel = bl->reorder + 63;
-      dv_parse_ac_coeffs_pass0(bs,mb,bl);
-      bitstream_seek_set(bs,bl->end);
-    } // for b
+    if ((quality & DV_QUALITY_AC_MASK) == DV_QUALITY_DC) {
+      /* DC only */
+      for(b=0,bl=mb->b;
+	  b < n_blocks;
+	  b++,bl++) {
+	memset(bl->coeffs, 0, sizeof(bl->coeffs));
+	dc = bitstream_get(bs,9);  // DC coefficient (twos complement)
+	if(dc > 256) dc -= 513;
+	bl->coeffs[0] = dc;
+	vlc_trace("DC [%d,%d,%d,%d] = %d\n",mb->i,mb->j,mb->k,b,dc);
+	bl->dct_mode = bitstream_get(bs,1);
+	bl->class_no = bitstream_get(bs,2);
+	bitstream_seek_set(bs, mb_start + dv_parse_bit_end[b]);
+      } // for b
+    } else {
+      /* quality is DV_QUALITY_AC_1 or DV_QUALITY_AC_2 */
+      for(b=0,bl=mb->b;
+	  b < n_blocks;
+	  b++,bl++) {
+	// Pass 0, read bits from individual blocks 
+	// Get DC coeff, mode, and class from start of block
+	dc = bitstream_get(bs,9);  // DC coefficient (twos complement)
+	if(dc > 256) dc -= 513;
+	bl->coeffs[0] = dc;
+	vlc_trace("DC [%d,%d,%d,%d] = %d\n",mb->i,mb->j,mb->k,b,dc);
+	bl->dct_mode = bitstream_get(bs,1);
+	bl->class_no = bitstream_get(bs,2);
+	bl->eob=0;
+	bl->offset= mb_start + dv_parse_bit_start[b];
+	bl->end= mb_start + dv_parse_bit_end[b];
+	bl->reorder = &dv_reorder[bl->dct_mode][1];
+	bl->reorder_sentinel = bl->reorder + 63;
+	dv_parse_ac_coeffs_pass0(bs,mb,bl);
+	bitstream_seek_set(bs,bl->end);
+      } // for b
+    } // if quality
   } // for m
   // Phase 2:  do the 3 pass AC vlc decode
-  return(dv_parse_ac_coeffs(seg));
+  if ((quality & DV_QUALITY_AC_MASK) == DV_QUALITY_AC_2)
+    return(dv_parse_ac_coeffs(seg));
+  else
+    return 0;
 } // dv_parse_video_segment 
 #endif
 

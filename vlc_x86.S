@@ -354,6 +354,9 @@ show16:
 #undef ARGn
 
 
+	/*
+	gint dv_parse_video_segment(dv_videosegment_t *seg, guint quality) {
+	*/
 	.globl dv_parse_video_segment
 dv_parse_video_segment:
 	pushl	%ebx
@@ -363,6 +366,14 @@ dv_parse_video_segment:
 
 #define ARGn(N)  (20+(4*(N)))(%esp)
 
+	movl	ARGn(1),%eax			/* quality */
+	movl	$4,%ebx
+	testl	$DV_QUALITY_COLOR,%eax
+	jz	its_mono
+	movl	$6,%ebx
+its_mono:
+	movl	%ebx,n_blocks
+	
 	/*
 	 *	ebx	seg/b
 	 *
@@ -489,17 +500,46 @@ blkloop:
 	movl	%eax,dv_block_t_end(%ebp)
 
 	/* dv_parse_ac_coeffs_pass0(bs,mb,bl); */
-	movl	ARGn(0),%eax
+	movl	ARGn(1),%ecx	/* quality */
+	testl	$DV_QUALITY_AC_MASK,%ecx
+	jnz	do_ac_pass
+	
+	/* no AC pass.  Just zero out the remaining coeffs */
+	movq    dv_block_t_coeffs(%ebp),%mm1
+	pxor    %mm0,%mm0
+	pand    const_f_0_0_0,%mm1
+	movq    %mm1,dv_block_t_coeffs(%ebp)
+	movq    %mm0,(dv_block_t_coeffs + 8)(%ebp)
+	movq    %mm0,(dv_block_t_coeffs + 16)(%ebp)
+	movq    %mm0,(dv_block_t_coeffs + 24)(%ebp)
+	movq    %mm0,(dv_block_t_coeffs + 32)(%ebp)
+	movq    %mm0,(dv_block_t_coeffs + 40)(%ebp)
+	movq    %mm0,(dv_block_t_coeffs + 48)(%ebp)
+	movq    %mm0,(dv_block_t_coeffs + 56)(%ebp)
+	movq    %mm0,(dv_block_t_coeffs + 64)(%ebp)
+	movq    %mm0,(dv_block_t_coeffs + 72)(%ebp)
+	movq    %mm0,(dv_block_t_coeffs + 80)(%ebp)
+	movq    %mm0,(dv_block_t_coeffs + 88)(%ebp)
+	movq    %mm0,(dv_block_t_coeffs + 96)(%ebp)
+	movq    %mm0,(dv_block_t_coeffs + 104)(%ebp)
+	movq    %mm0,(dv_block_t_coeffs + 112)(%ebp)
+	movq    %mm0,(dv_block_t_coeffs + 120)(%ebp)
+	jmp	done_ac
+	
+do_ac_pass:
+	movl    ARGn(0),%eax
 	movl	dv_videosegment_t_bs(%eax),%eax
 	pushl	%ebp
 	pushl	%edi
 	pushl	%eax
 	call	dv_parse_ac_coeffs_pass0
 	addl	$12,%esp
+done_ac:
 
+	movl	n_blocks,%eax
 	addl	$dv_block_t_size,%ebp
 	incl	%ebx
-	cmpl	$6,%ebx
+	cmpl	%eax,%ebx
 	jnz	blkloop
 
 	movl	m,%eax
@@ -510,6 +550,8 @@ blkloop:
 	cmpl	$5,%eax
 	jnz	macloop
 	
+	movl	ARGn(1),%eax	/* quality */
+	
 	popl	%ebp
 	popl	%esi
 	popl	%edi
@@ -517,9 +559,12 @@ blkloop:
 
 	emms
 
-	jmp	dv_parse_ac_coeffs	
+	andl	$DV_QUALITY_AC_MASK,%eax
+	cmpl	$DV_QUALITY_AC_2,%eax
+	jz	dv_parse_ac_coeffs
+	movl	$0,%eax
+	ret
 
-		
 .data
 vlc:
 	.long	0
@@ -527,6 +572,8 @@ m:
 	.long	0
 mb_start:
 	.long	0
+n_blocks:
+	.long	0	/* 4 for monochrome, 6 for color */
 blk_start:
 	.byte	4,18,32,46,60,70
 	
