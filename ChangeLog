@@ -2,6 +2,7 @@
 	* libdv/dv.h, dv_types.h, headers.c, encode.c: use inttypes.h instead of
 	  stdint.h as it is more universal.
 	* libdv/dv_types.h: remove unused static variables
+	* libdv/dv1394.h: removed
 
 2004-07-06  Dan Dennedy <dan@dennedy.org>
 	* libdv/dv.c: fix SMPTE314M typo in dv_format_wide()
