@@ -47,14 +47,17 @@ extern "C" {
 #endif
 
 /* Main API */
-extern dv_decoder_t *dv_decoder_new      (void);
-extern void          dv_init             (void); 
-extern gint          dv_parse_header     (dv_decoder_t *dv, guchar *buffer);
-extern void          dv_decode_full_frame(dv_decoder_t *dv, 
-					  guchar *buffer, dv_color_space_t color_space, 
-					  guchar **pixels, gint *pitches);
-extern gint          dv_decode_full_audio(dv_decoder_t *dv, 
-					  guchar *buffer, gint16 **outbufs);
+extern dv_decoder_t *dv_decoder_new     (int add_ntsc_setup, int clamp_luma,
+	                  int clamp_chroma);
+extern void         dv_decoder_free     (dv_decoder_t*);
+extern void         dv_init             (int clamp_luma, int clamp_chroma); 
+extern void         dv_reconfigure      (int clamp_luma, int clamp_chroma); 
+extern int          dv_parse_header     (dv_decoder_t *dv, uint8_t *buffer);
+extern void         dv_decode_full_frame(dv_decoder_t *dv, 
+					  uint8_t *buffer, dv_color_space_t color_space, 
+					  uint8_t **pixels, int *pitches);
+extern int          dv_decode_full_audio(dv_decoder_t *dv, 
+					  uint8_t *buffer, int16_t **outbufs);
 	
 /*@}*/
 
@@ -62,12 +65,14 @@ extern gint          dv_decode_full_audio(dv_decoder_t *dv,
  *  @{
  */
 
-extern gint          dv_encode_full_frame(guchar **in, guchar *out,
-					  dv_color_space_t color_space, int isPAL, int is16x9, 
-					  int vlc_encode_passes, int static_qno, int force_dct_);
+extern dv_encoder_t *dv_encoder_new     (int rem_ntsc_setup, int clamp_luma,
+	                  int clamp_chroma);
+extern void         dv_encoder_free     (dv_encoder_t* dv_enc);
+extern int          dv_encode_full_frame(dv_encoder_t *dv_enc, uint8_t **in,
+					  dv_color_space_t color_space, uint8_t *out);
 	
-extern gint          dv_encode_full_audio(guchar *frame, int isPAL,
-					  gint16 **pcm, int channels, int frequency);
+extern int          dv_encode_full_audio(dv_encoder_t *dv_enc, int16_t **pcm, 
+					  int channels, int frequency, uint8_t *frame);
 
 /*@}*/
 
@@ -76,17 +81,17 @@ extern gint          dv_encode_full_audio(guchar *frame, int isPAL,
  */
 
 /* Low level API */
-extern gint dv_parse_video_segment(dv_videosegment_t *seg, guint quality);
-extern void dv_decode_video_segment(dv_decoder_t *dv, dv_videosegment_t *seg, guint quality);
+extern int dv_parse_video_segment(dv_videosegment_t *seg, unsigned int quality);
+extern void dv_decode_video_segment(dv_decoder_t *dv, dv_videosegment_t *seg, unsigned int quality);
 
 extern void dv_render_video_segment_rgb(dv_decoder_t *dv, dv_videosegment_t *seg, 
-					guchar **pixels, gint *pitches);
+					uint8_t **pixels, int *pitches);
 
 extern void dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, 
-					guchar **pixels, gint *pitches);
+					uint8_t **pixels, int *pitches);
 
-extern gint dv_encode_videosegment( dv_encoder_t *dv_enc,
-					dv_videosegment_t *videoseg, guint8 *vsbuffer);
+extern int dv_encode_videosegment( dv_encoder_t *dv_enc,
+					dv_videosegment_t *videoseg, uint8_t *vsbuffer);
 
 /* ---------------------------------------------------------------------------
  * functions based on vaux data
@@ -97,7 +102,7 @@ extern int dv_frame_changed (dv_decoder_t *dv),
 	   dv_system_50_fields (dv_decoder_t *dv),
 	   dv_format_normal (dv_decoder_t *dv),
 	   dv_format_wide (dv_decoder_t *dv),
-	   dv_get_vaux_pack (dv_decoder_t *dv, guint8 pack_id, guint8 *pack_data);
+	   dv_get_vaux_pack (dv_decoder_t *dv, uint8_t pack_id, uint8_t *pack_data);
 
 #ifdef __cplusplus
 }

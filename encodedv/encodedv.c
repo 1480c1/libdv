@@ -327,7 +327,7 @@ int main(int argc, char *argv[])
 		}
 	} 
  
-        dv_init();
+        dv_init(FALSE, FALSE);
 
 	if (input_filter->init(wrong_interlace, force_dct) < 0) {
 		return -1;

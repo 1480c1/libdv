@@ -34,7 +34,7 @@ extern "C" {
 
 #if HAVE_LIBPOPT
 
-extern void dv_opt_usage(poptContext con, struct poptOption *opt, gint num);
+extern void dv_opt_usage(poptContext con, struct poptOption *opt, int num);
 
 #endif  // HAVE_LIBPOPT
 

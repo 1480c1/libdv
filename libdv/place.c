@@ -30,8 +30,8 @@
 
 #define DEBUG_HIGHLIGHT_MBS 0
 
-static const gint dv_super_map_vertical[5] = { 2, 6, 8, 0, 4 };
-static const gint dv_super_map_horizontal[5] = { 2, 1, 3, 0, 4 };
+static const int dv_super_map_vertical[5] = { 2, 6, 8, 0, 4 };
+static const int dv_super_map_horizontal[5] = { 2, 1, 3, 0, 4 };
 
 void 
 dv_place_init(void) {
@@ -40,12 +40,12 @@ dv_place_init(void) {
 
 static inline void
 dv_place_411_macroblock(dv_macroblock_t *mb) {
-  gint mb_num; // mb number withing the 6 x 5 zig-zag pattern 
-  gint mb_num_mod_6, mb_num_div_6; // temporaries
-  gint mb_row;    // mb row within sb (de-zigzag)
-  gint mb_col;    // mb col within sb (de-zigzag)
+  int mb_num; // mb number withing the 6 x 5 zig-zag pattern 
+  int mb_num_mod_6, mb_num_div_6; // temporaries
+  int mb_row;    // mb row within sb (de-zigzag)
+  int mb_col;    // mb col within sb (de-zigzag)
   // Column offset of superblocks in macroblocks.  
-  static const guint column_offset[] = {0, 4, 9, 13, 18};  
+  static const unsigned int column_offset[] = {0, 4, 9, 13, 18};  
 
   // Consider the area spanned super block as 30 element macroblock
   // grid (6 rows x 5 columns).  The macroblocks are laid out in a in
@@ -80,12 +80,12 @@ dv_place_411_macroblock(dv_macroblock_t *mb) {
 
 static inline void 
 dv_place_420_macroblock(dv_macroblock_t *mb) {
-  gint mb_num; // mb number withing the 6 x 5 zig-zag pattern 
-  gint mb_num_mod_3, mb_num_div_3; // temporaries
-  gint mb_row;    // mb row within sb (de-zigzag)
-  gint mb_col;    // mb col within sb (de-zigzag)
+  int mb_num; // mb number withing the 6 x 5 zig-zag pattern 
+  int mb_num_mod_3, mb_num_div_3; // temporaries
+  int mb_row;    // mb row within sb (de-zigzag)
+  int mb_col;    // mb col within sb (de-zigzag)
   // Column offset of superblocks in macroblocks.  
-  static const guint column_offset[] = {0, 9, 18, 27, 36};  
+  static const unsigned int column_offset[] = {0, 9, 18, 27, 36};  
 
   // Consider the area spanned super block as 30 element macroblock
   // grid (6 rows x 5 columns).  The macroblocks are laid out in a in
@@ -112,7 +112,7 @@ dv_place_420_macroblock(dv_macroblock_t *mb) {
 } // dv_place_420_macroblock
 
 void 
-dv_place_macroblock(dv_decoder_t *dv, dv_videosegment_t *seg, dv_macroblock_t *mb, gint m) {
+dv_place_macroblock(dv_decoder_t *dv, dv_videosegment_t *seg, dv_macroblock_t *mb, int m) {
   mb->i = (seg->i + dv_super_map_vertical[m]) % dv->num_dif_seqs;
   mb->j = dv_super_map_horizontal[m];
   mb->k = seg->k;
@@ -126,7 +126,7 @@ dv_place_macroblock(dv_decoder_t *dv, dv_videosegment_t *seg, dv_macroblock_t *m
 void
 dv_place_video_segment(dv_decoder_t *dv, dv_videosegment_t *seg) {
   dv_macroblock_t *mb;
-  gint m; 
+  int m; 
   for (m=0,mb = seg->mb;
        m<5;
        m++,mb++) {
@@ -144,8 +144,8 @@ dv_place_video_segment(dv_decoder_t *dv, dv_videosegment_t *seg) {
 void
 dv_place_frame(dv_decoder_t *dv, dv_frame_t *frame) {
   dv_videosegment_t *seg;
-  gint ds, v; // dif sequence, video segment
-  guint dif = 0;
+  int ds, v; // dif sequence, video segment
+  unsigned int dif = 0;
   for (ds=0; ds < dv->num_dif_seqs; ds++) { 
     dif += 6; // skip the first 6 dif blocks in a dif sequence 
     // Loop through video segments 

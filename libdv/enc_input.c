@@ -841,8 +841,8 @@ static void video_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 			for (i = 0; i < 8; i++) {
 				bl[0].coeffs[8*i + j] = video_get_y(y+j,x+i);
 				bl[1].coeffs[8*i + j] = video_get_y(y+j,x+8+i);
-				bl[2].coeffs[8*i + j]=video_get_y(y+8+j,x+i);
-				bl[3].coeffs[8*i + j]=video_get_y(y+8+j,x+8+i);
+				bl[2].coeffs[8*i + j] = video_get_y(y+8+j,x+i);
+				bl[3].coeffs[8*i + j] = video_get_y(y+8+j,x+8+i);
 				bl[4].coeffs[8*i + j] = 
 					video_get_cr_pal(y/2+j, x/2+i);
 				bl[5].coeffs[8*i + j] = 
@@ -855,8 +855,8 @@ static void video_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 			for (j = 0; j < 8; j++) {
 				bl[0].coeffs[8*i + j] = video_get_y(y+j,x+i);
 				bl[1].coeffs[8*i + j] = video_get_y(y+j,x+8+i);
-				bl[2].coeffs[8*i + j]= video_get_y(y+j,x+16+i);
-				bl[3].coeffs[8*i + j]= video_get_y(y+j,x+24+i);
+				bl[2].coeffs[8*i + j] = video_get_y(y+j,x+16+i);
+				bl[3].coeffs[8*i + j] = video_get_y(y+j,x+24+i);
 				bl[4].coeffs[8*i + j] = 
 					video_get_cr_ntsc(y/2+j, x/2+i);
 				bl[5].coeffs[8*i + j] = 
@@ -952,7 +952,6 @@ int get_dv_enc_input_filters(dv_enc_input_filter_t ** filters_,
 
 /****** public encoder implementation ***********************************/
 /* By Dan Dennedy <dan@dennedy.org> */
-
 void ycb_fill_macroblock(dv_encoder_t *dv_enc, dv_macroblock_t *mb)
 {
 	int y = mb->y;
@@ -986,6 +985,16 @@ void ycb_fill_macroblock(dv_encoder_t *dv_enc, dv_macroblock_t *mb)
 					      + x / 2 + i]
 					+ dv_enc->img_cb[(y + 2*j + 1) * DV_WIDTH/2
 						+ x / 2 + i]) >> 1;
+				if (dv_enc->clamp_luma == TRUE) {
+					bl[0].coeffs[8 * i + j] = CLAMP(bl[0].coeffs[8 * i + j],16-128,235-128);
+					bl[1].coeffs[8 * i + j] = CLAMP(bl[1].coeffs[8 * i + j],16-128,235-128);
+					bl[2].coeffs[8 * i + j] = CLAMP(bl[2].coeffs[8 * i + j],16-128,235-128);
+					bl[3].coeffs[8 * i + j] = CLAMP(bl[3].coeffs[8 * i + j],16-128,235-128);
+				}
+				if (dv_enc->clamp_chroma == TRUE) {
+					bl[4].coeffs[8 * i + j] = CLAMP(bl[4].coeffs[8 * i + j],16-128,240-128);
+					bl[5].coeffs[8 * i + j] = CLAMP(bl[5].coeffs[8 * i + j],16-128,240-128);
+				}
 			}
 		}
 	} else {                        /* NTSC */
@@ -1010,6 +1019,7 @@ void ycb_fill_macroblock(dv_encoder_t *dv_enc, dv_macroblock_t *mb)
 					       + x / 2 + i*2]
 					 + dv_enc->img_cb[(y + j) * DV_WIDTH/2 
 						 + x / 2 + 1 + i*2]) >> 1;
+
 			}
 		}
 	}

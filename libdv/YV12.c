@@ -43,21 +43,22 @@ static unsigned char	real_ylut[768],  *ylut;
 static mmx_t		mmx_0x10s   = (mmx_t) 0x1010101010101010LL,
 			mmx_0x0080s = (mmx_t) 0x0080008000800080LL,
 			mmx_0x7f24s = (mmx_t) 0x7f247f247f247f24LL,
-                        mmx_0x7f94s = (mmx_t) 0x7f947f947f947f94LL;
+                        mmx_0x7f94s = (mmx_t) 0x7f947f947f947f94LL,
+			mmx_0x7f7fs = (mmx_t) 0x7f7f7f7f7f7f7f7fLL,
+			mmx_0x7f00s = (mmx_t) 0x7f007f007f007f00LL;
 #endif // ARCH_X86
 
 void 
-dv_YV12_init(void) {
-  gint i;
-  gint value;
+dv_YV12_init(int clamp_luma, int clamp_chroma) {
+  int i;
+  int value;
 
   uvlut = real_uvlut + 128; // index from -128 .. 127
   for(i=-128;
       i<128;
       ++i) {
-    if(i < (16-128)) value = 16;
-    else if(i > (240-128)) value = 240;
-    else value = i+128;
+    value = i + 128;
+    if (clamp_chroma == TRUE) value = CLAMP(value, 16, 240);
     uvlut[i] = value;
   } /* for */
   
@@ -65,15 +66,14 @@ dv_YV12_init(void) {
   for(i=-256;
       i<512;
       ++i) {
-    if(i < (16-128)) value = 16;
-    else if(i > (235-128)) value = 240;
-    else value = i+128;
+    value = i + 128;
+    if (clamp_luma == TRUE) value = CLAMP(value, 16, 235);
     ylut[i] = value;
   } /* for */
 } /* dv_YV12_init */
 
 void 
-dv_mb420_YV12(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches) {
+dv_mb420_YV12(dv_macroblock_t *mb, uint8_t **pixels, uint16_t *pitches) {
   dv_coeff_t		*Y[4], *UV[2], *Ytmp, *UVtmp;
   unsigned char	        *py, *pwy, *puv, *pwuv;
   int			i, j, row, col;
@@ -99,7 +99,8 @@ dv_mb420_YV12(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches) {
       for(j=0; j<2; j++) { // two columns of Y blocks
 	Ytmp = Y[i+j];
 	for(col = 0; col < 8; col++) {
-	  *pwy++ = ylut[*Ytmp++];
+	  *pwy++ = ylut[CLAMP(*Ytmp, -256, 511)];
+	  Ytmp++;
 	}
 	Y[i+j] = Ytmp;
       } /* for j */
@@ -124,7 +125,8 @@ dv_mb420_YV12(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches) {
       for(col=0; 
 	  col<8; 
 	  col++) {
-	*pwuv++ = uvlut[*UVtmp++];
+	*pwuv++ = uvlut[CLAMP(*UVtmp, -128, 127)];
+        UVtmp++;
       } /* for col */
 
     } /* for row */
@@ -135,8 +137,10 @@ dv_mb420_YV12(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches) {
 
 #if ARCH_X86
 
+/* TODO: clamping */
 void 
-dv_mb420_YV12_mmx(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches) {
+dv_mb420_YV12_mmx(dv_macroblock_t *mb, uint8_t **pixels, uint16_t *pitches,
+                  int clamp_luma, int clamp_chroma) {
   dv_coeff_t		*Y[4], *UV[2], *Ytmp, *UVtmp;
   unsigned char	        *py, *pwy, *puv;
   int			i, j, row;
@@ -153,8 +157,13 @@ dv_mb420_YV12_mmx(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches) {
   movq_m2r(mmx_0x0080s,mm0);
   movq_m2r(mmx_0x10s,mm1);
 
-  movq_m2r(mmx_0x7f94s,mm2);
-  movq_m2r(mmx_0x7f24s,mm3);
+  if (clamp_luma == TRUE) {
+    movq_m2r(mmx_0x7f94s,mm2); /* hi clamp */
+    movq_m2r(mmx_0x7f24s,mm3); /* lo clamp */
+  } else {
+    movq_m2r(mmx_0x7f7fs,mm2); /* no clamp */
+    movq_m2r(mmx_0x7f00s,mm3); /* no clamp */
+  }
 
   for(i=0; i<4; i+=2) {  // two rows of Y blocks
 

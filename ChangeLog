@@ -1,3 +1,41 @@
+2002-30-03  Dan Dennedy <dan@dennedy.org>
+        * Apply bugfix from Peter Schlaile to ppm_copy_ntsc_c block.
+	
+	* Added reppm.c test utility to test RGB recoding. Recode
+	  now tests YUV recoding. Both recode 5 times to evaluate
+	  multi-generation loss.
+	
+	* Apply patch #533329 from Erik Walthinsen to remove glib
+	  dependencies in library. Still need to modify build.
+	
+	* Added new options to disable luma and chroma clamping.
+	  The decoder's YUY2 MMX routines do not yet do any 
+	  chroma clamping regardless of option.
+	
+	* Added new options to enable addition and removal of
+	  North American NTSC 7.5 IRE setup.
+	  
+	* Added dv_decoder_free(), dv_reconfigure(), dv_encoder_new(),
+	  and dv_encoder_free(). Use dv_reconfigure() to reconfigure
+	  clamping options.
+	  
+	* Enhanced dv_decoder_new() and dv_encoder_new() to automatically
+	  invoke dv_init(). You no longer need to explicitly call dv_init().
+	  
+	* bugfix: offset luma -16 in rgb decoding (See Charles Poynton's
+	  Color FAQ). The encoder already properly offsets luma +16 on
+	  rgb input; without the -16 luma offset in the decoder
+	  recoding in rgb results in a positive luma shift.
+	  
+	* Tested decoder thread safetiness to confirm it is thread
+	  safe.
+	  
+	* Modified dvplay to add option for NTSC setup (default on)
+	  for best preview quality.
+	  
+	* Updated dvconnect from Peter Schlaile to fix a restore bug
+	  and add round robin real-time scheduling.
+
 2002-23-02  Dan Dennedy <dan@dennedy.org>
 	* Added public (shared object) interface to encoder: see dv.h
 

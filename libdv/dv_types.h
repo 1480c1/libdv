@@ -35,7 +35,24 @@
 #endif // HAVE_LIBPOPT
 
 #include <stdlib.h>
-#include <glib.h>
+#include <stdint.h>
+
+/* please tell me these are defined somewhere standard??? */
+#ifndef FALSE
+#define FALSE 0
+#endif
+#ifndef TRUE
+#define TRUE 1
+#endif
+#ifndef MIN
+#define MIN(a,b) ((a)<(b)?(a):(b))
+#endif
+#ifndef MAX
+#define MAX(a,b) ((a)<(b)?(b):(a))
+#endif
+#ifndef CLAMP
+#define CLAMP(a,x,b) (MIN(b,MAX(a,x)))
+#endif
 
 // For now assume ARCH_X86 means GCC with hints.
 #define HAVE_GCC ARCH_X86
@@ -70,7 +87,8 @@
 #define DV_DECODER_OPT_VIDEO_INCLUDE 1
 #define DV_DECODER_OPT_AUDIO_INCLUDE 2
 #define DV_DECODER_OPT_CALLBACK      3
-#define DV_DECODER_NUM_OPTS          4
+#define DV_DECODER_OPT_NTSCSETUP     4
+#define DV_DECODER_NUM_OPTS          5
 
 #define DV_OSS_OPT_DEVICE 0
 #define DV_OSS_OPT_FILE   1
@@ -105,9 +123,9 @@
 #define DV_QUALITY_BEST       (DV_QUALITY_COLOR | DV_QUALITY_AC_2)
 #define DV_QUALITY_FASTEST     0     /* Monochrome, DC coeffs only */
 
-static const gint header_size = 80 * 52; // upto first audio AAUX AS
-static const gint frame_size_525_60 = 10 * 150 * 80;
-static const gint frame_size_625_50 = 12 * 150 * 80;
+static const int header_size = 80 * 52; // upto first audio AAUX AS
+static const int frame_size_525_60 = 10 * 150 * 80;
+static const int frame_size_625_50 = 12 * 150 * 80;
 
 typedef enum color_space_e { 
   e_dv_color_yuv, 
@@ -134,71 +152,71 @@ typedef enum std_e {
   e_dv_std_iec_61834,    
 } dv_std_t;
 
-typedef gint16 dv_coeff_t;
-typedef gint32 dv_248_coeff_t;
+typedef int16_t dv_coeff_t;
+typedef int32_t dv_248_coeff_t;
 
 typedef struct bitstream_s {
-  guint32 current_word;
-  guint32 next_word;
-  guint16 bits_left;
-  guint16 next_bits;
+  uint32_t current_word;
+  uint32_t next_word;
+  uint16_t bits_left;
+  uint16_t next_bits;
 
-  guint8 *buf;
-  guint32 buflen;
-  gint32  bufoffset;
+  uint8_t *buf;
+  uint32_t buflen;
+  int32_t  bufoffset;
 
-  guint32 (*bitstream_next_buffer) (guint8 **,void *);
+  uint32_t (*bitstream_next_buffer) (uint8_t **,void *);
   void *priv;
 
-  gint32 bitsread;
+  int32_t bitsread;
 } bitstream_t;
 
 typedef struct {
-  gint8 sct;      // Section type (header,subcode,aux,audio,video)
-  gint8 dsn;      // DIF sequence number (0-12)
-  gboolean fsc;   // First (0)/Second channel (1)
-  gint8 dbn;      // DIF block number (0-134)
+  int8_t sct;      // Section type (header,subcode,aux,audio,video)
+  int8_t dsn;      // DIF sequence number (0-12)
+  int fsc;   // First (0)/Second channel (1)
+  int8_t dbn;      // DIF block number (0-134)
 } dv_id_t;
 
 typedef struct {
-  gboolean dsf;   // DIF sequence flag: 525/60 (0) or 625,50 (1)
-  gint8 apt;
-  gboolean tf1;
-  gint8 ap1;
-  gboolean tf2;
-  gint8 ap2;
-  gboolean tf3;
-  gint8 ap3;
+  int dsf;   // DIF sequence flag: 525/60 (0) or 625,50 (1)
+  int8_t apt;
+  int tf1;
+  int8_t ap1;
+  int tf2;
+  int8_t ap2;
+  int tf3;
+  int8_t ap3;
 } dv_header_t;
 
 typedef struct {
   dv_coeff_t   coeffs[64] ALIGN8;
-  gint         dct_mode;
-  gint         class_no;
-  gint8        *reorder;
-  gint8        *reorder_sentinel;
-  gint         offset;   // bitstream offset of first unused bit 
-  gint         end;      // bitstream offset of last bit + 1
-  gint         eob;
-  gboolean     mark;     // used during passes 2 & 3 for tracking fragmented vlcs
+  int         dct_mode;
+  int         class_no;
+  int8_t        *reorder;
+  int8_t        *reorder_sentinel;
+  int         offset;   // bitstream offset of first unused bit 
+  int         end;      // bitstream offset of last bit + 1
+  int         eob;
+  int     mark;     // used during passes 2 & 3 for tracking fragmented vlcs
 } dv_block_t;
 
 typedef struct {
-  gint       i,j;   // superblock row/column, 
-  gint       k;     // macroblock no. within superblock */
-  gint       x, y;  // top-left corner position
+  int       i,j;   // superblock row/column, 
+  int       k;     // macroblock no. within superblock */
+  int       x, y;  // top-left corner position
   dv_block_t b[6];
-  gint       qno;
-  gint       sta;
-  gint       vlc_error;
-  gint       eob_count;
+  int       qno;
+  int       sta;
+  int       vlc_error;
+  int       eob_count;
 } dv_macroblock_t;
 
 typedef struct {
-  gint            i, k;
+  int            i, k;
   bitstream_t    *bs;
   dv_macroblock_t mb[5]; 
-  gboolean        isPAL;
+  int        isPAL;
 } dv_videosegment_t;
 
 typedef struct {
@@ -207,7 +225,7 @@ typedef struct {
 
 // Frame
 typedef struct {
-  gboolean           placement_done;
+  int           placement_done;
   dv_dif_sequence_t  ds[12];  
 } dv_frame_t;
 
@@ -230,16 +248,16 @@ typedef struct {
 
 typedef struct {
 #if defined(LITTLE_ENDIAN_BITFIELD)
-  guint8 af_size : 6; /* Samples per frame: 
+  uint8_t af_size : 6; /* Samples per frame: 
 		       * 32 kHz: 1053-1080
 		       * 44.1: 1452-1489
 		       * 48: 1580-1620 */
-  guint8         : 1; // Should be 1
-  guint8 lf      : 1; // Locked mode flag (1 = unlocked)
+  uint8_t         : 1; // Should be 1
+  uint8_t lf      : 1; // Locked mode flag (1 = unlocked)
 #elif defined(BIG_ENDIAN_BITFIELD)
-  guint8 lf      : 1; // Locked mode flag (1 = unlocked)
-  guint8         : 1; // Should be 1
-  guint8 af_size : 6; /* Samples per frame: 
+  uint8_t lf      : 1; // Locked mode flag (1 = unlocked)
+  uint8_t         : 1; // Should be 1
+  uint8_t af_size : 6; /* Samples per frame: 
 		       * 32 kHz: 1053-1080
 		       * 44.1: 1452-1489
 		       * 48: 1580-1620 */
@@ -248,49 +266,49 @@ typedef struct {
 
 typedef struct {
 #if defined(LITTLE_ENDIAN_BITFIELD)
-  guint8 audio_mode: 4; // See 8.1...
-  guint8 pa        : 1; // pair bit: 0 = one pair of channels, 1 = independent channel (for sm = 1, pa shall be 1) 
-  guint8 chn       : 2; // number of audio channels per block: 0 = 1 channel, 1 = 2 channels, others reserved
-  guint8 sm        : 1; // stereo mode: 0 = Multi-stereo, 1 = Lumped
+  uint8_t audio_mode: 4; // See 8.1...
+  uint8_t pa        : 1; // pair bit: 0 = one pair of channels, 1 = independent channel (for sm = 1, pa shall be 1) 
+  uint8_t chn       : 2; // number of audio channels per block: 0 = 1 channel, 1 = 2 channels, others reserved
+  uint8_t sm        : 1; // stereo mode: 0 = Multi-stereo, 1 = Lumped
 #elif defined(BIG_ENDIAN_BITFIELD)
-  guint8 sm        : 1; // stereo mode: 0 = Multi-stereo, 1 = Lumped
-  guint8 chn       : 2; // number of audio channels per block: 0 = 1 channel, 1 = 2 channels, others reserved
-  guint8 pa        : 1; // pair bit: 0 = one pair of channels, 1 = independent channel (for sm = 1, pa shall be 1) 
-  guint8 audio_mode: 4; // See 8.1...
+  uint8_t sm        : 1; // stereo mode: 0 = Multi-stereo, 1 = Lumped
+  uint8_t chn       : 2; // number of audio channels per block: 0 = 1 channel, 1 = 2 channels, others reserved
+  uint8_t pa        : 1; // pair bit: 0 = one pair of channels, 1 = independent channel (for sm = 1, pa shall be 1) 
+  uint8_t audio_mode: 4; // See 8.1...
 #endif // BIG_ENDIAN_BITFIELD
 } dv_aaux_as_pc2_t;
 
 typedef struct {
 #if defined(LITTLE_ENDIAN_BITFIELD)
-  guint8 stype     :5; // 0x0 = SD (525/625), 0x2 = HD (1125,1250), others reserved
-  guint8 system    :1; // 0 = 60 fields, 1 = 50 field
-  guint8 ml        :1; // Multi-languag flag
-  guint8           :1;
+  uint8_t stype     :5; // 0x0 = SD (525/625), 0x2 = HD (1125,1250), others reserved
+  uint8_t system    :1; // 0 = 60 fields, 1 = 50 field
+  uint8_t ml        :1; // Multi-languag flag
+  uint8_t           :1;
 #elif defined(BIG_ENDIAN_BITFIELD)
-  guint8           :1;
-  guint8 ml        :1; // Multi-languag flag
-  guint8 system    :1; // 0 = 60 fields, 1 = 50 field
-  guint8 stype     :5; // 0x0 = SD (525/625), 0x2 = HD (1125,1250), others reserved
+  uint8_t           :1;
+  uint8_t ml        :1; // Multi-languag flag
+  uint8_t system    :1; // 0 = 60 fields, 1 = 50 field
+  uint8_t stype     :5; // 0x0 = SD (525/625), 0x2 = HD (1125,1250), others reserved
 #endif // BIG_ENDIAN_BITFIELD
 } dv_aaux_as_pc3_t;
 
 typedef struct {
 #if defined(LITTLE_ENDIAN_BITFIELD)
-  guint8 qu        :3; // quantization: 0=16bits linear, 1=12bits non-linear, 2=20bits linear, others reserved
-  guint8 smp       :3; // sampling frequency: 0=48kHz, 1=44,1 kHz, 2=32 kHz
-  guint8 tc        :1; // time constant of emphasis: 1=50/15us, 0=reserved
-  guint8 ef        :1; // emphasis: 0=on, 1=off
+  uint8_t qu        :3; // quantization: 0=16bits linear, 1=12bits non-linear, 2=20bits linear, others reserved
+  uint8_t smp       :3; // sampling frequency: 0=48kHz, 1=44,1 kHz, 2=32 kHz
+  uint8_t tc        :1; // time constant of emphasis: 1=50/15us, 0=reserved
+  uint8_t ef        :1; // emphasis: 0=on, 1=off
 #elif defined(BIG_ENDIAN_BITFIELD)
-  guint8 ef        :1; // emphasis: 0=on, 1=off
-  guint8 tc        :1; // time constant of emphasis: 1=50/15us, 0=reserved
-  guint8 smp       :3; // sampling frequency: 0=48kHz, 1=44,1 kHz, 2=32 kHz
-  guint8 qu        :3; // quantization: 0=16bits linear, 1=12bits non-linear, 2=20bits linear, others reserved
+  uint8_t ef        :1; // emphasis: 0=on, 1=off
+  uint8_t tc        :1; // time constant of emphasis: 1=50/15us, 0=reserved
+  uint8_t smp       :3; // sampling frequency: 0=48kHz, 1=44,1 kHz, 2=32 kHz
+  uint8_t qu        :3; // quantization: 0=16bits linear, 1=12bits non-linear, 2=20bits linear, others reserved
 #endif // BIG_ENDIAN_BITFIELD
 } dv_aaux_as_pc4_t;
 
 // AAUX source pack (AS)
 typedef struct {
-  guint8 pc0; // value is 0x50;
+  uint8_t pc0; // value is 0x50;
   dv_aaux_as_pc1_t pc1;
   dv_aaux_as_pc2_t pc2;
   dv_aaux_as_pc3_t pc3;
@@ -300,59 +318,59 @@ typedef struct {
 // From 61834-4 (section 8.2), and SMPE 314M (section 4.6.2.3.2)
 typedef struct {
 #if defined(LITTLE_ENDIAN_BITFIELD)
-  guint8 ss        :2; /* 61834 says "Source and recorded situation...", SMPTE says EFC (emphasis audio channel flag)
+  uint8_t ss        :2; /* 61834 says "Source and recorded situation...", SMPTE says EFC (emphasis audio channel flag)
 			  0=emphasis off, 1=emphasis on, others reserved.  EFC shall be set for each audio block. */
-  guint8 cmp       :2; /* number of times compression: 0=once, 1=twice, 2=three or more, 3=no information */
-  guint8 isr       :2; /* 0=analog input, 1=digital input, 2=reserved, 3=no information */
-  guint8 cgms      :2; /* Copy generation management system:
+  uint8_t cmp       :2; /* number of times compression: 0=once, 1=twice, 2=three or more, 3=no information */
+  uint8_t isr       :2; /* 0=analog input, 1=digital input, 2=reserved, 3=no information */
+  uint8_t cgms      :2; /* Copy generation management system:
 			  0=unrestricted, 1=not used, 2=one generation only, 3=no copy */
 #elif defined(BIG_ENDIAN_BITFIELD)
-  guint8 cgms      :2; /* Copy generation management system:
+  uint8_t cgms      :2; /* Copy generation management system:
 			  0=unrestricted, 1=not used, 2=one generation only, 3=no copy */
-  guint8 isr       :2; /* 0=analog input, 1=digital input, 2=reserved, 3=no information */
-  guint8 cmp       :2; /* number of times compression: 0=once, 1=twice, 2=three or more, 3=no information */
-  guint8 ss        :2; /* 61834 says "Source and recorded situation...", SMPTE says EFC (emphasis audio channel flag)
+  uint8_t isr       :2; /* 0=analog input, 1=digital input, 2=reserved, 3=no information */
+  uint8_t cmp       :2; /* number of times compression: 0=once, 1=twice, 2=three or more, 3=no information */
+  uint8_t ss        :2; /* 61834 says "Source and recorded situation...", SMPTE says EFC (emphasis audio channel flag)
 			  0=emphasis off, 1=emphasis on, others reserved.  EFC shall be set for each audio block. */
 #endif // BIG_ENDIAN_BITFIELD
 } dv_aaux_asc_pc1_t;
 
 typedef struct {
 #if defined(LITTLE_ENDIAN_BITFIELD)
-  guint8 insert_ch :3; /* see 61834-4... */
-  guint8 rec_mode  :3; /* recording mode: 1=original, others=various dubs... (see 68134-4) */
-  guint8 rec_end   :1; /* recording end point: same as starting... */
-  guint8 rec_st    :1; /* recording start point: 0=yes,1=no */
+  uint8_t insert_ch :3; /* see 61834-4... */
+  uint8_t rec_mode  :3; /* recording mode: 1=original, others=various dubs... (see 68134-4) */
+  uint8_t rec_end   :1; /* recording end point: same as starting... */
+  uint8_t rec_st    :1; /* recording start point: 0=yes,1=no */
 #elif defined(BIG_ENDIAN_BITFIELD)
-  guint8 rec_st    :1; /* recording start point: 0=yes,1=no */
-  guint8 rec_end   :1; /* recording end point: same as starting... */
-  guint8 rec_mode  :3; /* recording mode: 1=original, others=various dubs... (see 68134-4) */
-  guint8 insert_ch :3; /* see 61834-4... */
+  uint8_t rec_st    :1; /* recording start point: 0=yes,1=no */
+  uint8_t rec_end   :1; /* recording end point: same as starting... */
+  uint8_t rec_mode  :3; /* recording mode: 1=original, others=various dubs... (see 68134-4) */
+  uint8_t insert_ch :3; /* see 61834-4... */
 #endif // BIG_ENDIAN_BITFIELD
 } dv_aaux_asc_pc2_t;
 
 typedef struct {
 #if defined(LITTLE_ENDIAN_BITFIELD)
-  guint8 speed     :7; /* speed: see tables in 314M and 61834-4 (they differ), except 0xff = invalid/unkown */
-  guint8 drf       :1; /* direction: 1=forward, 0=reverse */
+  uint8_t speed     :7; /* speed: see tables in 314M and 61834-4 (they differ), except 0xff = invalid/unkown */
+  uint8_t drf       :1; /* direction: 1=forward, 0=reverse */
 #elif defined(BIG_ENDIAN_BITFIELD)
-  guint8 drf       :1; /* direction: 1=forward, 0=reverse */
-  guint8 speed     :7; /* speed: see tables in 314M and 61834-4 (they differ), except 0xff = invalid/unkown */
+  uint8_t drf       :1; /* direction: 1=forward, 0=reverse */
+  uint8_t speed     :7; /* speed: see tables in 314M and 61834-4 (they differ), except 0xff = invalid/unkown */
 #endif // BIG_ENDIAN_BITFIELD
 } dv_aaux_asc_pc3_t;
 
 typedef struct {
 #if defined(LITTLE_ENDIAN_BITFIELD)
-  guint8 genre_category: 7;
-  guint8               : 1;
+  uint8_t genre_category: 7;
+  uint8_t               : 1;
 #elif defined(BIG_ENDIAN_BITFIELD)
-  guint8               : 1;
-  guint8 genre_category: 7;
+  uint8_t               : 1;
+  uint8_t genre_category: 7;
 #endif // BIG_ENDIAN_BITFIELD
 } dv_aaux_asc_pc4_t;
 
 // AAUX source control pack (ASC)
 typedef struct {
-  guint8 pc0; // value is 0x51;
+  uint8_t pc0; // value is 0x51;
   dv_aaux_asc_pc1_t pc1;
   dv_aaux_asc_pc2_t pc2;
   dv_aaux_asc_pc3_t pc3;
@@ -362,24 +380,24 @@ typedef struct {
 typedef struct {
   dv_aaux_as_t      aaux_as;           // low-level audio format info direct from the stream
   dv_aaux_asc_t     aaux_asc;          
-  gint              samples_this_frame; 
-  gint              quantization;
-  gint              max_samples;
-  gint              frequency;
-  gint              num_channels;
-  gboolean          emphasis;              
-  gint              arg_audio_emphasis;
-  gint              arg_audio_frequency;
-  gint              arg_audio_quantization;
+  int              samples_this_frame; 
+  int              quantization;
+  int              max_samples;
+  int              frequency;
+  int              num_channels;
+  int          emphasis;              
+  int              arg_audio_emphasis;
+  int              arg_audio_frequency;
+  int              arg_audio_quantization;
 #if HAVE_LIBPOPT
   struct poptOption option_table[DV_AUDIO_NUM_OPTS+1]; 
 #endif // HAVE_LIBPOPT
 } dv_audio_t;
 
 typedef struct {
-  guint              quality;        
-  gint               arg_block_quality; // default 3
-  gint               arg_monochrome;
+  unsigned int              quality;        
+  int               arg_block_quality; // default 3
+  int               arg_monochrome;
 
 #if HAVE_LIBPOPT
   struct poptOption  option_table[DV_VIDEO_NUM_OPTS+1]; 
@@ -388,26 +406,28 @@ typedef struct {
 } dv_video_t;
 
 typedef struct {
-  guint              quality;
+  unsigned int       quality;
   dv_system_t        system;
   dv_std_t           std;
   dv_sample_t        sampling;
-  gint               num_dif_seqs; // DIF sequences per frame
-  gint               height, width;
+  int                num_dif_seqs; // DIF sequences per frame
+  int                height, width;
   size_t             frame_size;
   dv_header_t        header;
   dv_audio_t        *audio;
   dv_video_t        *video;
-  gint               arg_video_system;
-
-  gboolean           prev_frame_decoded;
+  int                arg_video_system;
+  int                add_ntsc_setup;
+  int                clamp_luma;
+  int                clamp_chroma;
+  int                prev_frame_decoded;
   /* -------------------------------------------------------------------------
    * per dif sequence! there are 45 vaux data packs
    * 1 byte header 4 byte data.
    */
-  guint8             vaux_next;
-  guint8             vaux_pack [256];
-  guint8             vaux_data [45][4];
+  uint8_t             vaux_next;
+  uint8_t             vaux_pack [256];
+  uint8_t             vaux_data [45][4];
 
 #if HAVE_LIBPOPT
   struct poptOption option_table[DV_DECODER_NUM_OPTS+1]; 
@@ -415,27 +435,32 @@ typedef struct {
 } dv_decoder_t;
 
 typedef struct {
-  gint               fd;
-  gint16            *buffer;
-  gchar             *arg_audio_file;
-  gchar             *arg_audio_device;
+  int                  fd;
+  int16_t             *buffer;
+  uint8_t             *arg_audio_file;
+  uint8_t             *arg_audio_device;
 #if HAVE_LIBPOPT
   struct poptOption option_table[DV_OSS_NUM_OPTS+1];
 #endif // HAVE_LIBPOPT
 } dv_oss_t;
 
 typedef struct {
-  gint   isPAL;
-  gint   vlc_encode_passes;
-  gint   static_qno;
-  short *img_y;  /* height * width     */
-  short *img_cr; /* height * width / 2 */
-  short *img_cb; /* height * width / 2 */
-  gint   force_dct; 
+  int    isPAL;
+  int    is16x9;
+  int    vlc_encode_passes;
+  int    static_qno;
+  int    force_dct; 
+  int    rem_ntsc_setup;
+  int    clamp_luma;
+  int    clamp_chroma;
+  /* the below are private */
+  short *img_y;
+  short *img_cr;
+  short *img_cb;
 } dv_encoder_t;
 
 #if ARCH_X86
-extern gboolean dv_use_mmx;
+extern int dv_use_mmx;
 #endif
 
 #endif // DV_TYPES_H

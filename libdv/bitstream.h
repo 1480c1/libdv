@@ -43,30 +43,30 @@ extern "C" {
 #define swab32(x) (x)
 #else // LITTLE_ENDIAN
 #    define swab32(x)\
-((((guint8*)&x)[0] << 24) | (((guint8*)&x)[1] << 16) |  \
- (((guint8*)&x)[2] << 8)  | (((guint8*)&x)[3]))
+((((uint8_t*)&x)[0] << 24) | (((uint8_t*)&x)[1] << 16) |  \
+ (((uint8_t*)&x)[2] << 8)  | (((uint8_t*)&x)[3]))
 #endif // LITTLE_ENDIAN
 
 bitstream_t *bitstream_init();
-void bitstream_set_fill_func(bitstream_t *bs,guint32 (*next_function) (guint8 **,void *),void *priv);
+void bitstream_set_fill_func(bitstream_t *bs,uint32_t (*next_function) (uint8_t **,void *),void *priv);
 void bitstream_next_buffer(bitstream_t * bs);
-void bitstream_new_buffer(bitstream_t *bs,guint8 *buf,guint32 len);
+void bitstream_new_buffer(bitstream_t *bs,uint8_t *buf,uint32_t len);
 void bitstream_byte_align(bitstream_t *bs);
 
 static void bitstream_next_word(bitstream_t *bs) {
-  guint32 diff = bs->buflen - bs->bufoffset;
+  uint32_t diff = bs->buflen - bs->bufoffset;
 
   if (diff == 0)
     bitstream_next_buffer(bs);
 
   if ((bs->buflen - bs->bufoffset) >=4 ) {
-    bs->next_word = *(gulong *)(bs->buf + bs->bufoffset);
+    bs->next_word = *(uint32_t *)(bs->buf + bs->bufoffset);
     bs->next_word = swab32(bs->next_word);
     bs->next_bits = 32;
 //    fprintf(stderr,"next_word is %08x at %d\n",bs->next_word,bs->bufoffset);
     bs->bufoffset += 4;
   } else {
-    bs->next_word = *(gulong *)(bs->buf + bs->buflen - 4);
+    bs->next_word = *(uint32_t *)(bs->buf + bs->buflen - 4);
     bs->next_bits = (bs->buflen - bs->bufoffset) * 8;
 //    fprintf(stdout,"end of buffer, have %d bits\n",bs->next_bits);
     bitstream_next_buffer(bs);
@@ -83,8 +83,8 @@ static void bitstream_next_word(bitstream_t *bs) {
 // -ah
 //
 
-guint32 static inline bitstream_show_bh(bitstream_t *bs,guint32 num_bits) {
-  guint32 result;
+uint32_t static inline bitstream_show_bh(bitstream_t *bs,uint32_t num_bits) {
+  uint32_t result;
 
   result = (bs->current_word << (32 - bs->bits_left)) >> (32 - bs->bits_left);
   num_bits -= bs->bits_left;
@@ -93,8 +93,8 @@ guint32 static inline bitstream_show_bh(bitstream_t *bs,guint32 num_bits) {
   return result;
 }
 
-guint32 static inline bitstream_get_bh(bitstream_t *bs,guint32 num_bits) {
-  guint32 result;
+uint32_t static inline bitstream_get_bh(bitstream_t *bs,uint32_t num_bits) {
+  uint32_t result;
 
   num_bits -= bs->bits_left;
   result = (bs->current_word << (32 - bs->bits_left)) >> (32 - bs->bits_left);
@@ -109,7 +109,7 @@ guint32 static inline bitstream_get_bh(bitstream_t *bs,guint32 num_bits) {
   return result;
 }
 
-void static inline bitstream_flush_bh(bitstream_t *bs,guint32 num_bits) {
+void static inline bitstream_flush_bh(bitstream_t *bs,uint32_t num_bits) {
   //fprintf(stderr,"(flush) current_word 0x%08x, next_word 0x%08x, bits_left %d, num_bits %d\n",current_word,next_word,bits_left,num_bits);
 
   bs->current_word = bs->next_word;
@@ -117,15 +117,15 @@ void static inline bitstream_flush_bh(bitstream_t *bs,guint32 num_bits) {
   bitstream_next_word(bs);
 }
 
-static inline guint32 bitstream_show(bitstream_t * bs, guint32 num_bits) {
+static inline uint32_t bitstream_show(bitstream_t * bs, uint32_t num_bits) {
   if (num_bits <= bs->bits_left)
     return (bs->current_word >> (bs->bits_left - num_bits));
 
   return bitstream_show_bh(bs,num_bits);
 }
 
-static inline guint32 bitstream_get(bitstream_t * bs, guint32 num_bits) {
-  guint32 result;
+static inline uint32_t bitstream_get(bitstream_t * bs, uint32_t num_bits) {
+  uint32_t result;
 
   bs->bitsread += num_bits;
 
@@ -139,12 +139,13 @@ static inline guint32 bitstream_get(bitstream_t * bs, guint32 num_bits) {
 }
 
 // This will fail unpredictably if you try to put more than 32 bits back
-static inline void bitstream_unget(bitstream_t *bs, guint32 data, guint8 num_bits)
+static inline void bitstream_unget(bitstream_t *bs, uint32_t data, uint8_t num_bits)
 {
-  guint high_bits;
-  guint32 mask = (1<<num_bits)-1;
+  unsigned int high_bits;
+  uint32_t mask = (1<<num_bits)-1;
 
-  g_return_if_fail((num_bits <= 32) && (num_bits >0) && (!(data & (~mask))));
+  if (!((num_bits <= 32) && (num_bits >0) && (!(data & (~mask)))))
+    return;
 
   bs->bitsread -= num_bits;
   if(num_bits <= (32 - bs->bits_left)) {
@@ -167,7 +168,7 @@ static inline void bitstream_unget(bitstream_t *bs, guint32 data, guint8 num_bit
   }
 }
 
-static inline void bitstream_flush(bitstream_t * bs, guint32 num_bits) {
+static inline void bitstream_flush(bitstream_t * bs, uint32_t num_bits) {
   if (num_bits < bs->bits_left)
     bs->bits_left -= num_bits;
   else
@@ -176,8 +177,8 @@ static inline void bitstream_flush(bitstream_t * bs, guint32 num_bits) {
   bs->bitsread += num_bits;
 }
 
-static inline void bitstream_flush_large(bitstream_t *bs,guint32 num_bits) {
-  gint bits = num_bits;
+static inline void bitstream_flush_large(bitstream_t *bs,uint32_t num_bits) {
+  int bits = num_bits;
 
   while (bits > 32) {
     bitstream_flush(bs,32);
@@ -186,12 +187,12 @@ static inline void bitstream_flush_large(bitstream_t *bs,guint32 num_bits) {
   bitstream_flush(bs,bits);
 }
 
-static inline void bitstream_seek_set(bitstream_t *bs, guint32 offset) {
+static inline void bitstream_seek_set(bitstream_t *bs, uint32_t offset) {
   bs->bufoffset = ((offset & (~0x1f)) >> 5) << 2;
-  bs->current_word = *(gulong *)(bs->buf + bs->bufoffset);
+  bs->current_word = *(uint32_t *)(bs->buf + bs->bufoffset);
   bs->current_word = swab32(bs->current_word);
   bs->bufoffset += 4;
-  bs->next_word = *(gulong *)(bs->buf + bs->bufoffset);
+  bs->next_word = *(uint32_t *)(bs->buf + bs->bufoffset);
   bs->next_word = swab32(bs->next_word);
   bs->bufoffset += 4;
   bs->bits_left = 32 - (offset & 0x1f);

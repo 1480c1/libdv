@@ -46,7 +46,7 @@
 #include <mmx.h>
 #endif
 
-static guint8 dv_88_areas[64] = {
+static uint8_t dv_88_areas[64] = {
 -1,0,0,1,1,1,2,2, 
  0,0,1,1,1,2,2,2, 
  0,1,1,1,2,2,2,3, 
@@ -57,7 +57,7 @@ static guint8 dv_88_areas[64] = {
  2,2,2,3,3,3,3,3, 
  2,2,3,3,3,3,3,3 };
 
-static guint8 dv_248_areas[64] = {
+static uint8_t dv_248_areas[64] = {
 -1,0,1,1,1,2,2,3, 
  0,1,1,2,2,2,3,3, 
  1,1,2,2,2,3,3,3, 
@@ -69,7 +69,7 @@ static guint8 dv_248_areas[64] = {
  1,2,2,3,3,3,3,3 };
 
 #if 0
-static guint8 dv_quant_steps[22][4] = {
+static uint8_t dv_quant_steps[22][4] = {
   { 8,8,16,16 }, 
   { 8,8,16,16 }, 
 
@@ -103,7 +103,7 @@ static guint8 dv_quant_steps[22][4] = {
 };
 #endif
 
-guint8 dv_quant_shifts[22][4] = {
+uint8_t dv_quant_shifts[22][4] = {
   { 3,3,4,4 }, 
   { 3,3,4,4 }, 
 
@@ -136,9 +136,9 @@ guint8 dv_quant_shifts[22][4] = {
   { 0,0,0,0 }
 };
 
-guint8  dv_quant_offset[4] = { 6,3,0,1 };
-guint32	dv_quant_248_mul_tab [2] [22] [64];
-guint32 dv_quant_88_mul_tab [2] [22] [64];
+uint8_t  dv_quant_offset[4] = { 6,3,0,1 };
+uint32_t	dv_quant_248_mul_tab [2] [22] [64];
+uint32_t dv_quant_88_mul_tab [2] [22] [64];
 
 extern void             quant_x86(dv_coeff_t *block,int qno,int klass);
 extern void quant_248_inverse_std(dv_coeff_t *block,int qno,int klass,dv_248_coeff_t *co);
@@ -175,7 +175,7 @@ void quant(dv_coeff_t *block,int qno,int klass)
 		int i;
 		int extra = (klass == 3) ? 1 : 0;
 		int factor;
-		guint8 *pq;	/* pointer to the four quantization
+		uint8_t *pq;	/* pointer to the four quantization
 				   factors that we'll use */
 
 		pq = dv_quant_shifts[qno+dv_quant_offset[klass]];
@@ -208,9 +208,9 @@ void quant(dv_coeff_t *block,int qno,int klass)
 
 void quant_88_inverse(dv_coeff_t *block,int qno,int klass) {
   int i;
-  guint8 *pq;			/* pointer to the four quantization
+  uint8_t *pq;			/* pointer to the four quantization
                                    factors that we'll use */
-  gint extra;
+  int extra;
 
   extra = (klass == 3);	/* if klass==3, shift
 			   everything left one
@@ -223,9 +223,9 @@ void quant_88_inverse(dv_coeff_t *block,int qno,int klass) {
 void
 quant_248_inverse_std(dv_coeff_t *block,int qno,int klass,dv_248_coeff_t *co) {
   int i;
-  guint8 *pq;			/* pointer to the four quantization
+  uint8_t *pq;			/* pointer to the four quantization
                                    factors that we'll use */
-  gint extra;
+  int extra;
 
   extra = (klass == 3);		/* if klass==3, shift everything left
                                    one more place */
@@ -238,7 +238,7 @@ quant_248_inverse_std(dv_coeff_t *block,int qno,int klass,dv_248_coeff_t *co) {
 void
 quant_248_inverse_mmx(dv_coeff_t *block,int qno,int klass,dv_248_coeff_t *co) {
   int i;
-  guint32 *pm;
+  uint32_t *pm;
 
   pm = dv_quant_248_mul_tab [klass == 3] [qno + dv_quant_offset[klass]];
   for (i = 0; i < 64; i++) {

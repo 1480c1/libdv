@@ -34,10 +34,10 @@ extern "C" {
 
 /* Low-level routines */
 extern dv_audio_t *dv_audio_new(void);
-extern gboolean    dv_parse_audio_header(dv_decoder_t *decoder, guchar *inbuf);
-extern gboolean    dv_update_num_samples(dv_audio_t *dv_audio, guint8 *inbuf);
-extern gint        dv_decode_audio_block(dv_audio_t *dv_audio, guint8 *buffer, gint ds, gint audio_dif, gint16 **outbufs);
-extern void        dv_audio_deemphasis(dv_audio_t *dv_audio, gint16 *outbuf);
+extern int    dv_parse_audio_header(dv_decoder_t *decoder, uint8_t *inbuf);
+extern int    dv_update_num_samples(dv_audio_t *dv_audio, uint8_t *inbuf);
+extern int        dv_decode_audio_block(dv_audio_t *dv_audio, uint8_t *buffer, int ds, int audio_dif, int16_t **outbufs);
+extern void        dv_audio_deemphasis(dv_audio_t *dv_audio, int16_t *outbuf);
 extern void        dv_dump_aaux_as(void *buffer, int ds, int audio_dif);
 
 #ifdef __cplusplus

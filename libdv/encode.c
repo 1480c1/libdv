@@ -42,8 +42,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <glib.h>
+#include <stdint.h>
 
+#include "dv.h"
 #include "encode.h"
 #include "idct_248.h"
 #include "quant.h"
@@ -88,17 +89,17 @@ typedef struct dv_vlc_block_s {
 	dv_vlc_entry_t coeffs[128] ALIGN8;
 	dv_vlc_entry_t * coeffs_end;
 	dv_vlc_entry_t * coeffs_start;
-	guint coeffs_bits;
+	unsigned int coeffs_bits;
 	long bit_offset;
 	long bit_budget;
-	gboolean can_supply;
+	int can_supply;
 } dv_vlc_block_t;
 
-extern gint     dv_super_map_vertical[5];
-extern gint     dv_super_map_horizontal[5];
+extern int     dv_super_map_vertical[5];
+extern int     dv_super_map_horizontal[5];
 
-extern gint    dv_parse_bit_start[6];
-extern gint    dv_parse_bit_end[6];
+extern int    dv_parse_bit_start[6];
+extern int    dv_parse_bit_end[6];
 
 static long runs_used[15];
 static long cycles_used[15*5*6];
@@ -110,12 +111,12 @@ static long vlc_overflows;
 static inline void
 dv_place_411_macroblock(dv_macroblock_t *mb) 
 {
-	gint mb_num; /* mb number withing the 6 x 5 zig-zag pattern  */
-	gint mb_num_mod_6, mb_num_div_6; /* temporaries */
-	gint mb_row;    /* mb row within sb (de-zigzag) */
-	gint mb_col;    /* mb col within sb (de-zigzag) */
+	int mb_num; /* mb number withing the 6 x 5 zig-zag pattern  */
+	int mb_num_mod_6, mb_num_div_6; /* temporaries */
+	int mb_row;    /* mb row within sb (de-zigzag) */
+	int mb_col;    /* mb col within sb (de-zigzag) */
 	/* Column offset of superblocks in macroblocks. */
-	static const guint column_offset[] = {0, 4, 9, 13, 18};  
+	static const unsigned int column_offset[] = {0, 4, 9, 13, 18};  
 	
 	/* Consider the area spanned super block as 30 element macroblock
 	   grid (6 rows x 5 columns).  The macroblocks are laid out in a in
@@ -158,12 +159,12 @@ dv_place_411_macroblock(dv_macroblock_t *mb)
 static inline void 
 dv_place_420_macroblock(dv_macroblock_t *mb) 
 {
-	gint mb_num; /* mb number withing the 6 x 5 zig-zag pattern */
-	gint mb_num_mod_3, mb_num_div_3; /* temporaries */
-	gint mb_row;    /* mb row within sb (de-zigzag) */
-	gint mb_col;    /* mb col within sb (de-zigzag) */
+	int mb_num; /* mb number withing the 6 x 5 zig-zag pattern */
+	int mb_num_mod_3, mb_num_div_3; /* temporaries */
+	int mb_row;    /* mb row within sb (de-zigzag) */
+	int mb_col;    /* mb col within sb (de-zigzag) */
 	/* Column offset of superblocks in macroblocks. */
-	static const guint column_offset[] = {0, 9, 18, 27, 36};  
+	static const unsigned int column_offset[] = {0, 9, 18, 27, 36};  
 	
 	/* Consider the area spanned super block as 30 element macroblock
 	   grid (6 rows x 5 columns).  The macroblocks are laid out in a in
@@ -193,8 +194,8 @@ dv_place_420_macroblock(dv_macroblock_t *mb)
 } /* dv_place_420_macroblock */
 
 /* FIXME: Could still be faster... */
-static inline guint put_bits(unsigned char *s, guint offset, 
-                             guint len, guint value)
+static inline unsigned int put_bits(unsigned char *s, unsigned int offset, 
+                             unsigned int len, unsigned int value)
 {
 #if !ARCH_X86
         s += (offset >> 3);
@@ -217,10 +218,10 @@ static inline guint put_bits(unsigned char *s, guint offset,
 }
 
 typedef struct {
-	gint8 run;
-	gint8 amp;
-	guint16 val;
-	guint8 len;
+	int8_t run;
+	int8_t amp;
+	uint16_t val;
+	uint8_t len;
 } dv_vlc_encode_t;
 
 static dv_vlc_encode_t dv_vlc_test_table[89] = {
@@ -785,7 +786,7 @@ inline int classify(dv_coeff_t * bl)
 
 static void do_dct(dv_macroblock_t *mb)
 {
-	guint b;
+	unsigned int b;
 
 	for (b = 0; b < 6; b++) {
 		dv_block_t *bl = &mb->b[b];
@@ -912,7 +913,7 @@ static void quant_1_pass(dv_videosegment_t* videoseg,
 
 		for (b = 0; b < 6; b++) {
 			dv_block_t *bl = &mb->b[b];
-			guint ac_coeff_budget = (((b < 4) ? 100 : 68) - 4); 
+			unsigned int ac_coeff_budget = (((b < 4) ? 100 : 68) - 4); 
 			qno_index = qno_next_hit[bl->class_no][smallest_qno];
 			while (smallest_qno > 0) {
 				memcpy(bb[b], bl->coeffs, 
@@ -1179,12 +1180,12 @@ static void quant_3_passes(dv_videosegment_t* videoseg,
 
 static void process_videosegment(dv_enc_input_filter_t * input,
 				 dv_videosegment_t* videoseg,
-				 guint8 * vsbuffer, int vlc_encode_passes,
+				 uint8_t * vsbuffer, int vlc_encode_passes,
 				 int static_qno)
 {
 	dv_macroblock_t *mb;
-	gint m;
-	guint b;
+	int m;
+	unsigned int b;
 	dv_vlc_block_t vlc_block[5*6];
 
 	for (m = 0, mb = videoseg->mb; m < 5; m++, mb++) {
@@ -1205,6 +1206,7 @@ static void process_videosegment(dv_enc_input_filter_t * input,
 		do_classify(mb, static_qno);
 	}
 
+#if 0
 	for (m = 0; m < 5; m++) {
 		dv_vlc_block_t *v_bl = vlc_block;
 		for (b = 0; b < 6; b++) {
@@ -1213,6 +1215,7 @@ static void process_videosegment(dv_enc_input_filter_t * input,
 			v_bl++;
 		}
 	}
+#endif
 
 	switch (vlc_encode_passes) {
 	case 1:
@@ -1258,11 +1261,11 @@ static void encode(dv_enc_input_filter_t * input,
 {
 	static dv_videosegment_t videoseg ALIGN64;
 
-	gint numDIFseq;
-	gint ds;
-	gint v;
-	guint dif;
-	guint offset;
+	int numDIFseq;
+	int ds;
+	int v;
+	unsigned int dif;
+	unsigned int offset;
 
 	memset(target, 0, 144000);
 
@@ -1444,12 +1447,88 @@ void show_statistics()
 /****** public encoder implementation ***********************************/
 /* By Dan Dennedy <dan@dennedy.org> */
 
-gint dv_encode_videosegment( dv_encoder_t *dv_enc,
-				dv_videosegment_t *videoseg, guint8 *vsbuffer)
+/** @brief Construct a dv_encoder_t with settings.
+ *
+ *  This function allocates memory for you that must be set free using
+ *  dv_encoder_free()
+ * 
+ * @param rem_ntsc_setup A boolean that indicates if 16 should be
+ *          subtracted from the luma channel to account for the NTSC
+ *          luma setup/platform of 7.5 IRE. The North American NTSC 
+ *          standard calls for a 7.5 IRE setup, but DV is based on the
+ *          Japanese NTSC standard that uses 0 IRE setup. Therefore,
+ *          North American DV equipments adds the 7.5 IRE setup to its
+ *          analog output. Without setting this true, computer generated
+ *          graphics may appear too bright.
+ *          Typically, this should be set false for PAL and Japanese NTSC
+ *          users.
+ * @param clamp_luma A boolean to indicate that luma values should be 
+ *          trimmed to their ITU-R 601 legal limits. When this is false, it
+ *          preserves superblack and superwhite.
+ *          Typically, this should be set true.
+ * @param clamp_chroma A boolean to indicate that color values should be
+ *          trimmed to their ITU-R 601 legal limits.
+ *          Typically this should be set true.
+ */
+dv_encoder_t * 
+dv_encoder_new(int rem_ntsc_setup, int clamp_luma, int clamp_chroma) {
+  dv_encoder_t *result;
+  
+  result = (dv_encoder_t *)calloc(1,sizeof(dv_encoder_t));
+  if(!result) return(NULL);
+  
+  result->img_y = (short*) calloc(DV_PAL_HEIGHT * DV_WIDTH, sizeof(short));
+  if(!result->img_y) goto no_y;
+  result->img_cr = (short*) calloc(DV_PAL_HEIGHT * DV_WIDTH / 2, sizeof(short));
+  if(!result->img_cr) goto no_cr;
+  result->img_cb = (short*) calloc(DV_PAL_HEIGHT * DV_WIDTH / 2, sizeof(short));
+  if(!result->img_cb) goto no_cb;
+
+  result->rem_ntsc_setup = rem_ntsc_setup;
+  result->clamp_luma = clamp_luma;
+  result->clamp_chroma = clamp_chroma;
+
+  dv_init( clamp_luma, clamp_chroma);
+
+  return(result);
+  
+no_cb:
+  free(result->img_cb);
+no_cr:
+  free(result->img_y);
+no_y:
+  free(result);
+  
+  return(NULL);
+
+} /* dv_encoder_new */
+
+
+/** @brief Destroy a dv_encoder_t.
+ *
+ * This function deallocates the memory allocated by dv_encoder_new().
+ * 
+ * @param encoder A pointer to a dv_encoder_t structure
+ *
+ */
+void
+dv_encoder_free( dv_encoder_t *encoder)
+{
+  if (encoder != NULL) {
+    if (encoder->img_y != NULL) free(encoder->img_y);
+    if (encoder->img_cr != NULL) free(encoder->img_cr);
+    if (encoder->img_cb != NULL) free(encoder->img_cb);
+    free(encoder);
+  }
+} /* dv_encoder_free */
+
+
+int dv_encode_videosegment( dv_encoder_t *dv_enc,
+				dv_videosegment_t *videoseg, uint8_t *vsbuffer)
 {
 	dv_macroblock_t *mb;
-	gint m;
-	guint b;
+	int m;
+	unsigned int b;
 	dv_vlc_block_t vlc_block[5*6];
 
 	for (m = 0, mb = videoseg->mb; m < 5; m++, mb++) {
@@ -1470,6 +1549,7 @@ gint dv_encode_videosegment( dv_encoder_t *dv_enc,
 		do_classify(mb, dv_enc->static_qno);
 	}
 
+#if 0
 	for (m = 0; m < 5; m++) {
 		dv_vlc_block_t *v_bl = vlc_block;
 		for (b = 0; b < 6; b++) {
@@ -1478,6 +1558,7 @@ gint dv_encode_videosegment( dv_encoder_t *dv_enc,
 			v_bl++;
 		}
 	}
+#endif
 
 	switch (dv_enc->vlc_encode_passes) {
 	case 1:
@@ -1520,100 +1601,98 @@ gint dv_encode_videosegment( dv_encoder_t *dv_enc,
 }
 
 
-static void yuy2_to_yv12( guchar *data, int isPAL, short *img_y, short *img_cr, short *img_cb)
+static void yuy2_to_ycb( uint8_t *data, int isPAL, short *img_y, short *img_cr, short *img_cb)
 {
-	int total = (DV_WIDTH * (isPAL ? DV_PAL_HEIGHT : DV_NTSC_HEIGHT)) >> 1;
+	register int total = (DV_WIDTH * (isPAL ? DV_PAL_HEIGHT : DV_NTSC_HEIGHT)) >> 1;
 	register int i;
-	register guchar *p = data;
+	register uint8_t *p = data;
 	
 	for (i = 0; i < total; i++) {
-		img_y[i*2] = (short) *p++;
-		img_cb[i] = (short) *p++;
-		img_y[i*2+1] = (short) *p++;
-		img_cr[i] = (short) *p++;
+		img_y[i*2]   = (((short) *p++) - 128) << DCT_YUV_PRECISION;
+		img_cb[i]    = (((short) *p++) - 128) << DCT_YUV_PRECISION;
+		img_y[i*2+1] = (((short) *p++) - 128) << DCT_YUV_PRECISION;
+		img_cr[i]    = (((short) *p++) - 128) << DCT_YUV_PRECISION;
 	}
 }
+
+
+#ifdef YUV_420_USE_YV12
+static void yv12_to_ycb( uint8_t **in, int isPAL, short *img_y, short *img_cr, short *img_cb)
+{
+	register int total = (DV_WIDTH * (isPAL ? DV_PAL_HEIGHT : DV_NTSC_HEIGHT)) >> 1;
+	register int i;
+	
+	for (i = 0; i < total; i++) {
+		img_y[i*2]   = (((short) in[0][i*2]) - 128) << DCT_YUV_PRECISION;
+		img_cb[i]    = (((short) in[1][i]) - 128) << DCT_YUV_PRECISION;
+		img_y[i*2+1] = (((short) in[0][i*2+1]) - 128) << DCT_YUV_PRECISION;
+		img_cr[i]    = (((short) in[2][i]) - 128) << DCT_YUV_PRECISION;
+	}
+}
+#endif
 
 
 /** @brief DV encode a buffer containing a frame of video
  * 
  * DV interlaced video is always lower field first.
- *
+ * 
+ * @param dv_enc A pointer to a dv_encoder_t struct containing relevant options:
+ *        -isPAL  Set true (non-zero) to encode the data in PAL format.
+ *        -is16x9 Set true (non-zero) to set the flag bits in the DV
+ *          header to indicate widescreen video.
+ *        -vlc_encode_passes variable length coding distribution passes
+ *          (1-3) greater values = better quality but not necessarily slower
+ *          encoding! If zero or >3. this defaults to 3 for best quality.
+ *        -static_qno Default is 0 for dynamic quantisation.
+ *          Static qno tables can be used for quantisation on 2+ VLC passes. 
+ *          There are only two static qno tables registered right now:\n
+ *            1 : for sharp DV pictures\n
+ *            2 : for somewhat noisy satelite television signal
+ *        -force_dct Normally, motion estimation is used to determine
+ *          the level of interfield motion in interlaced video in order to
+ *          the best configuration of the DCT algorithm. This option forces
+ *          a particular one. Use DV_DCT_AUTO(-1), DV_DCT_88(0), or DV_DCT_248(1).
  * @param in An array of buffers. YUV/YUY2 and RGB only require
- * one entry. If you configured YUV for YV12. Then 3 array entries
- * correspond to pointers to the Y (luma) buffer, Cb and Cr (chroma)
- * buffers.
- * @param out A pointer to the output buffer, which should alreayd be
- * allocated width*height*2 bytes. The function will clear the buffer
- * before filling it.
+ *          one entry. If you configured YUV for YV12. Then 3 array entries
+ *          correspond to pointers to the Y (luma) buffer, Cb and Cr (chroma)
+ *          buffers.
  * @param color_space Indicates which color space and sample pattern
- * of the data in the \c in parameter.
- * @param isPAL Set true (non-zero) to encode the data in PAL format.
- * @param is16x9 Set true (non-zero) to set the flag bits in the DV
- * header to indicate widescreen video.
- * @param vlc_encode_passes variable length coding distribution passes
- * (1-3) greater values = better quality but not necessarily slower
- * encoding! If zero or >3. this defaults to 3 for best quality.
- * @param static_qno Default is 0 for dynamic quantisation.
- * Static qno tables can be used for quantisation on 2+ VLC passes. 
- * There are only two static qno tables registered right now:\n
- * 1 : for sharp DV pictures\n
- * 2 : for somewhat noisy satelite television signal
- * @param force_dct Normally, motion estimation is used to determine
- * the level of interfield motion in interlaced video in order to
- * the best configuration of the DCT algorithm. This option forces
- * a particular one. Use DV_DCT_AUTO(-1), DV_DCT_88(0), or DV_DCT_248(1).
+ *          of the data in the \c in parameter.
+ * @param out A pointer to the output buffer, which should alreayd be
+ *          allocated width*height*2 bytes. The function will clear the buffer
+ *          before filling it.
  */
-gint dv_encode_full_frame(guchar **in, guchar *out,
-				dv_color_space_t color_space, int isPAL, int is16x9, 
-				int vlc_encode_passes, int static_qno, int force_dct_)
+int dv_encode_full_frame(dv_encoder_t *dv_enc, uint8_t **in,
+			dv_color_space_t color_space, uint8_t *out)
 {
-	dv_encoder_t dv_enc;
 	dv_videosegment_t videoseg ALIGN64;
 	int numDIFseq;
-	int ds;
-	int v;
-	guint dif = 0;
-	guint offset = 0;
-	guchar *target = out;
+	int ds, v, i;
+	unsigned int dif = 0;
+	unsigned int offset = 0;
+	uint8_t *target = out;
 	time_t now;
 	now = time(NULL);
 	
-	dv_enc.force_dct = force_dct_;
-	dv_enc.isPAL = isPAL;
-	dv_enc.vlc_encode_passes = vlc_encode_passes;
-	dv_enc.static_qno = static_qno;
-	dv_enc.img_y = NULL;
-	dv_enc.img_cb = NULL;
-	dv_enc.img_cr = NULL;
+	if (dv_enc->vlc_encode_passes < 1 || dv_enc->vlc_encode_passes > 3)
+		dv_enc->vlc_encode_passes = 3;
+	if (dv_enc->static_qno < 1 || dv_enc->static_qno > 2)
+		dv_enc->static_qno = 0;
+	if (dv_enc->force_dct < DV_DCT_AUTO || dv_enc->force_dct > DV_DCT_248)
+		dv_enc->force_dct = DV_DCT_AUTO;
 
-	if (dv_enc.vlc_encode_passes < 1 || dv_enc.vlc_encode_passes > 3)
-		dv_enc.vlc_encode_passes = 3;
-	if (dv_enc.static_qno < 1 || dv_enc.static_qno > 2)
-		dv_enc.static_qno = 0;
-	if (dv_enc.force_dct < DV_DCT_AUTO || dv_enc.force_dct > DV_DCT_248)
-		dv_enc.force_dct = DV_DCT_AUTO;
-
-	memset(out, 0, 480 * (isPAL ? 300 : 250));
+	memset(out, 0, 480 * (dv_enc->isPAL ? 300 : 250));
 
 	switch (color_space) {
 	case e_dv_color_rgb:
-		dv_enc.img_y = (short*) calloc(DV_PAL_HEIGHT * DV_WIDTH, sizeof(short));
-		dv_enc.img_cr = (short*) calloc(DV_PAL_HEIGHT * DV_WIDTH / 2, sizeof(short));
-		dv_enc.img_cb = (short*) calloc(DV_PAL_HEIGHT * DV_WIDTH / 2, sizeof(short));
-		dv_enc_rgb_to_ycb(in[0], (isPAL ? DV_PAL_HEIGHT : DV_NTSC_HEIGHT),
-			dv_enc.img_y, dv_enc.img_cr, dv_enc.img_cb);
+		dv_enc_rgb_to_ycb(in[0], (dv_enc->isPAL ? DV_PAL_HEIGHT : DV_NTSC_HEIGHT),
+			dv_enc->img_y, dv_enc->img_cr, dv_enc->img_cb);
 		break;
 	case e_dv_color_yuv:
 #ifndef YUV_420_USE_YV12
-		dv_enc.img_y = (short*) calloc(DV_PAL_HEIGHT * DV_WIDTH, sizeof(short));
-		dv_enc.img_cr = (short*) calloc(DV_PAL_HEIGHT * DV_WIDTH / 2, sizeof(short));
-		dv_enc.img_cb = (short*) calloc(DV_PAL_HEIGHT * DV_WIDTH / 2, sizeof(short));
-		yuy2_to_yv12( in[0], isPAL, dv_enc.img_y, dv_enc.img_cr, dv_enc.img_cb);
+		yuy2_to_ycb( in[0], dv_enc->isPAL, dv_enc->img_y, dv_enc->img_cr, dv_enc->img_cb);
 #else
-		dv_enc.img_y = (short *) in[0];
-		dv_enc.img_cr = (short *) in[1];
-		dv_enc.img_cb = (short *) in[2];
+		yv12_to_ycb( in, dv_enc->isPAL, dv_enc->img_y, dv_enc->img_cr, dv_enc->img_cb);
 #endif
 		break;
 	default:
@@ -1622,10 +1701,37 @@ gint dv_encode_full_frame(guchar **in, guchar *out,
 		return -1;
 	}
 	
-	if (isPAL) 
+	if (dv_enc->rem_ntsc_setup == TRUE) {
+		for (i = 0;
+			i < (DV_WIDTH * (dv_enc->isPAL ? DV_PAL_HEIGHT : DV_NTSC_HEIGHT));
+			dv_enc->img_y[i++] -= (32) );
+	}
+			
+	/* -224 = (16-128)*2
+	    214 = (235-128)*2
+	*/
+	if (dv_enc->clamp_luma == TRUE) {
+		for (i = 0;
+			i < (DV_WIDTH * (dv_enc->isPAL ? DV_PAL_HEIGHT : DV_NTSC_HEIGHT));
+			dv_enc->img_y[i] = CLAMP(dv_enc->img_y[i++], -224, 214) );
+	}
+		
+	/* -224 = (16-128)*2
+	    224 = (240-128)*2
+	*/
+	if (dv_enc->clamp_chroma == TRUE) {
+		for (i = 0;
+			i < (DV_WIDTH * (dv_enc->isPAL ? DV_PAL_HEIGHT : DV_NTSC_HEIGHT) >> 2);
+			i++ ) {
+			dv_enc->img_cb[i] = CLAMP(dv_enc->img_cb[i], -224, 224);
+			dv_enc->img_cr[i] = CLAMP(dv_enc->img_cr[i], -224, 224);
+		}
+	}
+
+	if (dv_enc->isPAL) 
 		target[offset + 3] |= 0x80;
 
-	numDIFseq = isPAL ? 12 : 10;
+	numDIFseq = dv_enc->isPAL ? 12 : 10;
 	
 	for (ds = 0; ds < numDIFseq; ds++) { 
 		/* Each DIF segment conists of 150 dif blocks, 
@@ -1650,11 +1756,9 @@ gint dv_encode_full_frame(guchar **in, guchar *out,
 			
 			videoseg.i = ds;
 			videoseg.k = v;
-			videoseg.isPAL = isPAL;
+			videoseg.isPAL = dv_enc->isPAL;
 
-			if (dv_encode_videosegment(&dv_enc, 
-					     &videoseg, 
-						 target + offset) < 0) {
+			if (dv_encode_videosegment(dv_enc, &videoseg, target + offset) < 0) {
 				fprintf(stderr, "Enocder failed to process video segment.");
 				return -1;
 			}
@@ -1663,13 +1767,9 @@ gint dv_encode_full_frame(guchar **in, guchar *out,
 		} 
 	} 
 	
-	write_meta_data(target, 0, isPAL, is16x9, &now);
+	write_meta_data(target, 0, dv_enc->isPAL, dv_enc->is16x9, &now);
 
-	if (dv_enc.img_y) free(dv_enc.img_y);
-	if (dv_enc.img_cr) free(dv_enc.img_cr);
-	if (dv_enc.img_cb) free(dv_enc.img_cb);
 	return 0;
-
 }
 
 void swab(void*, void*, ssize_t);
@@ -1677,19 +1777,20 @@ void swab(void*, void*, ssize_t);
 
 /** @brief Encode signed 16-bit integer PCM audio data into a frame of DV video.
  *
- * @param frame_buf A pointer to a DV frame
- * @param isPAL Set true (non-zero) to encode the data in PAL format.
+ * @param dv_enc A pointer to a dv_encoder_t struct containing relevant options:
+ *        -isPAL  Set true (non-zero) to encode the data in PAL format.
  * @param pcm An array of buffers containing PCM audio data where each
- * array entry corresponds to a single channel of audio.
+ *          array entry corresponds to a single channel of audio.
  * @param channels The number of channels being used (<=4). Currently,
- * only two channels are supported.
+ *          only two channels are supported.
  * @param frequency The sampling rate of the input must be one of 32000,
- * 44100, or 48000.
+ *          44100, or 48000.
+ * @param frame_buf A pointer to a DV frame
  * 
  * @todo handle 4 channels
  */
-gint dv_encode_full_audio(guchar *frame_buf, int isPAL, gint16 **pcm,
-				int channels, int frequency)
+int dv_encode_full_audio(dv_encoder_t *dv_enc, int16_t **pcm,
+			int channels, int frequency, uint8_t *frame_buf)
 {
 	/* this assumes signed 16 bit pcm audio */
 	int i,j;
@@ -1699,7 +1800,7 @@ gint dv_encode_full_audio(guchar *frame_buf, int isPAL, gint16 **pcm,
 	audio.bitspersample = 16;
 	audio.bytealignment = 4;
 	audio.bytespersecond = frequency * audio.bytealignment;
-	audio.bytesperframe = audio.bytespersecond/(isPAL?25 : 30); /* not used */
+	audio.bytesperframe = audio.bytespersecond/(dv_enc->isPAL ? 25 : 30); /* not used */
 
 	/* interleave channels */
 	if (channels > 1) {
@@ -1708,5 +1809,5 @@ gint dv_encode_full_audio(guchar *frame_buf, int isPAL, gint16 **pcm,
 				swab( pcm[j]+i, audio.data + (i*2+j)*channels, 2);
 	}
 
-	return raw_insert_audio(frame_buf, &audio, isPAL);
+	return raw_insert_audio(frame_buf, &audio, dv_enc->isPAL);
 }

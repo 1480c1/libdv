@@ -27,6 +27,7 @@
 #define DV_OSS_H
 
 #include <libdv/dv_types.h>
+#include <glib.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -27,7 +27,7 @@
 
 #if HAVE_LIBPOPT
 void
-dv_opt_usage(poptContext con, struct poptOption *opt, gint num)
+dv_opt_usage(poptContext con, struct poptOption *opt, int num)
 {
   struct poptOption *o = opt + num;
   if(o->shortName && o->longName) {

@@ -61,25 +61,26 @@
  * pointer arithmetic to make use of negative index values legal.
  */
 
-static gint32 real_table_2_018[256];
-static gint32 real_table_0_813[256];
-static gint32 real_table_0_391[256];
-static gint32 real_table_1_596[256];
+static int32_t real_table_2_018[256];
+static int32_t real_table_0_813[256];
+static int32_t real_table_0_391[256];
+static int32_t real_table_1_596[256];
 
-static gint32 *table_2_018;
-static gint32 *table_0_813;
-static gint32 *table_0_391;
-static gint32 *table_1_596;
+static int32_t *table_2_018;
+static int32_t *table_0_813;
+static int32_t *table_0_391;
+static int32_t *table_1_596;
 
-static gint32 real_ylut[768], *ylut;
+static int32_t real_ylut[768], *ylut;
+static int32_t real_ylut_setup[768], *ylut_setup;
 
 /* rgb lookup - clamps values in range -256 .. 512 to 0 .. 255 */
-static guint8 real_rgblut[768], *rgblut;
+static uint8_t real_rgblut[768], *rgblut;
 
 void 
-dv_rgb_init(void) {
-  gint i;
-  gint clamped_offset;
+dv_rgb_init(int clamp_luma, int clamp_chroma) {
+  int i;
+  int clamped_offset;
   table_2_018 = real_table_2_018 + 128;
   table_0_813 = real_table_0_813 + 128;
   table_0_391 = real_table_0_391 + 128;
@@ -88,25 +89,26 @@ dv_rgb_init(void) {
   for(i=-128;
       i<128;
       ++i) {
-    if(i < (16-128)) {
+    if ((clamp_chroma == TRUE) && (i < (16-128))) {
       clamped_offset = (16-128);
-    } else if(i > (240-128)) {
+    } else if ((clamp_chroma == TRUE) && (i > (240-128))) {
       clamped_offset = (240-128);
     } else {
       clamped_offset = i;
     } // else 
-    table_2_018[i] = (gint32)rint(2.018 * COLOR_FRACTION_MUL * clamped_offset);
-    table_0_813[i] = (gint32)rint(0.813 * COLOR_FRACTION_MUL * clamped_offset);
-    table_0_391[i] = (gint32)rint(0.391 * COLOR_FRACTION_MUL * clamped_offset);
-    table_1_596[i] = (gint32)rint(1.596 * COLOR_FRACTION_MUL * clamped_offset);
+    table_2_018[i] = (int32_t)rint(2.018 * COLOR_FRACTION_MUL * clamped_offset);
+    table_0_813[i] = (int32_t)rint(0.813 * COLOR_FRACTION_MUL * clamped_offset);
+    table_0_391[i] = (int32_t)rint(0.391 * COLOR_FRACTION_MUL * clamped_offset);
+    table_1_596[i] = (int32_t)rint(1.596 * COLOR_FRACTION_MUL * clamped_offset);
   } // for
 
   ylut = real_ylut + 256;
+  ylut_setup = real_ylut_setup + 256;
   for(i=-256; i < 512; i++) {
-    if(i < (16-128)) clamped_offset = (16-128);
-    else if(i > (235-128)) clamped_offset = (235-128);
-    else clamped_offset = i;
-    ylut[i] = (gint32)rint(1.164 * COLOR_FRACTION_MUL * (clamped_offset+128-16));
+    clamped_offset = i + 128 - 16;
+    if (clamp_luma == TRUE) clamped_offset = CLAMP(clamped_offset, 16, 235);
+    ylut[i] = (int32_t)rint(1.164 * COLOR_FRACTION_MUL * clamped_offset);
+    ylut_setup[i] = (int32_t)rint(1.164 * COLOR_FRACTION_MUL * (clamped_offset+16));
   } // for
 
   rgblut = real_rgblut + 256;
@@ -116,9 +118,9 @@ dv_rgb_init(void) {
 } /* dv_rgb_init */
 
 void 
-dv_mb411_rgb(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
+dv_mb411_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_setup) {
   dv_coeff_t *Y[4], *cr_frame, *cb_frame;
-  guint8 *prgb, *pwrgb;
+  uint8_t *prgb, *pwrgb;
   int i,j,k, row;
 
   Y[0] = mb->b[0].coeffs;
@@ -135,17 +137,17 @@ dv_mb411_rgb(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
     for (i = 0; i < 4; ++i) {     // Four Y blocks
       dv_coeff_t *Ytmp = Y[i]; // less indexing in inner loop speedup?
       for (j = 0; j < 2; ++j) {   // two 4-pixel spans per Y block
-        gint8 cb = *cb_frame++;  /* -128,-1  => 0x80,0xff */
-        gint8 cr = *cr_frame++;
+        int8_t cb = *cb_frame++;  /* -128,-1  => 0x80,0xff */
+        int8_t cr = *cr_frame++;
         int ro = table_1_596[cr];
         int go = table_0_813[cr] + table_0_391[cb];
         int bo =                   table_2_018[cb];
  
         for (k = 0; k < 4; ++k) { // 4-pixel span
-          gint32 y = ylut[*Ytmp++];
-          gint32 r = (y + ro) >> COLOR_FRACTION_BITS;
-          gint32 g = (y - go) >> COLOR_FRACTION_BITS;
-          gint32 b = (y + bo) >> COLOR_FRACTION_BITS;
+          int32_t y = (add_ntsc_setup == TRUE) ? ylut_setup[*Ytmp++] : ylut[*Ytmp++];
+          int32_t r = (y + ro) >> COLOR_FRACTION_BITS;
+          int32_t g = (y - go) >> COLOR_FRACTION_BITS;
+          int32_t b = (y + bo) >> COLOR_FRACTION_BITS;
           *pwrgb++ = rgblut[r];
           *pwrgb++ = rgblut[g];
           *pwrgb++ = rgblut[b];
@@ -159,10 +161,10 @@ dv_mb411_rgb(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
 
 
 void 
-dv_mb411_right_rgb(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
+dv_mb411_right_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_setup) {
   dv_coeff_t *Ytmp;
   dv_coeff_t *Y[4], *cr_frame, *cb_frame;
-  guint8 *prgb, *pwrgb;
+  uint8_t *prgb, *pwrgb;
   int i, j, k, row, col;
 
   Y[0] = mb->b[0].coeffs;
@@ -185,8 +187,8 @@ dv_mb411_right_rgb(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
 
         for (col = 0; col < 8; col+=4) {  // 4 spans of 2x2 pixels
 
-          gint8 cb = *cb_frame++; // +128;
-          gint8 cr = *cr_frame++; // +128
+          int8_t cb = *cb_frame++; // +128;
+          int8_t cr = *cr_frame++; // +128
 
 	  int ro = table_1_596[cr];
 	  int go = table_0_813[cr] + table_0_391[cb];
@@ -194,10 +196,10 @@ dv_mb411_right_rgb(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
 
           for (k = 0; k < 4; ++k) { // 4x1 pixels
 
-            gint32 y = ylut[*Ytmp++];
-            gint32 r = (y + ro) >> COLOR_FRACTION_BITS;
-            gint32 g = (y - go) >> COLOR_FRACTION_BITS;
-            gint32 b = (y + bo) >> COLOR_FRACTION_BITS;
+            int32_t y = (add_ntsc_setup == TRUE) ? ylut_setup[*Ytmp++] : ylut[*Ytmp++];
+            int32_t r = (y + ro) >> COLOR_FRACTION_BITS;
+            int32_t g = (y - go) >> COLOR_FRACTION_BITS;
+            int32_t b = (y + bo) >> COLOR_FRACTION_BITS;
 
 	    *pwrgb++ = rgblut[r];
 	    *pwrgb++ = rgblut[g];
@@ -218,9 +220,9 @@ dv_mb411_right_rgb(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
 } /* dv_mb411_right_rgb */
 
 void 
-dv_mb420_rgb(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
+dv_mb420_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
   dv_coeff_t *Y[4], *cr_frame, *cb_frame;
-  guint8 *prgb, *pwrgb0, *pwrgb1;
+  uint8_t *prgb, *pwrgb0, *pwrgb1;
   int i, j, k, row, col;
 
   Y[0] = mb->b[0].coeffs;
@@ -243,17 +245,17 @@ dv_mb420_rgb(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
         dv_coeff_t *Ytmp0 = Y[yindex];
         dv_coeff_t *Ytmp1 = Y[yindex] + 8;
         for (col = 0; col < 4; ++col) {  // 4 spans of 2x2 pixels
-          gint8 cb = *cb_frame++; // +128;
-          gint8 cr = *cr_frame++; // +128
+          int8_t cb = *cb_frame++; // +128;
+          int8_t cr = *cr_frame++; // +128
 	  int ro = table_1_596[cr];
 	  int go = table_0_813[cr] + table_0_391[cb];
 	  int bo =                   table_2_018[cb];
 	
           for (k = 0; k < 2; ++k) { // 2x2 pixel
-            gint32 y = ylut[*Ytmp0++];
-            gint32 r = (y + ro) >> COLOR_FRACTION_BITS;
-            gint32 g = (y - go) >> COLOR_FRACTION_BITS;
-            gint32 b = (y + bo) >> COLOR_FRACTION_BITS;
+            int32_t y = ylut[*Ytmp0++];
+            int32_t r = (y + ro) >> COLOR_FRACTION_BITS;
+            int32_t g = (y - go) >> COLOR_FRACTION_BITS;
+            int32_t b = (y + bo) >> COLOR_FRACTION_BITS;
 	    *pwrgb0++ = rgblut[r];
 	    *pwrgb0++ = rgblut[g];
 	    *pwrgb0++ = rgblut[b];
@@ -278,9 +280,9 @@ dv_mb420_rgb(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
 } /* dv_mb420_rgb */
 
 void 
-dv_mb411_bgr0(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
+dv_mb411_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_setup) {
   dv_coeff_t *Y[4], *cr_frame, *cb_frame;
-  guint8 *prgb, *pwrgb;
+  uint8_t *prgb, *pwrgb;
   int i,j,k, row;
 
   Y[0] = mb->b[0].coeffs;
@@ -297,17 +299,17 @@ dv_mb411_bgr0(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
     for (i = 0; i < 4; ++i) {     // Four Y blocks
       dv_coeff_t *Ytmp = Y[i]; // less indexing in inner loop speedup?
       for (j = 0; j < 2; ++j) {   // two 4-pixel spans per Y block
-        gint8 cb = *cb_frame++;  /* -128,-1  => 0x80,0xff */
-        gint8 cr = *cr_frame++;
+        int8_t cb = *cb_frame++;  /* -128,-1  => 0x80,0xff */
+        int8_t cr = *cr_frame++;
         int ro = table_1_596[cr];
         int go = table_0_813[cr] + table_0_391[cb];
         int bo =                   table_2_018[cb];
  
         for (k = 0; k < 4; ++k) { // 4-pixel span
-          gint32 y = ylut[*Ytmp++];
-          gint32 r = (y + ro) >> COLOR_FRACTION_BITS;
-          gint32 g = (y - go) >> COLOR_FRACTION_BITS;
-          gint32 b = (y + bo) >> COLOR_FRACTION_BITS;
+          int32_t y = (add_ntsc_setup == TRUE) ? ylut_setup[*Ytmp++] : ylut[*Ytmp++];
+          int32_t r = (y + ro) >> COLOR_FRACTION_BITS;
+          int32_t g = (y - go) >> COLOR_FRACTION_BITS;
+          int32_t b = (y + bo) >> COLOR_FRACTION_BITS;
           *pwrgb++ = rgblut[b];
           *pwrgb++ = rgblut[g];
           *pwrgb++ = rgblut[r];
@@ -322,10 +324,10 @@ dv_mb411_bgr0(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
 
 
 void 
-dv_mb411_right_bgr0(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
+dv_mb411_right_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_setup) {
   dv_coeff_t *Ytmp;
   dv_coeff_t *Y[4], *cr_frame, *cb_frame;
-  guint8 *prgb, *pwrgb;
+  uint8_t *prgb, *pwrgb;
   int i, j, k, row, col;
 
   Y[0] = mb->b[0].coeffs;
@@ -348,8 +350,8 @@ dv_mb411_right_bgr0(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
 
         for (col = 0; col < 8; col+=4) {  // 4 spans of 2x2 pixels
 
-          gint8 cb = *cb_frame++; // +128;
-          gint8 cr = *cr_frame++; // +128
+          int8_t cb = *cb_frame++; // +128;
+          int8_t cr = *cr_frame++; // +128
 
 	  int ro = table_1_596[cr];
 	  int go = table_0_813[cr] + table_0_391[cb];
@@ -357,10 +359,10 @@ dv_mb411_right_bgr0(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
 
           for (k = 0; k < 4; ++k) { // 4x1 pixels
 
-            gint32 y = ylut[*Ytmp++];
-            gint32 r = (y + ro) >> COLOR_FRACTION_BITS;
-            gint32 g = (y - go) >> COLOR_FRACTION_BITS;
-            gint32 b = (y + bo) >> COLOR_FRACTION_BITS;
+            int32_t y = (add_ntsc_setup == TRUE) ? ylut_setup[*Ytmp++] : ylut[*Ytmp++];
+            int32_t r = (y + ro) >> COLOR_FRACTION_BITS;
+            int32_t g = (y - go) >> COLOR_FRACTION_BITS;
+            int32_t b = (y + bo) >> COLOR_FRACTION_BITS;
 
 	    *pwrgb++ = rgblut[b];
 	    *pwrgb++ = rgblut[g];
@@ -382,9 +384,9 @@ dv_mb411_right_bgr0(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
 } /* dv_mb411_right_bgr0 */
 
 void 
-dv_mb420_bgr0(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
+dv_mb420_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
   dv_coeff_t *Y[4], *cr_frame, *cb_frame;
-  guint8 *prgb, *pwrgb0, *pwrgb1;
+  uint8_t *prgb, *pwrgb0, *pwrgb1;
   int i, j, k, row, col;
 
   Y[0] = mb->b[0].coeffs;
@@ -407,17 +409,17 @@ dv_mb420_bgr0(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
         dv_coeff_t *Ytmp0 = Y[yindex];
         dv_coeff_t *Ytmp1 = Y[yindex] + 8;
         for (col = 0; col < 4; ++col) {  // 4 spans of 2x2 pixels
-          gint8 cb = *cb_frame++; // +128;
-          gint8 cr = *cr_frame++; // +128
+          int8_t cb = *cb_frame++; // +128;
+          int8_t cr = *cr_frame++; // +128
 	  int ro = table_1_596[cr];
 	  int go = table_0_813[cr] + table_0_391[cb];
 	  int bo =                   table_2_018[cb];
 	
           for (k = 0; k < 2; ++k) { // 2x2 pixel
-            gint32 y = ylut[*Ytmp0++];
-            gint32 r = (y + ro) >> COLOR_FRACTION_BITS;
-            gint32 g = (y - go) >> COLOR_FRACTION_BITS;
-            gint32 b = (y + bo) >> COLOR_FRACTION_BITS;
+            int32_t y = ylut[*Ytmp0++];
+            int32_t r = (y + ro) >> COLOR_FRACTION_BITS;
+            int32_t g = (y - go) >> COLOR_FRACTION_BITS;
+            int32_t b = (y + bo) >> COLOR_FRACTION_BITS;
 	    *pwrgb0++ = rgblut[b];
 	    *pwrgb0++ = rgblut[g];
 	    *pwrgb0++ = rgblut[r];
@@ -442,3 +444,6 @@ dv_mb420_bgr0(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
 
   } // for j
 } /* dv_mb420_bgr0 */
+
+
+/* TODO: MMX versions */

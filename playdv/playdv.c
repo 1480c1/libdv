@@ -84,7 +84,7 @@ dv_player_new(void)
   if(!(result = (dv_player_t *)calloc(1,sizeof(dv_player_t)))) goto no_mem;
   if(!(result->display = dv_display_new())) goto no_display;
   if(!(result->oss = dv_oss_new())) goto no_oss;
-  if(!(result->decoder = dv_decoder_new())) goto no_decoder;
+  if(!(result->decoder = dv_decoder_new(TRUE, FALSE, FALSE))) goto no_decoder;
 
 #if HAVE_LIBPOPT
   result->option_table[DV_PLAYER_OPT_VERSION] = (struct poptOption) {
@@ -306,8 +306,6 @@ main(int argc,char *argv[])
   filename = argv[1];
 #endif /* HAVE_LIBOPT */
 
-  dv_init();
-
   if (strcmp(filename, "-") == 0) {
 	  dv_player->no_mmap = 1;
 	  fd = STDIN_FILENO;
@@ -468,6 +466,8 @@ main(int argc,char *argv[])
   if(!dv_player->arg_disable_audio) {
     dv_oss_close(dv_player->oss);
   } /* if  */
+  dv_decoder_free(dv_player->decoder);
+  free(dv_player);
   exit(0);
 
   /* Error handling section */

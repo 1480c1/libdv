@@ -33,18 +33,18 @@
 #define VLC_ERROR (-2)
 
 typedef struct dv_vlc_s {
-  gint8 run;
-  gint8 len;
-  gint16 amp;
+  int8_t run;
+  int8_t len;
+  int16_t amp;
 } dv_vlc_t;
 
 #if 1
 typedef dv_vlc_t dv_vlc_tab_t;
 #else
 typedef struct dv_vlc_tab_s {
-  gint8 run;
-  gint8 len;
-  gint16 amp;
+  int8_t run;
+  int8_t len;
+  int16_t amp;
 } dv_vlc_tab_t;
 #endif
 
@@ -52,24 +52,24 @@ typedef struct dv_vlc_tab_s {
 extern "C" {
 #endif
 
-extern const gint8 *dv_vlc_classes[17];
-extern const gint dv_vlc_class_index_mask[17];
-extern const gint dv_vlc_class_index_rshift[17];
+extern const int8_t *dv_vlc_classes[17];
+extern const int dv_vlc_class_index_mask[17];
+extern const int dv_vlc_class_index_rshift[17];
 extern const dv_vlc_tab_t dv_vlc_broken[1];
 extern const dv_vlc_tab_t *dv_vlc_lookups[6];
-extern const gint dv_vlc_index_mask[6];
-extern const gint dv_vlc_index_rshift[6];
-extern const gint sign_lookup[2];
-extern const gint sign_mask[17];
-extern const gint sign_rshift[17];
+extern const int dv_vlc_index_mask[6];
+extern const int dv_vlc_index_rshift[6];
+extern const int sign_lookup[2];
+extern const int sign_mask[17];
+extern const int sign_rshift[17];
 extern void dv_construct_vlc_table();
 
 // Note we assume bits is right (lsb) aligned, 0 < maxbits < 17
 // This may look crazy, but there are no branches here.
-extern void dv_decode_vlc(gint bits,gint maxbits, dv_vlc_t *result);
-extern void __dv_decode_vlc(gint bits, dv_vlc_t *result);
+extern void dv_decode_vlc(int bits,int maxbits, dv_vlc_t *result);
+extern void __dv_decode_vlc(int bits, dv_vlc_t *result);
 
-extern __inline__ void dv_peek_vlc(bitstream_t *bs,gint maxbits, dv_vlc_t *result) {
+extern __inline__ void dv_peek_vlc(bitstream_t *bs,int maxbits, dv_vlc_t *result) {
   if(maxbits < 16)
     dv_decode_vlc(bitstream_show(bs,16),maxbits,result);
   else

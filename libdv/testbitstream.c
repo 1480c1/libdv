@@ -30,14 +30,14 @@
 
 #include "bitstream.h"
 
-static guint8 buffer[10000] = "Deliberately buried, eh?";
+static uint8_t buffer[10000] = "Deliberately buried, eh?";
 
 int offset = 0;
-guint show_16(void)
+unsigned int show_16(void)
 {
-    guint a, b, c;
-    guint r = offset & 7;
-    guint8 *s = &buffer[offset >> 3];
+    unsigned int a, b, c;
+    unsigned int r = offset & 7;
+    uint8_t *s = &buffer[offset >> 3];
 
 #if 1
     a = s[0] << (8 + r);
@@ -49,12 +49,12 @@ guint show_16(void)
 #endif
 }
 
-guint show_N(gint N)
+unsigned int show_N(int N)
 {
     return show_16() >> (16 - N);
 }
 
-void advance_N(gint N)
+void advance_N(int N)
 {
     offset += N;
 }
@@ -63,10 +63,10 @@ void advance_N(gint N)
 static void correctness(void)
 {
     bitstream_t *bs;
-    static const gint sizes[] = {
+    static const int sizes[] = {
 	8, 3, 4, 9, 1, 2, 9, 8, 7, 3, 2, 16, 0
     };
-    static const gint answers[] = {
+    static const int answers[] = {
 	0x44,
 	0x3,
 	0x2,
@@ -80,13 +80,13 @@ static void correctness(void)
 	0x2,
 	0x6174
     };
-    gint i;
+    int i;
 
     bs = bitstream_init();
     bitstream_new_buffer(bs, buffer, sizeof(buffer)); 
     
     for (i = 0; sizes[i] != 0; i++) {
-	gint n = bitstream_get(bs, sizes[i]);
+	int n = bitstream_get(bs, sizes[i]);
 	//n = show_N(sizes[i]);
 	//advance_N(sizes[i]);
 	if (n != answers[i])
@@ -98,9 +98,9 @@ static void correctness(void)
 void performance(void) 
 {
     bitstream_t *bs;
-    const gint numbits = 8 * sizeof(buffer);
-    static guint32 value;
-    gint passes, i;
+    const int numbits = 8 * sizeof(buffer);
+    static uint32_t value;
+    int passes, i;
     
     bs = bitstream_init();
 

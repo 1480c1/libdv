@@ -40,46 +40,49 @@
 /* Lookup tables for mapping signed to unsigned, and clamping */
 static unsigned char	real_uvlut[256], *uvlut;
 static unsigned char	real_ylut[768],  *ylut;
+static unsigned char	real_ylut_setup[768],  *ylut_setup;
 
 #if ARCH_X86
 /* Define some constants used in MMX range mapping and clamping logic */
 static mmx_t		mmx_0x0010s = (mmx_t) 0x0010001000100010LL,
 			mmx_0x0080s = (mmx_t) 0x0080008000800080LL,
+			mmx_0x7f7fs = (mmx_t) 0x7f7f7f7f7f7f7f7fLL,
+			mmx_0x7f00s = (mmx_t) 0x7f007f007f007f00LL,
 			mmx_0x7f24s = (mmx_t) 0x7f247f247f247f24LL,
 			mmx_0x7f94s = (mmx_t) 0x7f947f947f947f94LL,
 			mmx_0xff00s = (mmx_t) 0xff00ff00ff00ff00LL;
 #endif // ARCH_X86
 
 void 
-dv_YUY2_init(void) {
-  gint i;
-  gint value;
+dv_YUY2_init(int clamp_luma, int clamp_chroma) {
+  int i;
+  int value;
 
   uvlut = real_uvlut + 128; // index from -128 .. 127
   for(i=-128;
       i<128;
       ++i) {
-    if(i < (16-128)) value = 16;
-    else if(i > (240-128)) value = 240;
-    else value = i+128;
+    value = i + 128;
+    if (clamp_chroma == TRUE) value = CLAMP(value, 16, 240);
     uvlut[i] = value;
   } /* for */
   
   ylut = real_ylut + 256; // index from -256 .. 511
+  ylut_setup = real_ylut_setup + 256;
   for(i=-256;
       i<512;
       ++i) {
-    if(i < (16-128)) value = 16;
-    else if(i > (235-128)) value = 240;
-    else value = i+128;
-    ylut[i] = value;
+	value = i + 128;
+	if (clamp_luma == TRUE) value = CLAMP(value, 16, 235);
+	ylut[i] = value;
+	ylut_setup[i] = value + 16;
   } /* for */
 } /* dv_YUY2_init */
 
 void 
-dv_mb411_YUY2(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
+dv_mb411_YUY2(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_setup) {
   dv_coeff_t		*Y[4], *cr_frame, *cb_frame;
-  unsigned char	        *pyuv, *pwyuv, cb, cr;
+  unsigned char	        *pyuv, *pwyuv, cb, cr, *my_ylut;
   int			i, j, row;
 
   Y [0] = mb->b[0].coeffs;
@@ -90,6 +93,7 @@ dv_mb411_YUY2(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
   cb_frame = mb->b[5].coeffs;
 
   pyuv = pixels[0] + (mb->x * 2) + (mb->y * pitches[0]);
+  my_ylut = (add_ntsc_setup == TRUE ? ylut_setup : ylut);
 
   for (row = 0; row < 8; ++row) { // Eight rows
     pwyuv = pyuv;
@@ -99,19 +103,25 @@ dv_mb411_YUY2(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
 
       for (j = 0; j < 2; ++j) {   // two 4-pixel spans per Y block
 
-        cb = uvlut[*cb_frame++];
-        cr = uvlut[*cr_frame++];
+        cb = uvlut[CLAMP(*cb_frame, -128, 127)];
+        cr = uvlut[CLAMP(*cr_frame, -128, 127)];
+	cb_frame++;
+	cr_frame++;
 
 
 	/* TODO: endianess stuff like 420 code below */
-	*pwyuv++ = ylut[*Ytmp++];
+	*pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+	Ytmp++;
 	*pwyuv++ = cb;
-	*pwyuv++ = ylut[*Ytmp++];
+	*pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+	Ytmp++;
 	*pwyuv++ = cr;
 
-	*pwyuv++ = ylut[*Ytmp++];
+	*pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+	Ytmp++;
 	*pwyuv++ = cb;
-	*pwyuv++ = ylut[*Ytmp++];
+	*pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+	Ytmp++;
 	*pwyuv++ = cr;
 
       } /* for j */
@@ -124,10 +134,10 @@ dv_mb411_YUY2(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
 } /* dv_mb411_YUY2 */
 
 void 
-dv_mb411_right_YUY2(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
+dv_mb411_right_YUY2(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_setup) {
 
   dv_coeff_t		*Y[4], *Ytmp, *cr_frame, *cb_frame;
-  unsigned char	        *pyuv, *pwyuv, cb, cr;
+  unsigned char	        *pyuv, *pwyuv, cb, cr, *my_ylut;
   int			i, j, col, row;
 
 
@@ -137,6 +147,7 @@ dv_mb411_right_YUY2(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
   Y[3] = mb->b[3].coeffs;
 
   pyuv = pixels[0] + (mb->x * 2) + (mb->y * pitches[0]);
+  my_ylut = (add_ntsc_setup == TRUE ? ylut_setup : ylut);
 
   for (j = 0; j < 4; j += 2) { // Two rows of blocks 
     cr_frame = mb->b[4].coeffs + (j * 2);
@@ -150,18 +161,24 @@ dv_mb411_right_YUY2(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
 
         for (col = 0; col < 8; col+=4) {  // two 4-pixel spans per Y block
 
-          cb = uvlut[*cb_frame++]; 
-          cr = uvlut[*cr_frame++]; 
+          cb = uvlut[*cb_frame]; 
+          cr = uvlut[*cr_frame];
+	  cb_frame++;
+	  cr_frame++;
 	  
 	  /* TODO: endianess stuff like 420 code below */
-	  *pwyuv++ = ylut[*Ytmp++];
+	  *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+	  Ytmp++;
 	  *pwyuv++ = cb;
-	  *pwyuv++ = ylut[*Ytmp++];
+	  *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+	  Ytmp++;
 	  *pwyuv++ = cr;
 
-	  *pwyuv++ = ylut[*Ytmp++];
+	  *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+	  Ytmp++;
 	  *pwyuv++ = cb;
-	  *pwyuv++ = ylut[*Ytmp++];
+	  *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+	  Ytmp++;
 	  *pwyuv++ = cr;
         } /* for col */
         Y[j + i] = Ytmp;
@@ -179,7 +196,7 @@ dv_mb411_right_YUY2(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
 /* ----------------------------------------------------------------------------
  */
 void
-dv_mb420_YUY2 (dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
+dv_mb420_YUY2 (dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
     dv_coeff_t		*Y [4], *Ytmp0, *cr_frame, *cb_frame;
     unsigned char	*pyuv,
 			*pwyuv0, *pwyuv1,
@@ -204,29 +221,33 @@ dv_mb420_YUY2 (dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
       for (i = 0; i < 2; ++i) { // Two columns of blocks
         Ytmp0 = Y[j + i];
         for (col = 0; col < 4; ++col) {  // 4 spans of 2x2 pixels
-          cb = uvlut [*cb_frame++]; // +128;
-          cr = uvlut [*cr_frame++]; // +128
+          cb = uvlut[CLAMP(*cb_frame, -128, 127)];
+          cr = uvlut[CLAMP(*cr_frame, -128, 127)];
+	  cb_frame++;
+	  cr_frame++;
 
 #ifndef WORDS_BIGENDIAN
-            *pwyuv0++ = ylut [*Ytmp0++];
+            *pwyuv0++ = ylut[CLAMP(*Ytmp0, -256, 511)];
+	    Ytmp0++;
 	    *pwyuv0++ = cb;
-            *pwyuv0++ = ylut [*Ytmp0++];
+            *pwyuv0++ = ylut[CLAMP(*Ytmp0, -256, 511)];
 	    *pwyuv0++ = cr;
+	    Ytmp0++;
 
-            *pwyuv1++ = ylut [*(Ytmp0 + 6)];
+            *pwyuv1++ = ylut[CLAMP(*(Ytmp0 + 6), -256, 511)];
 	    *pwyuv1++ = cb;
-            *pwyuv1++ = ylut [*(Ytmp0 + 7)];
+            *pwyuv1++ = ylut[CLAMP(*(Ytmp0 + 7), -256, 511)];
 	    *pwyuv1++ = cr;
 #else
             *pwyuv0++ = cr;
-            *pwyuv0++ = ylut [*(Ytmp0 + 1)];
+            *pwyuv0++ = ylut[CLAMP(*(Ytmp0 + 1), -256, 511)];
             *pwyuv0++ = cb;
-            *pwyuv0++ = ylut [*(Ytmp0 + 0)];
+            *pwyuv0++ = ylut[CLAMP(*(Ytmp0 + 0), -256, 511)];
 
             *pwyuv1++ = cr;
-            *pwyuv1++ = ylut [*(Ytmp0 + 9)];
+            *pwyuv1++ = ylut[CLAMP(*(Ytmp0 + 9), -256, 511)];
             *pwyuv1++ = cb;
-            *pwyuv1++ = ylut [*(Ytmp0 + 8)];
+            *pwyuv1++ = ylut[CLAMP(*(Ytmp0 + 8), -256, 511)];
             Ytmp0 += 2;
 #endif
         }
@@ -249,9 +270,13 @@ dv_mb420_YUY2 (dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
  *   us to reduce instruction count below.
  *    
  *   Question:  do other video cards behave the same way?
+ *   DRD> No, your video card will not care about clamping to these
+ *   ranges. This issue only applies to analog NTSC output.
  * */
+/* TODO: chroma clamping */
 void 
-dv_mb411_YUY2_mmx(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
+dv_mb411_YUY2_mmx(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
+                  int add_ntsc_setup, int clamp_luma, int clamp_chroma) {
     dv_coeff_t		*Y[4], *cr_frame, *cb_frame;
     unsigned char	*pyuv, *pwyuv;
     int			i, row;
@@ -265,8 +290,13 @@ dv_mb411_YUY2_mmx(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
 
     pyuv = pixels[0] + (mb->x * 2) + (mb->y * pitches[0]);
 
-    movq_m2r (mmx_0x7f94s, mm6);
-    movq_m2r (mmx_0x7f24s, mm5);
+    if (clamp_luma == TRUE) {
+      movq_m2r (mmx_0x7f94s, mm6); // hi clamp
+      movq_m2r (mmx_0x7f24s, mm5); // lo clamp
+    } else {
+      movq_m2r (mmx_0x7f7fs, mm6); // no clamp
+      movq_m2r (mmx_0x7f00s, mm5); // no clamp
+    }
 
     for (row = 0; row < 8; ++row) { // Eight rows
       pwyuv = pyuv;
@@ -293,10 +323,13 @@ dv_mb411_YUY2_mmx(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
 	/* ---------------------------------------------------------------------
 	 */
 	movq_m2r (*Ytmp, mm0);
+	if (add_ntsc_setup == TRUE)
+	  paddw_m2r (mmx_0x0010s, mm0);
 	paddsw_r2r (mm6, mm0);         // clamp hi
 
 	psubusw_r2r (mm5, mm0);        // clamp low
-	paddw_m2r (mmx_0x0010s, mm0);  // adjust back into 16-235 range
+	if (clamp_luma == TRUE)
+	  paddw_m2r (mmx_0x0010s, mm0);// adjust back into 16-235 range
 
 	por_r2r (mm4, mm0);            // interleave with 4 bytes of crcb with 4 Ys
 	movq_r2m (mm0, *pwyuv);        
@@ -313,9 +346,12 @@ dv_mb411_YUY2_mmx(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
 	/* ---------------------------------------------------------------------
 	 */
 	movq_m2r (*Ytmp, mm0);
+	if (add_ntsc_setup == TRUE)
+	  paddw_m2r (mmx_0x0010s, mm0);
 	paddsw_r2r (mm6, mm0);
 	psubusw_r2r (mm5, mm0);
-	paddw_m2r (mmx_0x0010s, mm0);
+	if (clamp_luma == TRUE)
+	  paddw_m2r (mmx_0x0010s, mm0);
 	por_r2r (mm4, mm0);
 	movq_r2m (mm0, *pwyuv);
 	Ytmp += 4;
@@ -330,8 +366,11 @@ dv_mb411_YUY2_mmx(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
     emms ();
 } /* dv_mb411_YUY2_mmx */
 
+
+/* TODO: clamping */
 void 
-dv_mb411_right_YUY2_mmx(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
+dv_mb411_right_YUY2_mmx(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
+                        int add_ntsc_setup, int clamp_luma, int clamp_chroma) {
 
   dv_coeff_t		*Y[4], *Ytmp, *cr_frame, *cb_frame;
   unsigned char	        *pyuv;
@@ -370,9 +409,13 @@ dv_mb411_right_YUY2_mmx(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
 
       movq_m2r(*Ytmp,mm2);
       paddw_r2r(mm7,mm2);  // +128
+      if (add_ntsc_setup == TRUE)
+        paddw_m2r (mmx_0x0010s, mm2);
 
       movq_m2r(*(Ytmp+4),mm3);
       paddw_r2r(mm7,mm3); // +128
+      if (add_ntsc_setup == TRUE)
+        paddw_m2r (mmx_0x0010s, mm3);
 
       packuswb_r2r(mm3,mm2);  // pack Ys from signed 16-bit to unsigned 8-bit
       movq_r2r(mm2,mm3);
@@ -389,9 +432,13 @@ dv_mb411_right_YUY2_mmx(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
 
       movq_m2r(*Ytmp,mm2);
       paddw_r2r(mm7,mm2); // +128
+      if (add_ntsc_setup == TRUE)
+        paddw_m2r (mmx_0x0010s, mm2);
 
       movq_m2r(*(Ytmp+4),mm3);
       paddw_r2r(mm7,mm3); // +128
+      if (add_ntsc_setup == TRUE)
+        paddw_m2r (mmx_0x0010s, mm3);
 
       packuswb_r2r(mm3,mm2); // pack Ys from signed 16-bit to unsigned 8-bit
       movq_r2r(mm2,mm3);
@@ -413,10 +460,13 @@ dv_mb411_right_YUY2_mmx(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
   emms();
 } /* dv_mb411_right_YUY2_mmx */
 
+
 /* ----------------------------------------------------------------------------
  */
+/* TODO: chroma clamping */
 void
-dv_mb420_YUY2_mmx (dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
+dv_mb420_YUY2_mmx (dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
+                   int clamp_luma, int clamp_chroma) {
     dv_coeff_t		*Y [4], *Ytmp0, *cr_frame, *cb_frame;
     unsigned char	*pyuv,
 			*pwyuv0, *pwyuv1;
@@ -433,8 +483,13 @@ dv_mb420_YUY2_mmx (dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
   inc_l2 = pitches[0];
   inc_l4 = pitches[0]*2;
 
-  movq_m2r (mmx_0x7f94s, mm6);
-  movq_m2r (mmx_0x7f24s, mm5);
+  if (clamp_luma == TRUE) {
+    movq_m2r (mmx_0x7f94s, mm6); // hi clamp
+    movq_m2r (mmx_0x7f24s, mm5); // lo clamp
+  } else {
+    movq_m2r (mmx_0x7f7fs, mm6); // no clamp
+    movq_m2r (mmx_0x7f00s, mm5); // no clamp
+  }
 
   for (j = 0; j < 4; j += 2) { // Two rows of blocks j, j+1
     for (row = 0; row < 8; row+=2) { // 4 pairs of two rows
@@ -462,7 +517,8 @@ dv_mb420_YUY2_mmx (dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
 	movq_m2r (Ytmp0[0], mm0);
 	paddsw_r2r (mm6, mm0);
 	psubusw_r2r (mm5, mm0);
-	paddw_m2r (mmx_0x0010s, mm0);
+	if (clamp_luma == TRUE)
+	  paddw_m2r (mmx_0x0010s, mm0);
 	por_r2r (mm4, mm0);
 
 	movq_m2r (Ytmp0[8], mm1);
@@ -471,7 +527,8 @@ dv_mb420_YUY2_mmx (dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
 	movq_r2m (mm0, pwyuv0[0]);
 
 	psubusw_r2r (mm5, mm1);
-	paddw_m2r (mmx_0x0010s, mm1);
+	if (clamp_luma == TRUE)
+	  paddw_m2r (mmx_0x0010s, mm1);
 	por_r2r (mm4, mm1);
 
 	movq_r2m (mm1, pwyuv1[0]);
@@ -483,7 +540,8 @@ dv_mb420_YUY2_mmx (dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
 	movq_m2r (Ytmp0[4], mm0);
 	paddsw_r2r (mm6, mm0);
 	psubusw_r2r (mm5, mm0);
-	paddw_m2r (mmx_0x0010s, mm0);
+	if (clamp_luma == TRUE)
+	  paddw_m2r (mmx_0x0010s, mm0);
 	por_r2r (mm4, mm0);
 
 	movq_m2r (Ytmp0[12], mm1);
@@ -492,7 +550,8 @@ dv_mb420_YUY2_mmx (dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
 	movq_r2m (mm0, pwyuv0[8]);
 
 	psubusw_r2r (mm5, mm1);
-	paddw_m2r (mmx_0x0010s, mm1);
+	if (clamp_luma == TRUE)
+	  paddw_m2r (mmx_0x0010s, mm1);
 	por_r2r (mm4, mm1);
 
 	movq_r2m (mm1, pwyuv1[8]);

@@ -63,7 +63,7 @@ bitstream_t *bitstream_init() {
   return bs;
 }
 
-void bitstream_set_fill_func(bitstream_t *bs,guint32 (*next_function) (guint8 **,void *),void *priv) {
+void bitstream_set_fill_func(bitstream_t *bs,uint32_t (*next_function) (uint8_t **,void *),void *priv) {
   bs->bitstream_next_buffer = next_function;
   bs->priv = priv;
 
@@ -76,7 +76,7 @@ void bitstream_set_fill_func(bitstream_t *bs,guint32 (*next_function) (guint8 **
   bs->bitsread = 0;
 }
 
-void bitstream_new_buffer(bitstream_t *bs,guint8 *buf,guint32 len) {
+void bitstream_new_buffer(bitstream_t *bs,uint8_t *buf,uint32_t len) {
   bs->buf = buf;
   bs->buflen = len;
   bs->bufoffset = 0;
@@ -88,14 +88,14 @@ void bitstream_new_buffer(bitstream_t *bs,guint8 *buf,guint32 len) {
   bs->bitsread = 0;
 }
 
-guint32 bitstream_done(bitstream_t *bs) {
+uint32_t bitstream_done(bitstream_t *bs) {
   //FIXME
   return 0;
 }
 
 #if 0
-void bitstream_seek_set(bitstream_t *bs, guint32 offset) {
-  guint32 unaligned_bits;
+void bitstream_seek_set(bitstream_t *bs, uint32_t offset) {
+  uint32_t unaligned_bits;
   if((offset >> 3) > bs->buflen) {
     g_return_if_fail((offset >> 3) <= bs->buflen);
   }

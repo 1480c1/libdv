@@ -28,14 +28,15 @@
 #include <dv_types.h>
 
 #include <stdio.h>
+#include <assert.h>
 
 #include "vlc.h"
 
 typedef struct dv_vlc_test_s {
-  gint8 run;
-  gint16 amp;
-  guint16 val;
-  guint8 len;
+  int8_t run;
+  int16_t amp;
+  uint16_t val;
+  uint8_t len;
 } dv_vlc_test_t;
 
 static dv_vlc_test_t dv_vlc_test_table[89] = {
@@ -132,9 +133,9 @@ static dv_vlc_test_t dv_vlc_test_table[89] = {
 
 int main(int argc, char **argv)
 {
-  gint i;
+  int i;
   dv_vlc_t vlc;
-  gint run, amp, len, val;
+  int run, amp, len, val;
 
   dv_construct_vlc_table();
   for(i=0;i<89;i++) {
@@ -161,7 +162,7 @@ int main(int argc, char **argv)
 	      run, amp, len,
 	      vlc.run, vlc.amp, vlc.len);
     }
-    g_assert(run == vlc.run && amp == vlc.amp && len == vlc.len);
+    assert(run == vlc.run && amp == vlc.amp && len == vlc.len);
   }
   for(amp=23; amp < 256; amp++) {
     val = (127 << 9) | (amp << 1);
@@ -173,14 +174,14 @@ int main(int argc, char **argv)
 	      run, amp, len,
 	      vlc.run, vlc.amp, vlc.len);
     }
-    g_assert(run == vlc.run && amp == vlc.amp && len == vlc.len);
+    assert(run == vlc.run && amp == vlc.amp && len == vlc.len);
     __dv_decode_vlc(val, &vlc);
     if (!(run == vlc.run && amp == vlc.amp && len == vlc.len)) {
       fprintf(stderr, "Failed; expected (%d,%d,%d), found (%d,%d,%d)\n",
 	      run, amp, len,
 	      vlc.run, vlc.amp, vlc.len);
     }
-    g_assert(run == vlc.run && amp == vlc.amp && len == vlc.len);
+    assert(run == vlc.run && amp == vlc.amp && len == vlc.len);
   }
   exit(0);
 }

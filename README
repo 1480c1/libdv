@@ -60,6 +60,42 @@ the working directory state to be like it as after a CVS checkout:
   "bootstrap" instead of autogen.sh.  
 
 
+NTSC Setup/Pedestal
+===================
+
+The decoder's add_ntsc_setup option should only be used 
+by North American NTSC users when viewing the video on your computer
+monitor. It should never be used when transcoding, image processing,
+or rendering.
+
+The encoder's rem_ntsc_setup (rem=remove) should be used
+only in the rare case that an image has had 7.5 IRE setup artificially
+added. During post-production, accounting for setup should be avoided.
+It is the responsibility of the analog output of your DV equipment to
+add setup where appropriate. If your DV equipment lacks this option,
+then use a processing amplifier.
+
+These options--both for decoding
+and encoding--are always ignored for PAL video.
+
+For more information see Adam Wilt's DV FAQ:
+http://www.adamwilt.com/DV-FAQ-tech.html#Setup
 
 
+Luma and Chroma Clamping
+========================
+
+ITU-R 601 specifies that the legal range for luma is 16-235 and 
+for chroma is 16-240 regardless of NTSC, PAL, or setup issues. However,
+some users take advantage of the footroom or headroom below or above
+these ranges to encode additional information for things such as
+luma keying. The luma and chroma clamp options permit the range checking
+to be disabled to preserve the superblack and superwhite.
+
+For more information read Charles' Poyton's Color FAQ:
+http://www.inforamp.net/~poynton/notes/colour_and_gamma/ColorFAQ.html#RTFToC30
+
+and his white paper "Merging Computing with Studio Video:
+Converting Between R'G'B' and 4:2:2":
+http://home.inforamp.net/~poynton/papers/Discreet_Logic/index.html
 

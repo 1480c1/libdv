@@ -58,14 +58,14 @@ dv_248_coeff_t dv_idct_248_prescale[64];
 */
   
 
-static gint32 beta0;
-static gint32 beta1;
-static gint32 beta2;
-static gint32 beta3;
-static gint32 beta4;
+static int32_t beta0;
+static int32_t beta1;
+static int32_t beta2;
+static int32_t beta3;
+static int32_t beta4;
 
-static gdouble C(gint u) {
-  gdouble result;
+static double C(int u) {
+  double result;
   if(u == 0) {
     result = 0.5 / sqrt(2.0);
   } else {
@@ -74,9 +74,9 @@ static gdouble C(gint u) {
   return(result);
 } // C
 
-static gdouble tickC(gint u) 
+static double tickC(int u) 
 {
-  gdouble result;
+  double result;
   if(u == 0) {
     result = 1.0 / sqrt(2.0);
   } else {
@@ -87,9 +87,9 @@ static gdouble tickC(gint u)
 
 #if ARCH_X86 && defined(__GNUC__)
 
-static inline gint32 fixed_multiply(gint32 a, gint32 b) {
-  register gint32 eax asm("ax");
-  register gint32 edx asm("dx");
+static inline int32_t fixed_multiply(int32_t a, int32_t b) {
+  register int32_t eax asm("ax");
+  register int32_t edx asm("dx");
 
   eax = a;
 
@@ -103,10 +103,10 @@ static inline gint32 fixed_multiply(gint32 a, gint32 b) {
 #else
 
 /* Will this actually compile?  I dunno */
-static inline gint32 fixed_multiply(gint32 a, gint32 b) {
-  gint64 product;
+static inline int32_t fixed_multiply(int32_t a, int32_t b) {
+  int64 product;
 
-  product = (gint64)a * (gint64)b;
+  product = (int64)a * (int64)b;
   product >>= (32 - 2);
   return(product);
 } // fixed_multiply
@@ -118,10 +118,10 @@ static inline gint32 fixed_multiply(gint32 a, gint32 b) {
  */
 void dv_dct_248_init() {
   extern double dv_weight_inverse_248_matrix[];
-  gint k, l;
-  gdouble d;
-  gdouble diag[2][8];
-  gdouble dbeta0, dbeta1, dbeta2, dbeta3, dbeta4;
+  int k, l;
+  double d;
+  double diag[2][8];
+  double dbeta0, dbeta1, dbeta2, dbeta3, dbeta4;
 
   dbeta2 = cos(M_PI/4);
   dbeta0 = dbeta2 - 0.5;
@@ -170,7 +170,7 @@ void dv_idct_248(dv_248_coeff_t *x248, dv_coeff_t *out)
 	dv_248_coeff_t *in, *lhs;
 	dv_248_coeff_t u,v,w,z;
 	dv_248_coeff_t in0, in1, in2, in3, in4, in5, in6, in7;
-	gint i;
+	int i;
 
 #if 0
 	/* This is to identify visually where 248 blocks are... */
@@ -309,7 +309,7 @@ void dv_idct_248(dv_248_coeff_t *x248, dv_coeff_t *out)
 #if IDCT_248_UNIT_TEST
 
 // This is a test matrix generated from forward 2-4-8 dct using matlab
-static gdouble dv_idct_248_test_x248[64] = {  
+static double dv_idct_248_test_x248[64] = {  
   -126.6250, -227.4838, -111.9136, 0.2316, 19.8750, 0.3386, -0.0514,
   -0.0334, 14.7008, 17.6504, -8.5810, -16.1455, -0.0676, 0.1048, 0.2134,
   -0.7044, 0.1250, 0.5249, -0.1633, -0.5139, 0.1250, -0.1308, -0.0676,
@@ -322,7 +322,7 @@ static gdouble dv_idct_248_test_x248[64] = {
 }; // dv_idct24_test_x248
 
 int main(int argc, char **argv) {
-  gint i;
+  int i;
   dv_248_coeff_t x248[64];
   dv_init_dct248();
   /* prescale - 64 mults */

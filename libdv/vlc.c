@@ -45,10 +45,10 @@
  * The sizes of the respective lookup tables are: 1, 32, 128, 64, 64, 256 (all 32 bit elements). */
 
 /* 2 or less bits available (no class selector) */
-static gint8 dv_vlc_class_broken[1] = { 0 };
+static int8_t dv_vlc_class_broken[1] = { 0 };
 
 /* 3 - 6 bits available (no class selector) */
-static gint8 dv_vlc_class_lookup1[1] = { 1 };
+static int8_t dv_vlc_class_lookup1[1] = { 1 };
 
 /* compact "rolled up" syntax not available for all compilers.
  * It is safe to remove the "rolled" code, but it is left here
@@ -57,19 +57,19 @@ static gint8 dv_vlc_class_lookup1[1] = { 1 };
 
 /* 7 - 10 bits available class selector is [0:1]  */
 #ifdef __GNUC__
-static gint8 dv_vlc_class_lookup2[4] = {
+static int8_t dv_vlc_class_lookup2[4] = {
   [0x0 ... 0x2] = 1,
   [0x3        ] = 2,
 }; /* dv_vlc_class_lookup2 */
 #else /* ! __GNUC__ */
-static gint8 dv_vlc_class_lookup2[4] = {
+static int8_t dv_vlc_class_lookup2[4] = {
   1, 1, 1, 2
 }; /* dv_vlc_class_lookup2 */
 #endif /* ! __GNUC__ */
 
 /* 11 - 16 bits available, class selector is [0:6] */
 #ifdef __GNUC__
-static gint8 dv_vlc_class_lookup3[128] = {
+static int8_t dv_vlc_class_lookup3[128] = {
   [0x00 ... 0x5f] = 1,
   [0x60 ... 0x7b] = 2,
   [0x7c ... 0x7d] = 3,
@@ -77,7 +77,7 @@ static gint8 dv_vlc_class_lookup3[128] = {
   [0x7f         ] = 0
 }; /* dv_vlc_class_lookup3 */
 #else /* ! __GNUC__ */
-static gint8 dv_vlc_class_lookup3[128] = {
+static int8_t dv_vlc_class_lookup3[128] = {
   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, /* 0x00 ... 0x0f */
   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, /* 0x10 ... 0x1f */
   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, /* 0x20 ... 0x2f */
@@ -90,7 +90,7 @@ static gint8 dv_vlc_class_lookup3[128] = {
 #endif /* ! __GNUC__ */
 
 #ifdef __GNUC__
-static gint8 dv_vlc_class_lookup4[128] = {
+static int8_t dv_vlc_class_lookup4[128] = {
   [0x00 ... 0x5f] = 1,
   [0x60 ... 0x7b] = 2,
   [0x7c ... 0x7d] = 3,
@@ -98,7 +98,7 @@ static gint8 dv_vlc_class_lookup4[128] = {
   [0x7f         ] = 0
 }; /* dv_vlc_class_lookup4 */
 #else /* ! __GNUC__ */
-static gint8 dv_vlc_class_lookup4[128] = {
+static int8_t dv_vlc_class_lookup4[128] = {
   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, /* 0x00 ... 0x0f */
   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, /* 0x10 ... 0x1f */
   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, /* 0x20 ... 0x2f */
@@ -111,7 +111,7 @@ static gint8 dv_vlc_class_lookup4[128] = {
 #endif /* ! __GNUC__ */
 
 #ifdef __GNUC__
-gint8 dv_vlc_class_lookup5[128] = {
+int8_t dv_vlc_class_lookup5[128] = {
   [0x00 ... 0x5f] = 1,
   [0x60 ... 0x7b] = 2,
   [0x7c ... 0x7d] = 3,
@@ -119,7 +119,7 @@ gint8 dv_vlc_class_lookup5[128] = {
   [0x7f         ] = 5
 }; /* dv_vlc_class_lookup5 */
 #else /* ! __GNUC__ */
-gint8 dv_vlc_class_lookup5[128] = {
+int8_t dv_vlc_class_lookup5[128] = {
   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, /* 0x00 ... 0x0f */
   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, /* 0x10 ... 0x1f */
   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, /* 0x20 ... 0x2f */
@@ -133,7 +133,7 @@ gint8 dv_vlc_class_lookup5[128] = {
 
 /* Indexed by number of bits available */
 #ifdef __GNUC__
-const gint8 *dv_vlc_classes[17] = {
+const int8_t *dv_vlc_classes[17] = {
   [0  ...  2] = &dv_vlc_class_broken[0],
   [3  ...  6] = &dv_vlc_class_lookup1[0],
   [7  ... 10] = &dv_vlc_class_lookup2[0],
@@ -142,7 +142,7 @@ const gint8 *dv_vlc_classes[17] = {
   [16       ] = &dv_vlc_class_lookup5[0],
 }; /* dv_vlc_classes */
 #else /* ! __GNUC__ */
-const gint8 *dv_vlc_classes[17] = {
+const int8_t *dv_vlc_classes[17] = {
    &dv_vlc_class_broken[0],
    &dv_vlc_class_broken[0],
    &dv_vlc_class_broken[0],
@@ -166,13 +166,13 @@ const gint8 *dv_vlc_classes[17] = {
 /* bitmask to extract class index, given x bits of left-aligned input 
  * the class index is derived from y prefix bits */
 #ifdef __GNUC__
-const gint dv_vlc_class_index_mask[17] = {
+const int dv_vlc_class_index_mask[17] = {
   [ 0 ...  6] = 0x0000,
   [ 7 ... 10] = 0xc000,
   [11 ... 16] = 0xfe00,
 }; /* class_index_mask  */
 #else /* ! __GNUC__ */
-const gint dv_vlc_class_index_mask[17] = {
+const int dv_vlc_class_index_mask[17] = {
    0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
    0xc000, 0xc000, 0xc000, 0xc000,
    0xfe00, 0xfe00, 0xfe00, 0xfe00, 0xfe00, 0xfe00,
@@ -180,13 +180,13 @@ const gint dv_vlc_class_index_mask[17] = {
 #endif /* ! __GNUC__ */
 
 #ifdef __GNUC__
-const gint dv_vlc_class_index_rshift[17] = {
+const int dv_vlc_class_index_rshift[17] = {
   [ 0 ...  6] = 0,
   [ 7 ... 10] = 14,
   [11 ... 16] = 9,
 }; /* class_index_mask  */
 #else /* ! __GNUC__ */
-const gint dv_vlc_class_index_rshift[17] = {
+const int dv_vlc_class_index_rshift[17] = {
    0, 0, 0, 0, 0, 0, 0,
    14, 14, 14, 14,
    9, 9, 9, 9, 9, 9,
@@ -616,7 +616,7 @@ const dv_vlc_tab_t *dv_vlc_lookups[6] = {
 }; /* dv_vlc_lookups */
 
 #ifdef __GNUC__
-const gint dv_vlc_index_mask[6] = {
+const int dv_vlc_index_mask[6] = {
   [0] = 0x0000,  /* no choice */
   [1] = 0xf800,  /* 5 bit selector [0:4] */
   [2] = 0x3f80,  /* 7 bit selector [2:8] */
@@ -625,7 +625,7 @@ const gint dv_vlc_index_mask[6] = {
   [5] = 0x01fe,  /* 8 bit selector [7:14] */
 }; /* dv_vlc_index_mask */
 #else /* ! __GNUC__ */
-const gint dv_vlc_index_mask[6] = {
+const int dv_vlc_index_mask[6] = {
   0x0000,  /* no choice */
   0xf800,  /* 5 bit selector [0:4] */
   0x3f80,  /* 7 bit selector [2:8] */
@@ -636,7 +636,7 @@ const gint dv_vlc_index_mask[6] = {
 #endif /* ! __GNUC__ */
 
 #ifdef __GNUC__
-const gint dv_vlc_index_rshift[6] = {
+const int dv_vlc_index_rshift[6] = {
   [0] = 0,
   [1] = 11,
   [2] = 7,
@@ -645,7 +645,7 @@ const gint dv_vlc_index_rshift[6] = {
   [5] = 1,
 }; /*  */
 #else /* ! __GNUC__ */
-const gint dv_vlc_index_rshift[6] = {
+const int dv_vlc_index_rshift[6] = {
   0,
   11,
   7,
@@ -656,7 +656,7 @@ const gint dv_vlc_index_rshift[6] = {
 #endif /* ! __GNUC__ */
 
 #ifdef __GNUC__
-const gint sign_mask[17] = { 
+const int sign_mask[17] = { 
   [1] = 0x1 << 15,
   [2] = 0x1 << 14,
   [3] = 0x1 << 13,
@@ -675,7 +675,7 @@ const gint sign_mask[17] = {
   [16] = 0x1,
 };
 #else /* ! __GNUC__ */
-const gint sign_mask[17] = { 
+const int sign_mask[17] = { 
   0x0,
   0x1 << 15,
   0x1 << 14,
@@ -698,7 +698,7 @@ const gint sign_mask[17] = {
 
 
 #ifdef __GNUC__
-const gint sign_rshift[17] = { 
+const int sign_rshift[17] = { 
   [1] = 15,
   [2] = 14,
   [3] = 13,
@@ -716,7 +716,7 @@ const gint sign_rshift[17] = {
   [15] = 1,
 };
 #else /* ! __GNUC__ */
-const gint sign_rshift[17] = { 
+const int sign_rshift[17] = { 
   0,
   15,
   14,
@@ -753,8 +753,8 @@ void dv_construct_vlc_table() {
   /* Build dv_vlc_class1_shortcut[] by attempting to match class 1 and
      class 2 vlcs. */
   for (i = 0; i < 128; i++) {
-    guint bits = i << 9;
-    guint ms7 = ((bits & 0xfe00) >> 9);
+    unsigned int bits = i << 9;
+    unsigned int ms7 = ((bits & 0xfe00) >> 9);
     const dv_vlc_t *result;
 
     if (ms7 <= 0x5f) {
@@ -784,14 +784,14 @@ void dv_construct_vlc_table() {
  * 17).  This may look crazy, but there are no branches here. */
 
 #if ! ARCH_X86
-void dv_decode_vlc(gint bits,gint maxbits, dv_vlc_t *result) {
+void dv_decode_vlc(int bits,int maxbits, dv_vlc_t *result) {
 #ifdef __GNUC__
   static dv_vlc_t vlc_broken = {run: -1, amp: -1, len: VLC_NOBITS};
 #else /* ! __GNUC__ */
   static dv_vlc_t vlc_broken = {-1, VLC_NOBITS, -1};
 #endif /* ! __GNUC__ */
   dv_vlc_t *results[2] = { &vlc_broken, result };
-  gint klass, has_sign, amps[2];
+  int klass, has_sign, amps[2];
   
   /* note that BITS is left aligned */
   klass = dv_vlc_classes[maxbits][(bits & (dv_vlc_class_index_mask[maxbits])) >> (dv_vlc_class_index_rshift[maxbits])];
@@ -807,8 +807,8 @@ void dv_decode_vlc(gint bits,gint maxbits, dv_vlc_t *result) {
    available, which eleminates left align of input, check for enough
    bits at end, and hardcodes lookups on maxbits. */
 
-void __dv_decode_vlc(gint bits, dv_vlc_t *result) {
-  gint klass, has_sign, amps[2];
+void __dv_decode_vlc(int bits, dv_vlc_t *result) {
+  int klass, has_sign, amps[2];
   
   klass = dv_vlc_classes[16][(bits & (dv_vlc_class_index_mask[16])) >> (dv_vlc_class_index_rshift[16])];
   *result = dv_vlc_lookups[klass][(bits & (dv_vlc_index_mask[klass])) >> (dv_vlc_index_rshift[klass])];

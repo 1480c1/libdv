@@ -66,12 +66,12 @@ static double KC88[8][8][8][8];
 #endif /* (!ARCH_X86) || BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88 */
 
 #if ARCH_X86
-void idct_block_mmx(gint16 *block);
-void dct_88_block_mmx(gint16* block);
-void dct_block_mmx_postscale_88(gint16* block, gint16* postscale_matrix);
-void dct_block_mmx_postscale_248(gint16* block, gint16* postscale_matrix);
-void dct_248_block_mmx(gint16* block);
-void dct_248_block_mmx_post_sum(gint16* out_block);
+void idct_block_mmx(int16_t *block);
+void dct_88_block_mmx(int16_t* block);
+void dct_block_mmx_postscale_88(int16_t* block, int16_t* postscale_matrix);
+void dct_block_mmx_postscale_248(int16_t* block, int16_t* postscale_matrix);
+void dct_248_block_mmx(int16_t* block);
+void dct_248_block_mmx_post_sum(int16_t* out_block);
 void transpose_mmx(short * dst);
 #endif /* ARCH_X86 */
 

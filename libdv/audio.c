@@ -75,30 +75,30 @@ static int dv_audio_unshuffle_50[6][9] = {
 /* Minumum number of samples, indexed by system (PAL/NTSC) and
    sampling rate (32 kHz, 44.1 kHz, 48 kHz) */
 
-static gint min_samples[2][3] = {
+static int min_samples[2][3] = {
   { 1580, 1452, 1053 }, /* 60 fields (NTSC) */
   { 1896, 1742, 1264 }, /* 50 fields (PAL) */
 };
 
-static gint max_samples[2][3] = {
+static int max_samples[2][3] = {
   { 1620, 1489, 1080 }, /* 60 fields (NTSC) */
   { 1944, 1786, 1296 }, /* 50 fields (PAL) */
 };
 
-static gint frequency[3] = {
+static int frequency[3] = {
   48000, 44100, 32000
 };
 
 
 #ifdef __GNUC__
-static gint quantization[8] = {
+static int quantization[8] = {
   [0] 16,
   [1] 12,
   [2] 20,
   [3 ... 7] = -1,
 };
 #else /* ! __GNUC__ */
-static gint quantization[8] = {
+static int quantization[8] = {
   16,
   12,
   20,
@@ -134,10 +134,10 @@ dv_audio_popt_callback(poptContext con, enum poptCallbackReason reason,
 } /* dv_audio_popt_callback  */
 #endif /* HAVE_LIBPOPT */
 
-static gint 
-dv_audio_samples_per_frame(dv_aaux_as_t *dv_aaux_as, gint freq) {
-  gint result = -1;
-  gint col;
+static int 
+dv_audio_samples_per_frame(dv_aaux_as_t *dv_aaux_as, int freq) {
+  int result = -1;
+  int col;
   
   switch(freq) {
   case 48000:
@@ -173,9 +173,9 @@ dv_audio_samples_per_frame(dv_aaux_as_t *dv_aaux_as, gint freq) {
 /* Take a DV 12bit audio sample upto 16 bits. 
  * See IEC 61834-2, Figure 16, on p. 129 */
 
-static __inline__ gint32 
-dv_upsample(gint32 sample) {
-  gint32 shift, result;
+static __inline__ int32_t 
+dv_upsample(int32_t sample) {
+  int32_t shift, result;
   
   shift = (sample & 0xf00) >> 8;
   switch(shift) {
@@ -302,13 +302,13 @@ dv_dump_aaux_as(void *buffer, int ds, int audio_dif)
 
 } /* dv_dump_aaux_as */
 
-gboolean
-dv_parse_audio_header(dv_decoder_t *decoder, guchar *inbuf)
+int
+dv_parse_audio_header(dv_decoder_t *decoder, uint8_t *inbuf)
 {
   dv_audio_t *audio = decoder->audio;
   dv_aaux_as_t *dv_aaux_as   = (dv_aaux_as_t *) (inbuf + 80*6+80*16*3 + 3);
   dv_aaux_asc_t *dv_aaux_asc = (dv_aaux_asc_t *)(inbuf + 80*6+80*16*4 + 3);
-  gboolean normal_speed = FALSE;
+  int normal_speed = FALSE;
 
   if((dv_aaux_as->pc0 != 0x50) || (dv_aaux_asc->pc0 != 0x51)) goto bad_id;
 
@@ -393,8 +393,8 @@ dv_parse_audio_header(dv_decoder_t *decoder, guchar *inbuf)
 
 } /* dv_parse_audio_header */
 
-gboolean
-dv_update_num_samples(dv_audio_t *dv_audio, guint8 *inbuf) {
+int
+dv_update_num_samples(dv_audio_t *dv_audio, uint8_t *inbuf) {
 
   dv_aaux_as_t *dv_aaux_as = (dv_aaux_as_t *)(inbuf + 80*6+80*16*3 + 3);
 
@@ -410,9 +410,9 @@ dv_update_num_samples(dv_audio_t *dv_audio, guint8 *inbuf) {
 /* This code originates from cdda2wav, by way of Giovanni Iachello <g.iachello@iol.it>
    to Arne Schirmacher <arne@schirmacher.de>. */
 void
-dv_audio_deemphasis(dv_audio_t *audio, gint16 *outbuf)
+dv_audio_deemphasis(dv_audio_t *audio, int16_t *outbuf)
 {
-  gint i;
+  int i;
   /* this implements an attenuation treble shelving filter 
      to undo the effect of pre-emphasis. The filter is of
      a recursive first order */
@@ -444,14 +444,14 @@ dv_audio_deemphasis(dv_audio_t *audio, gint16 *outbuf)
 } /* dv_audio_deemphasis */
 
 
-gint 
-dv_decode_audio_block(dv_audio_t *dv_audio, guint8 *inbuf, gint ds, gint audio_dif, gint16 **outbufs) 
+int 
+dv_decode_audio_block(dv_audio_t *dv_audio, uint8_t *inbuf, int ds, int audio_dif, int16_t **outbufs) 
 {
-  gint channel, bp, i_base, i, stride;
-  gint16 *samples, *ysamples, *zsamples;
-  gint16 y,z;
-  gint32 msb_y, msb_z, lsb;
-  gint half_ds;
+  int channel, bp, i_base, i, stride;
+  int16_t *samples, *ysamples, *zsamples;
+  int16_t y,z;
+  int32_t msb_y, msb_z, lsb;
+  int half_ds;
 
 #if 0
   if ((inbuf[0] & 0xe0) != 0x60) goto bad_id;
@@ -483,7 +483,7 @@ dv_decode_audio_block(dv_audio_t *dv_audio, guint8 *inbuf, gint ds, gint audio_d
     for (bp = 8; bp < 80; bp+=2) {
 
       i = i_base + (bp - 8)/2 * stride;
-      samples[i] = ((gint16)inbuf[bp] << 8) | inbuf[bp+1];
+      samples[i] = ((int16_t)inbuf[bp] << 8) | inbuf[bp+1];
 
     } /* for */
 

@@ -46,14 +46,15 @@
 extern "C" {
 #endif
 
-extern void dv_YV12_init(void);
+extern void dv_YV12_init(int clamp_luma, int clamp_chroma);
 
 /* scalar version */
-extern void dv_mb420_YV12(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches); 
+extern void dv_mb420_YV12(dv_macroblock_t *mb, uint8_t **pixels, uint16_t *pitches); 
 
 #if ARCH_X86
 /* pentium architecture mmx version */
-extern void dv_mb420_YV12_mmx(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches); 
+extern void dv_mb420_YV12_mmx(dv_macroblock_t *mb, uint8_t **pixels, uint16_t *pitches,
+                              int clamp_luma, int clamp_chroma); 
 #endif // ARCH_X86
 
 #ifdef __cplusplus

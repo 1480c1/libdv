@@ -76,25 +76,25 @@ static inline void vlc_trace(char *format, ...)
 #define ZERO_MULT_ZIGZAG 1
 #if ZERO_MULT_ZIGZAG
 #define SET_COEFF(COEFFS,REORDER,VALUE) \
-  (*((dv_coeff_t *)(((guint8 *)(COEFFS)) + *(REORDER)++)) = (VALUE))
+  (*((dv_coeff_t *)(((uint8_t *)(COEFFS)) + *(REORDER)++)) = (VALUE))
 #else
 #define SET_COEFF(COEFFS,REORDER,VALUE) COEFFS[*REORDER++] = VALUE
 #endif
 
-gint    dv_parse_bit_start[6] = { 4*8+12,  18*8+12, 32*8+12, 46*8+12, 60*8+12, 70*8+12 };
-gint    dv_parse_bit_end[6]   = { 18*8,    32*8,    46*8,    60*8,    70*8,    80*8 };
+int    dv_parse_bit_start[6] = { 4*8+12,  18*8+12, 32*8+12, 46*8+12, 60*8+12, 70*8+12 };
+int    dv_parse_bit_end[6]   = { 18*8,    32*8,    46*8,    60*8,    70*8,    80*8 };
 
-gint     dv_super_map_vertical[5] = { 2, 6, 8, 0, 4 };
-gint     dv_super_map_horizontal[5] = { 2, 1, 3, 0, 4 };
+int     dv_super_map_vertical[5] = { 2, 6, 8, 0, 4 };
+int     dv_super_map_horizontal[5] = { 2, 1, 3, 0, 4 };
 
-static gint8  dv_88_reorder_prime[64] = {
+static int8_t  dv_88_reorder_prime[64] = {
 0, 1, 8, 16, 9, 2, 3, 10,		17, 24, 32, 25, 18, 11, 4, 5,
 12, 19, 26, 33, 40, 48, 41, 34,		27, 20, 13, 6, 7, 14, 21, 28,
 35, 42, 49, 56, 57, 50, 43, 36,		29, 22, 15, 23, 30, 37, 44, 51,
 58, 59, 52, 45, 38, 31, 39, 46,		53, 60, 61, 54, 47, 55, 62, 63 
 };
 
-gint8  dv_reorder[2][64] = {
+int8_t  dv_reorder[2][64] = {
   { 0 },
   {
     0, 32, 1, 33, 8, 40, 2, 34,		9, 41, 16, 48, 24, 56, 17, 49,
@@ -175,7 +175,7 @@ dv_video_new(void)
 } /* dv_video_new */
 
 void dv_parse_init(void) {
-  gint i;
+  int i;
   for(i=0;i<64;i++) {
 #if !ARCH_X86
     dv_reorder[DV_DCT_88][i] = ((dv_88_reorder_prime[i] / 8) * 8) + (dv_88_reorder_prime[i] % 8);
@@ -194,8 +194,8 @@ void dv_parse_init(void) {
 /* Scan the blocks of a macroblock.  We're looking to find the next */
 /* block from which unused space was borrowed */
 static inline
-gboolean dv_find_mb_unused_bits(dv_macroblock_t *mb, dv_block_t **lender) {
-  gint b;
+int dv_find_mb_unused_bits(dv_macroblock_t *mb, dv_block_t **lender) {
+  int b;
 
   for(b=0; b<6; b++) {
     if((mb->b[b].eob) &&    /* an incomplete block can only "borrow" bits
@@ -216,8 +216,8 @@ gboolean dv_find_mb_unused_bits(dv_macroblock_t *mb, dv_block_t **lender) {
  * scanning process successfully found a complete vlc.  If it did,
  * then we update all blocks that lent bits as having no bits left. 
  * If so, the last block gets fixed in the caller.   */
-static void dv_clear_mb_marks(dv_macroblock_t *mb, gboolean found_vlc) { 
-  dv_block_t *bl; gint b;
+static void dv_clear_mb_marks(dv_macroblock_t *mb, int found_vlc) { 
+  dv_block_t *bl; int b;
 
   for(b=0,bl=mb->b;
       b<6;
@@ -230,9 +230,9 @@ static void dv_clear_mb_marks(dv_macroblock_t *mb, gboolean found_vlc) {
 } /* dv__clear_mb_marks */
 
 /* For pass 3, we scan all blocks of a video segment for unused bits  */
-static gboolean dv_find_vs_unused_bits(dv_videosegment_t *seg, dv_block_t **lender) {
+static int dv_find_vs_unused_bits(dv_videosegment_t *seg, dv_block_t **lender) {
   dv_macroblock_t *mb;
-  gint m;
+  int m;
   
   for(m=0,mb=seg->mb;
       m<5;
@@ -245,9 +245,9 @@ static gboolean dv_find_vs_unused_bits(dv_videosegment_t *seg, dv_block_t **lend
 } /* dv_find_vs_unused_bits */
 
 /* For pass 3, the trail of lenders can span the whole video segment */
-static void dv_clear_vs_marks(dv_videosegment_t *seg,gboolean found_vlc) {
+static void dv_clear_vs_marks(dv_videosegment_t *seg,int found_vlc) {
   dv_macroblock_t *mb;
-  gint m;
+  int m;
   
   for(m=0,mb=seg->mb;
       m<5;
@@ -259,13 +259,13 @@ static void dv_clear_vs_marks(dv_videosegment_t *seg,gboolean found_vlc) {
  * are put in space borrowed from other blocks.  Pass 2 borrows from
  * blocks of the same macroblock.  Pass 3 uses space from blocks of
  * other macroblocks of the videosegment. */
-static gint dv_find_spilled_vlc(dv_videosegment_t *seg, dv_macroblock_t *mb, dv_block_t **bl_lender, gint pass) {
+static int dv_find_spilled_vlc(dv_videosegment_t *seg, dv_macroblock_t *mb, dv_block_t **bl_lender, int pass) {
   dv_vlc_t vlc;
   dv_block_t *bl_new_lender;
-  gboolean found_vlc, found_bits;
-  gint bits_left, found_bits_left;
-  gint save_offset = 0;
-  gint broken_vlc = 0;
+  int found_vlc, found_bits;
+  int bits_left, found_bits_left;
+  int save_offset = 0;
+  int broken_vlc = 0;
   bitstream_t *bs;
 
   bs = seg->bs;
@@ -309,12 +309,12 @@ static gint dv_find_spilled_vlc(dv_videosegment_t *seg, dv_macroblock_t *mb, dv_
 } /* dv_find_spilled_vlc */
 
 
-gint dv_parse_ac_coeffs(dv_videosegment_t *seg) {
+int dv_parse_ac_coeffs(dv_videosegment_t *seg) {
   dv_vlc_t         vlc;
-  gint             m, b, pass;
-  gint             bits_left;
-  gboolean         vlc_error;
-  gint8           **reorder, *reorder_sentinel;
+  int             m, b, pass;
+  int             bits_left;
+  int         vlc_error;
+  int8_t           **reorder, *reorder_sentinel;
   dv_coeff_t      *coeffs;
   dv_macroblock_t *mb;
   dv_block_t      *bl, *bl_bit_source;
@@ -396,7 +396,7 @@ gint dv_parse_ac_coeffs(dv_videosegment_t *seg) {
   bl_done:
 #if PARSE_VLC_TRACE
 	if((bits_left = bl->end - bl->offset)) {
-	  gint x;
+	  int x;
 	  bitstream_seek_set(bs,bl->offset);
 	  vlc_trace("\n\tunused bits:\n\t");
 	  for(x=bits_left-1;x>=0;x--) 
@@ -459,8 +459,8 @@ __inline__ void dv_parse_ac_coeffs_pass0(bitstream_t *bs,
                                          dv_macroblock_t *mb,
                                          dv_block_t *bl) {
   dv_vlc_t         vlc;
-  gint             bits_left;
-  guint32 bits;
+  int             bits_left;
+  uint32_t bits;
 
   /* vlc_trace("\nB%d",b); */
   /* Main coeffient parsing loop */
@@ -495,7 +495,7 @@ __inline__ void dv_parse_ac_coeffs_pass0(bitstream_t *bs,
   } /* else */
 #if PARSE_VLC_TRACE
   if((bits_left = bl->end - bl->offset)) {
-    gint x;
+    int x;
     bitstream_seek_set(bs,bl->offset);
     vlc_trace("\n\tunused bits:\n\t");
     for(x=bits_left-1;x>=0;x--) 
@@ -520,14 +520,14 @@ __inline__ void dv_parse_ac_coeffs_pass0(bitstream_t *bs,
  *
  *  */
 #if ! ARCH_X86
-gint dv_parse_video_segment(dv_videosegment_t *seg, guint quality) {
-  gint             m, b;
-  gint             mb_start;
-  gint             dc;
+int dv_parse_video_segment(dv_videosegment_t *seg, unsigned int quality) {
+  int             m, b;
+  int             mb_start;
+  int             dc;
   dv_macroblock_t *mb;
   dv_block_t      *bl;
   bitstream_t     *bs;
-  guint n_blocks;
+  unsigned int n_blocks;
 
   vlc_trace("S[%d,%d]\n", seg->i,seg->k);
   /* Phase 1:  initialize data structures, and get the DC */
@@ -608,8 +608,8 @@ gint dv_parse_video_segment(dv_videosegment_t *seg, guint quality) {
 #endif
 
 static void
-dv_parse_vaux (dv_decoder_t *dv, guchar *buffer) {
-  gint	i, j;
+dv_parse_vaux (dv_decoder_t *dv, uint8_t *buffer) {
+  int	i, j;
 
   /* 
    * reset vaux structure first
@@ -642,7 +642,7 @@ dv_parse_vaux (dv_decoder_t *dv, guchar *buffer) {
   }
 }
 
-gint
+int
 dv_parse_id(bitstream_t *bs,dv_id_t *id) {
   id->sct = bitstream_get(bs,3);
   bitstream_flush(bs,5);
@@ -653,12 +653,12 @@ dv_parse_id(bitstream_t *bs,dv_id_t *id) {
   return 0;
 } /* dv_parse_id */
 
-gint
-dv_parse_header(dv_decoder_t *dv, guchar *buffer) {
+int
+dv_parse_header(dv_decoder_t *dv, uint8_t *buffer) {
   dv_header_t *header = &dv->header;
   bitstream_t *bs;
   dv_id_t      id;
-  gint         prev_system, result = 0;
+  int         prev_system, result = 0;
 
   if(!(bs = bitstream_init())) goto no_bitstream;
   bitstream_new_buffer(bs,buffer,6*80);

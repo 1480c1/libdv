@@ -28,6 +28,7 @@
 #define DV_DISPLAY_H
 
 #include <libdv/dv_types.h>
+#include <gtk/gtk.h>
 
 #if HAVE_LIBXV
 #include <X11/Xlib.h>

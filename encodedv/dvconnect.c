@@ -27,9 +27,11 @@
 #include <stdio.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
-#include <string.h>
+#include <sys/time.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sched.h>
+#include <sys/resource.h>
 
 #include <pthread.h>
 #include <signal.h>
@@ -116,6 +118,7 @@ struct video1394_wait
 {
 	unsigned int channel;
 	unsigned int buffer;
+        struct timeval filltime;        /* time of buffer full */
 };
 
 static int cap_start_frame = 0;
@@ -423,7 +426,10 @@ int capture_raw(const char* filename, int channel, int nbuffers,
 
                         memset(curr, 0, v.buf_size);
                         
-                        if (ioctl(viddev,VIDEO1394_LISTEN_QUEUE_BUFFER,&w)<0) {
+			wcopy = w;
+
+                        if (ioctl(viddev,VIDEO1394_LISTEN_QUEUE_BUFFER,
+				  &wcopy) < 0) {
                                 perror("VIDEO1394_LISTEN_QUEUE_BUFFER");
                         }
                         w.buffer++;
@@ -853,6 +859,28 @@ int send_raw(const char* filename, int channel, int nbuffers, int start_frame,
         return 0;
 }
 
+int rt_raisepri (int pri)
+{
+	struct sched_param scp;
+
+	/*
+	 * Verify that scheduling is available
+	 */
+	if (sysconf (_SC_PRIORITY_SCHEDULING) == -1) {
+		fprintf (stderr, "WARNING: RR-scheduler not available, "
+			 "disabling.\n");
+		return (-1);
+	} else {
+		memset (&scp, '\0', sizeof (scp));
+		scp.sched_priority = sched_get_priority_max (SCHED_RR) - pri;
+		if (sched_setscheduler (0, SCHED_RR, &scp) < 0)	{
+			fprintf (stderr, "WARNING: Cannot set RR-scheduler\n");
+			return (-1);
+		}
+	}
+	return (0);
+}
+
 /* ------------------------------------------------------------------------
    - main()
    ------------------------------------------------------------------------ */
@@ -965,15 +993,15 @@ int main(int argc, const char** argv)
                 longName:   "syt-offset", 
                 argInfo:    POPT_ARG_INT, 
                 arg:        &syt_offset,
-                descrip:    "syt offset (default: 11000 range: 10000-26000)"
+                descrip:    "syt offset (default: 10000 range: 10000-26000)"
         }; /* syt offset */
 
         option_table[DV_CONNECT_OPT_VIDEO1394_VERSION] = (struct poptOption) {
                 longName:   "video-1394-version", 
                 argInfo:    POPT_ARG_INT, 
                 arg:        &video1394_version,
-                descrip:    "video 1394 version to use 1 (CVS-version), "
-		"2 (Dan Dennedy's Kino-version)"
+                descrip:    "video 1394 version to use 1 "
+		"(older kernels or CVS versions), 2 (current kernels >2.4.9?)"
         }; /* video 1394 version */
 
         option_table[DV_CONNECT_OPT_MAX_BUFFERS] = (struct poptOption) {
@@ -1040,6 +1068,11 @@ int main(int argc, const char** argv)
 	}
 
         filename = poptGetArg(optCon);
+
+	setpriority (PRIO_PROCESS, 0, -20);
+	if (rt_raisepri (1) != 0) {
+		setpriority (PRIO_PROCESS, 0, -20);
+	}
 
 	if (send_mode) {
 		send_raw(filename, channel, buffers, start, end, verbose_mode,

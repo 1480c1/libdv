@@ -13,7 +13,7 @@ else # HOST_X86
 GASMOFF=
 endif # HOST_X86
 
-noinst_PROGRAMS= dovlc testvlc testbitstream $(GASMOFF) recode
+noinst_PROGRAMS= dovlc testvlc testbitstream $(GASMOFF) recode reppm
 
 #
 # If HOST_X86 is set, we build all the x86 asm stuff..
@@ -60,6 +60,9 @@ testbitstream_SOURCES= testbitstream.c bitstream.c bitstream.h
 
 recode_SOURCES=recode.c
 recode_LDADD=libdv.la
+
+reppm_SOURCES=reppm.c
+reppm_LDADD=libdv.la
 
 if HOST_X86
 
