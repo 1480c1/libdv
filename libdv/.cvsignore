@@ -9,3 +9,5 @@ recode
 reppm
 testbitstream
 testvlc
+enctest
+asmoff.h

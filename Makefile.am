@@ -3,11 +3,9 @@ SUBDIRS                   = libdv encodedv @PLAYDV_SUBDIR@
 AUX_DIST                  = $(ac_aux_dir)/config.guess \
                                    $(ac_aux_dir)/config.sub \
                                    $(ac_aux_dir)/install-sh \
-                                   $(ac_aux_dir)/ltconfig \
                                    $(ac_aux_dir)/ltmain.sh \
                                    $(ac_aux_dir)/missing \
-                                   $(ac_aux_dir)/depcomp \
-                                   $(ac_aux_dir)/mkinstalldirs 
+                                   $(ac_aux_dir)/depcomp 
 
 EXTRA_DIST                = bootstrap COPYRIGHT README.encoder README.dvconnect \
                             @PACKAGE@.spec @PACKAGE@.spec.in @PACKAGE@.pc @PACKAGE@.pc.in \

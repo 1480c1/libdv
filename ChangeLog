@@ -3,6 +3,11 @@
 	* libdv 0.103 release
 	* update README to note that "bootstrap" is now obolete in light of
 	  autoreconf provided by autotools.
+	* some updates to the build files resulting due to changes in
+	  newer versions of autotools.
+	* the goal is that one could build libdv from a distribution
+	  tarball or even from CVS without autotools installed (one should
+	  just need make and gcc).
 
 2004-07-13  Dan Dennedy <dan@dennedy.org>
 	* libdv/dv.h, dv_types.h, headers.c, encode.c: use inttypes.h instead of
