@@ -647,6 +647,7 @@ dv_mb411_YUY2_hh_mmx(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
 	movq_m2r (*cb_frame, mm2);	// cb0 cb1 cb2 cb3
 	movq_m2r (*cr_frame, mm3);	// cr0 cr1 cr2 cr3
 	punpcklwd_r2r (mm3, mm2);	// cb0cr0 cb1cr1
+	movq_r2r (mm2, mm3);
 	punpckldq_r2r (mm2, mm2);	// cb0cr0 cb0cr0
 	movq_m2r (Ytmp [0], mm0);
 	movq_r2r (mm0, mm1);
@@ -663,9 +664,10 @@ dv_mb411_YUY2_hh_mmx(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
 	/* ---------------------------------------------------------------------
 	 */
 	movq_m2r (Ytmp [4], mm0);
+	punpckhdq_r2r (mm3, mm3);
 	movq_r2r (mm0, mm1);
-	punpcklwd_r2r (mm2, mm0);	/* mm0 = b4 y3 r4 y4	*/
-	punpckhwd_r2r (mm2, mm1);	/* mm1 = b3 y1 r3 y2	*/
+	punpcklwd_r2r (mm3, mm0);	/* mm0 = b4 y3 r4 y4	*/
+	punpckhwd_r2r (mm3, mm1);	/* mm1 = b3 y1 r3 y2	*/
 
 	packsswb_r2r (mm1, mm0);	/* mm0 = b3 y1 r3 y2 b4 y3 r4 y4	*/
 	paddb_m2r (mmx_0x8080s, mm0);
