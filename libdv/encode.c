@@ -58,7 +58,7 @@
 #include "parse.h"
 #include "place.h"
 #include "headers.h"
-#if ARCH_X86
+#if ARCH_X86 || ARCH_X86_64
 #include "mmx.h"
 #endif
 
@@ -202,7 +202,7 @@ dv_place_420_macroblock(dv_macroblock_t *mb)
 static inline unsigned int put_bits(unsigned char *s, unsigned int offset, 
                              unsigned int len, unsigned int value)
 {
-#if !ARCH_X86
+#if (!ARCH_X86) && (!ARCH_X86_64)
         s += (offset >> 3);
         
         value <<= (24 - len);
@@ -488,9 +488,12 @@ void _dv_prepare_reorder_tables(void)
 extern int _dv_reorder_block_mmx(dv_coeff_t * a, 
 			     const unsigned short* reorder_table);
 
+extern int _dv_reorder_block_mmx_x86_64(dv_coeff_t * a, 
+			     const unsigned short* reorder_table);
+
 static void reorder_block(dv_block_t *bl)
 {
-#if !ARCH_X86
+#if (!ARCH_X86) && (!ARCH_X86_64)
 	dv_coeff_t zigzag[64];
 	int i;
 #endif
@@ -504,9 +507,13 @@ static void reorder_block(dv_block_t *bl)
 #if ARCH_X86
 	_dv_reorder_block_mmx(bl->coeffs, reorder);
 	emms();
+#elif ARCH_X86_64
+	_dv_reorder_block_mmx_x86_64(bl->coeffs, reorder);
+	emms();
 #else	
 	for (i = 0; i < 64; i++) {
-		*(unsigned short*) ((char*) zigzag + reorder[i])=bl->coeffs[i];
+	  //		*(unsigned short*) ((char*) zigzag + reorder[i])=bl->coeffs[i];
+	  zigzag[reorder[i] - 1] = bl->coeffs[i];
 	}
 	memcpy(bl->coeffs, zigzag, 64 * sizeof(dv_coeff_t));
 #endif
@@ -515,10 +522,13 @@ static void reorder_block(dv_block_t *bl)
 extern unsigned long _dv_vlc_encode_block_mmx(dv_coeff_t* coeffs,
 					  dv_vlc_entry_t ** out);
 
+extern unsigned long _dv_vlc_encode_block_mmx_x86_64(dv_coeff_t* coeffs,
+					  dv_vlc_entry_t ** out);
+
 static unsigned long vlc_encode_block(dv_coeff_t* coeffs, dv_vlc_block_t* out)
 {
 	dv_vlc_entry_t * o = out->coeffs;
-#if !ARCH_X86
+#if (!ARCH_X86) && (!ARCH_X86_64)
 	dv_coeff_t * z = coeffs + 1; /* First AC coeff */
 	dv_coeff_t * z_end = coeffs + 64;
 	int run, amp, sign;
@@ -544,10 +554,15 @@ static unsigned long vlc_encode_block(dv_coeff_t* coeffs, dv_vlc_block_t* out)
 		num_bits += get_dv_vlc_len(*o++);
 	} while (z != z_end);
  z_out:
-#else
+#elif ARCH_X86
 	int num_bits;
 
 	num_bits = _dv_vlc_encode_block_mmx(coeffs, &o);
+	emms();
+#else
+	int num_bits;
+
+	num_bits = _dv_vlc_encode_block_mmx_x86_64(coeffs, &o);
 	emms();
 #endif
 	*o++ = set_dv_vlc(0x6, 4); /* EOB */
@@ -559,10 +574,11 @@ static unsigned long vlc_encode_block(dv_coeff_t* coeffs, dv_vlc_block_t* out)
 }
 
 extern unsigned long _dv_vlc_num_bits_block_x86(dv_coeff_t* coeffs);
+extern unsigned long _dv_vlc_num_bits_block_x86_64(dv_coeff_t* coeffs);
 
 extern unsigned long _dv_vlc_num_bits_block(dv_coeff_t* coeffs)
 {
-#if !ARCH_X86
+#if (!ARCH_X86) && (!ARCH_X86_64)
 	dv_coeff_t * z = coeffs + 1; /* First AC coeff */
 	dv_coeff_t * z_end = coeffs + 64;
 	int run;
@@ -580,6 +596,8 @@ extern unsigned long _dv_vlc_num_bits_block(dv_coeff_t* coeffs)
 	} while (z != z_end);
 
 	return num_bits;
+#elif ARCH_X86_64
+	return _dv_vlc_num_bits_block_x86_64(coeffs);
 #else
 	return _dv_vlc_num_bits_block_x86(coeffs);
 #endif
@@ -634,11 +652,17 @@ extern void _dv_vlc_encode_block_pass_1_x86(dv_vlc_entry_t** start,
 					long* bit_offset,
 					unsigned char* vsbuffer);
 
+extern void _dv_vlc_encode_block_pass_1_x86_64(dv_vlc_entry_t** start,
+					dv_vlc_entry_t*  end,
+					long* bit_budget,
+					long* bit_offset,
+					unsigned char* vsbuffer);
+
 static void vlc_encode_block_pass_1(dv_vlc_block_t * bl, 
 				    unsigned char *vsbuffer,
 				    int vlc_encode_passes)
 {
-#if !ARCH_X86
+#if (!ARCH_X86) && (!ARCH_X86_64)
 	dv_vlc_entry_t * start = bl->coeffs_start;
 	dv_vlc_entry_t * end = bl->coeffs_end;
 	unsigned long bit_budget = bl->bit_budget;
@@ -656,6 +680,10 @@ static void vlc_encode_block_pass_1(dv_vlc_block_t * bl,
 	bl->coeffs_start = start;
 	bl->bit_budget = bit_budget;
 	bl->bit_offset = bit_offset;
+#elif ARCH_X86_64
+	_dv_vlc_encode_block_pass_1_x86_64(&bl->coeffs_start, bl->coeffs_end,
+				    &bl->bit_budget, &bl->bit_offset,
+				    vsbuffer);
 #else
 	_dv_vlc_encode_block_pass_1_x86(&bl->coeffs_start, bl->coeffs_end,
 				    &bl->bit_budget, &bl->bit_offset,
@@ -736,6 +764,9 @@ static void vlc_encode_block_pass_n(dv_vlc_block_t * blocks,
 extern int _dv_classify_mmx(dv_coeff_t * a, unsigned short* amp_ofs,
 			unsigned short* amp_cmp);
 
+extern int _dv_classify_mmx_x86_64(dv_coeff_t * a, unsigned short* amp_ofs,
+			unsigned short* amp_cmp);
+
 static inline int classify(dv_coeff_t * bl)
 {
 #if ARCH_X86
@@ -755,6 +786,31 @@ static inline int classify(dv_coeff_t * bl)
 	bl[0] = 0;
 	for (i = 0; i < 3; i++) {
 		if (_dv_classify_mmx(bl, amp_ofs[i], amp_cmp[i])) {
+			bl[0] = dc;
+			emms();
+			return 3-i;
+		}
+	}
+	bl[0] = dc;
+	emms();
+	return 0;
+#elif ARCH_X86_64
+	static unsigned short amp_ofs[3][4] = { 
+		{ 32768+35,32768+35,32768+35,32768+35 },
+		{ 32768+23,32768+23,32768+23,32768+23 },
+		{ 32768+11,32768+11,32768+11,32768+11 }
+	};
+	static unsigned short amp_cmp[3][4] = { 
+		{ 32768+(35+35),32768+(35+35),32768+(35+35),32768+(35+35) },
+		{ 32768+(23+23),32768+(23+23),32768+(23+23),32768+(23+23) },
+		{ 32768+(11+11),32768+(11+11),32768+(11+11),32768+(11+11) }
+	};
+	int i,dc;
+
+	dc = bl[0];
+	bl[0] = 0;
+	for (i = 0; i < 3; i++) {
+		if (_dv_classify_mmx_x86_64(bl, amp_ofs[i], amp_cmp[i])) {
 			bl[0] = dc;
 			emms();
 			return 3-i;
@@ -802,7 +858,7 @@ static void do_dct(dv_macroblock_t *mb)
 		
 		if (bl->dct_mode == DV_DCT_88) {
 			_dv_dct_88(bl->coeffs);
-#if !ARCH_X86
+#if (!ARCH_X86) && (!ARCH_X86_64)
 			reorder_block(bl);
 #endif
 #if BRUTE_FORCE_DCT_88

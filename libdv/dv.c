@@ -55,7 +55,7 @@
 #include "rgb.h"
 #include "YUY2.h"
 #include "YV12.h"
-#if ARCH_X86
+#if ARCH_X86 || ARCH_X86_64
 #include "mmx.h"
 #endif
 
@@ -220,6 +220,9 @@ dv_decode_macroblock(dv_decoder_t *dv, dv_macroblock_t *mb, unsigned int quality
 #if ARCH_X86
       _dv_quant_88_inverse_x86(mb->b[i].coeffs,mb->qno,mb->b[i].class_no);
       _dv_idct_88(mb->b[i].coeffs);
+#elif ARCH_X86_64
+      _dv_quant_88_inverse_x86_64(mb->b[i].coeffs,mb->qno,mb->b[i].class_no);
+      _dv_idct_88(mb->b[i].coeffs);
 #else /* ARCH_X86 */
       _dv_quant_88_inverse(mb->b[i].coeffs,mb->qno,mb->b[i].class_no);
       _dv_weight_88_inverse(mb->b[i].coeffs);
@@ -248,6 +251,10 @@ dv_decode_video_segment(dv_decoder_t *dv, dv_videosegment_t *seg, unsigned int q
       } else {
 #if ARCH_X86
 	_dv_quant_88_inverse_x86(bl->coeffs,mb->qno,bl->class_no);
+	_dv_weight_88_inverse(bl->coeffs);
+	_dv_idct_88(bl->coeffs);
+#elif ARCH_X86_64
+	_dv_quant_88_inverse_x86_64(bl->coeffs,mb->qno,bl->class_no);
 	_dv_weight_88_inverse(bl->coeffs);
 	_dv_idct_88(bl->coeffs);
 #else /* ARCH_X86 */
@@ -324,7 +331,7 @@ dv_render_video_segment_bgr0(dv_decoder_t *dv, dv_videosegment_t *seg, uint8_t *
   } /* for    */
 } /* dv_render_video_segment_bgr0 */
 
-#if ARCH_X86
+#if ARCH_X86 || ARCH_X86_64
 
 static inline void
 dv_render_macroblock_yuv(dv_decoder_t *dv, dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {

@@ -6,7 +6,7 @@ AM_CONFIG_HEADER(config.h)
 RPM_RELEASE=1
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
-AM_INIT_AUTOMAKE(libdv, 0.103)
+AM_INIT_AUTOMAKE(libdv, 0.104)
 
 AM_MAINTAINER_MODE
 AC_LIBTOOL_PICMODE(no)
@@ -34,6 +34,9 @@ AH_TEMPLATE([YUV_420_USE_YV12],
 AH_TEMPLATE([ARCH_X86],
             [Define as 1 if host is an IA32])
 
+AH_TEMPLATE([ARCH_X86_64],
+            [Define as 1 if host is an AMD64])
+
 AH_TEMPLATE([DEBUG], 
 	    [Define to indicate DEBUGGING is enabled possibly with a level])
 
@@ -53,6 +56,7 @@ AC_PROG_LIBTOOL
 
 use_asm=:
 arch_x86=false
+arch_x86_64=false
 
 AC_ARG_ENABLE(asm,
 [  --disable-asm           disable use of architecture specific assembly code],
@@ -95,8 +99,12 @@ AC_ARG_ENABLE(gprof,
 if $use_asm; then
 	case "$host_cpu" in
 		i?86)
-			arch_x86=:
+			arch_x86=true
 			AC_DEFINE(ARCH_X86)
+			;;
+		x86_64)
+			arch_x86_64=true
+			AC_DEFINE(ARCH_X86_64)
 			;;
 		*)
 			;;
@@ -146,8 +154,10 @@ AC_ARG_WITH(debug,
 )
 
 
+AM_CONDITIONAL(HOST_X86, test x$arch_x86 = xtrue)
+AM_CONDITIONAL(HOST_X86_64, test x$arch_x86_64 = xtrue)
 
-AM_CONDITIONAL(HOST_X86, $arch_x86)
+
 
 dnl Checks for libraries.
 

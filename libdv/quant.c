@@ -46,7 +46,7 @@
 #include "idct_248.h"
 #include "quant.h"
 
-#if ARCH_X86
+#if ARCH_X86 || ARCH_X86_64
 #include <mmx.h>
 #endif
 
@@ -145,6 +145,7 @@ uint32_t	dv_quant_248_mul_tab [2] [22] [64];
 uint32_t dv_quant_88_mul_tab [2] [22] [64];
 
 extern void             _dv_quant_x86(dv_coeff_t *block,int qno,int klass);
+extern void             _dv_quant_x86_64(dv_coeff_t *block,int qno,int klass);
 static void quant_248_inverse_std(dv_coeff_t *block,int qno,int klass,dv_248_coeff_t *co);
 static void quant_248_inverse_mmx(dv_coeff_t *block,int qno,int klass,dv_248_coeff_t *co);
 
@@ -169,13 +170,15 @@ dv_quant_init (void)
   if (dv_use_mmx) {
     _dv_quant_248_inverse = quant_248_inverse_mmx;
   }
+#elif ARCH_X86_64
+    _dv_quant_248_inverse = quant_248_inverse_mmx;
 #endif
 }
 
 void _dv_quant(dv_coeff_t *block,int qno,int klass) 
 {
 	if (!(qno == 15 && klass != 3)) { /* Nothing to be done ? */
-#if !ARCH_X86
+#if (!ARCH_X86) && (!ARCH_X86_64)
 		int i;
 		int extra = (klass == 3) ? 1 : 0;
 		int factor;
@@ -203,6 +206,9 @@ void _dv_quant(dv_coeff_t *block,int qno,int klass)
 		for (; i < 64; i++) {
 			block[i] /= factor;
 		}
+#elif ARCH_X86_64
+		_dv_quant_x86_64(block, qno, klass);
+		emms();
 #else
 		_dv_quant_x86(block, qno, klass);
 		emms();

@@ -9,9 +9,12 @@ lib_LTLIBRARIES= libdv.la
 
 if HOST_X86
 GASMOFF=gasmoff
-else # HOST_X86
-GASMOFF=
 endif # HOST_X86
+
+if HOST_X86_64
+GASMOFF=gasmoff
+endif # HOST_X86_64
+
 
 noinst_PROGRAMS= dovlc testvlc testbitstream $(GASMOFF) recode reppm enctest
 
@@ -25,15 +28,23 @@ BUILT_SOURCES = asmoff.h
 libdv_la_ASMS= vlc_x86.S quant_x86.S idct_block_mmx.S dct_block_mmx.S rgbtoyuv.S encode_x86.S transpose_x86.S
 libdv_la_ASM_HS=asmoff.h  mmx.h 
 
-
 gasmoff_SOURCES= gasmoff.c bitstream.h 
 
-else # HOST_X86
-
-ASMS=
-gasmoff_SOURCES=
-
 endif # HOST_X86
+
+#
+# If HOST_X86_64 is set, we build all the x86_64 asm stuff..
+#
+if HOST_X86_64
+
+BUILT_SOURCES = asmoff.h
+
+libdv_la_ASMS= vlc_x86_64.S quant_x86_64.S idct_block_mmx_x86_64.S dct_block_mmx_x86_64.S rgbtoyuv_x86_64.S encode_x86_64.S transpose_x86_64.S
+libdv_la_ASM_HS=asmoff.h  mmx.h
+
+gasmoff_SOURCES= gasmoff.c bitstream.h
+
+endif # HOST_X86_64
 
 pkginclude_HEADERS=  dv_types.h dv.h
 
@@ -48,7 +59,7 @@ libdv_la_SOURCES= dv.c dct.c idct_248.c weighting.c quant.c vlc.c place.c \
         encode.c headers.c enc_input.c enc_audio_input.c enc_output.c \
 	$(libdv_la_ASMS)
 
-libdv_la_LDFLAGS = -version-info 4:1:0
+libdv_la_LDFLAGS = -version-info 4:2:0
 
 dovlc_SOURCES= dovlc.c 
 dovlc_LDADD= libdv.la
@@ -72,6 +83,16 @@ if HOST_X86
 
 # Automake doesn't do dependency tracking for asm
 quant_x86.lo vlc_x86.lo: asmoff.h
+
+asmoff.h: gasmoff
+	./gasmoff > asmoff.h
+
+endif
+
+if HOST_X86_64
+
+# Automake doesn't do dependency tracking for asm
+quant_x86_64.lo vlc_x86_64.lo: asmoff.h
 
 asmoff.h: gasmoff
 	./gasmoff > asmoff.h

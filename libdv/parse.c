@@ -188,7 +188,7 @@ void
 dv_parse_init(void) {
   int i;
   for(i=0;i<64;i++) {
-#if !ARCH_X86
+#if (!ARCH_X86) && (!ARCH_X86_64)
     dv_reorder[DV_DCT_88][i] = ((dv_88_reorder_prime[i] / 8) * 8) + (dv_88_reorder_prime[i] % 8);
 #else
     dv_reorder[DV_DCT_88][i] = ((dv_88_reorder_prime[i] % 8) * 8) + (dv_88_reorder_prime[i] / 8);
@@ -485,7 +485,7 @@ dv_parse_ac_coeffs_pass0(bitstream_t *bs,
 			      dv_macroblock_t *mb,
 			      dv_block_t *bl);
 
-#if ! ARCH_X86
+#if (!ARCH_X86) && (!ARCH_X86_64)
 /* ---------------------------------------------------------------------------
  */
 __inline__ void
@@ -553,7 +553,7 @@ dv_parse_ac_coeffs_pass0(bitstream_t *bs,
  * On passes 2 & 3, just abort.  This seems to drop a lot more coefficients, 21647 
  * in a single frame, that more tolerant aproaches.
  */
-#if ! ARCH_X86
+#if (!ARCH_X86) && (!ARCH_X86_64)
 int
 dv_parse_video_segment(dv_videosegment_t *seg, unsigned int quality) {
   int             m, b;

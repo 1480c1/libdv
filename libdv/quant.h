@@ -28,6 +28,7 @@ extern void _dv_quant_88_inverse(dv_coeff_t *block,int qno,int klass);
 extern void (*_dv_quant_248_inverse) (dv_coeff_t *block,int qno,int klass,
                                   dv_248_coeff_t *co);
 extern void _dv_quant_88_inverse_x86(dv_coeff_t *block,int qno,int klass);
+extern void _dv_quant_88_inverse_x86_64(dv_coeff_t *block,int qno,int klass);
 extern void dv_quant_init (void);
 #ifdef __cplusplus
 }

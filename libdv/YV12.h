@@ -51,11 +51,11 @@ extern void dv_YV12_init(int clamp_luma, int clamp_chroma);
 /* scalar version */
 extern void dv_mb420_YV12(dv_macroblock_t *mb, uint8_t **pixels, uint16_t *pitches); 
 
-#if ARCH_X86
+#if ARCH_X86 || ARCH_X86_64
 /* pentium architecture mmx version */
 extern void dv_mb420_YV12_mmx(dv_macroblock_t *mb, uint8_t **pixels, uint16_t *pitches,
                               int clamp_luma, int clamp_chroma); 
-#endif // ARCH_X86
+#endif // ARCH_X86 || ARCH_X86_64
 
 #ifdef __cplusplus
 }

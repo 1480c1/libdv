@@ -34,9 +34,9 @@
 #include "dct.h"
 #include "weighting.h"
 
-#if ARCH_X86
+#if ARCH_X86 || ARCH_X86_64
 #include "mmx.h"
-#endif /* ARCH_X86 */
+#endif /* ARCH_X86 || ARCH_X86_64 */
 
 /** @file
  *  @ingroup dct
@@ -64,13 +64,22 @@ typedef short var;
 static double KC248[8][4][4][8];
 #endif /* BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88 */
 
-#if (!ARCH_X86) || BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88
+#if ((!ARCH_X86) && (!ARCH_X86_64)) || BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88
 static double C[8];
 static double KC88[8][8][8][8];
-#endif /* (!ARCH_X86) || BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88 */
+#endif /* ((!ARCH_X86) && (!ARCH_X86_64)) || BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88 */
 
+#if ARCH_X86_64
+void _dv_dct_88_block_mmx_x86_64(int16_t* block);
+void _dv_dct_block_mmx_x86_64_postscale_88(int16_t* block, int16_t* postscale_matrix);
+void _dv_dct_block_mmx_x86_64_postscale_248(int16_t* block, int16_t* postscale_matrix);
+void _dv_dct_248_block_mmx_x86_64(int16_t* block);
+void _dv_dct_248_block_mmx_x86_64_post_sum(int16_t* out_block);
+void _dv_idct_block_mmx_x86_64(dv_coeff_t *block);
+void _dv_transpose_mmx_x86_64(short * dst);
+#endif
 #if ARCH_X86
-void _dv_idct_block_mmx(int16_t *block);
+void _dv_idct_block_mmx(dv_coeff_t *block);
 void _dv_dct_88_block_mmx(int16_t* block);
 void _dv_dct_block_mmx_postscale_88(int16_t* block, int16_t* postscale_matrix);
 void _dv_dct_block_mmx_postscale_248(int16_t* block, int16_t* postscale_matrix);
@@ -86,7 +95,7 @@ void _dv_dct_init(void) {
 #if BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88
   int u, z;
 #endif /* BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88 */
-#if (!ARCH_X86) || BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88
+#if ((!ARCH_X86) && (!ARCH_X86_64)) || BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88
   int x, y, h, v, i;
   for (x = 0; x < 8; x++) {
     for (y = 0; y < 8; y++) {
@@ -99,7 +108,7 @@ void _dv_dct_init(void) {
       }
     }
   }
-#endif /* (!ARCH_X86) || BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88 */
+#endif /* ((!ARCH_X86) && (!ARCH_X86_64)) || BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88 */
 #if BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88
   for (x = 0; x < 8; x++) {
     for (z = 0; z < 4; z++) {
@@ -113,11 +122,11 @@ void _dv_dct_init(void) {
     }                           /* for z */
   }                             /* for x */
 #endif /* BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88 */
-#if (!ARCH_X86) || BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88
+#if ((!ARCH_X86) && (!ARCH_X86_64))  || BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88
   for (i = 0; i < 8; i++) {
     C[i] = (i == 0 ? 0.5 / sqrt(2.0) : 0.5);
   } /* for i */
-#endif /* (!ARCH_X86) || BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88 */
+#endif /* ((!ARCH_X86) && (!ARCH_X86_64)) || BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88 */
 }
 
 #if 0
@@ -334,7 +343,7 @@ static void postscale248(var v[64])
 /* Input has to be transposed !!! */
 
 void _dv_dct_88(dv_coeff_t *block) {
-#if !ARCH_X86
+#if ((!ARCH_X86) && (!ARCH_X86_64))
 #if BRUTE_FORCE_DCT_88
   int v,h,y,x,i;
   double temp[64];
@@ -360,20 +369,26 @@ void _dv_dct_88(dv_coeff_t *block) {
   dct88_aan(block);
   postscale88(block);
 #endif /* BRUTE_FORCE_DCT_88 */
-#else /* ARCH_X86 */
+#elif ARCH_X86_64
+  _dv_dct_88_block_mmx_x86_64(block);
+  _dv_transpose_mmx_x86_64(block);
+  _dv_dct_88_block_mmx_x86_64(block);
+  _dv_dct_block_mmx_x86_64_postscale_88(block, postSC88);
+  emms(); 
+#else /* ((!ARCH_X86) && (!ARCH_X86_64)) */
   _dv_dct_88_block_mmx(block);
   _dv_transpose_mmx(block);
   _dv_dct_88_block_mmx(block);
   _dv_dct_block_mmx_postscale_88(block, postSC88);
   emms(); 
-#endif /* ARCH_X86 */
+#endif /* ((!ARCH_X86) && (!ARCH_X86_64)) */
 }
 
 /* Input has to be transposed !!! */
 
 void _dv_dct_248(dv_coeff_t *block) 
 {
-#if !ARCH_X86
+#if ((!ARCH_X86) && (!ARCH_X86_64))
 #if BRUTE_FORCE_DCT_248
   int u,h,z,x,i;
   double temp[64];
@@ -401,19 +416,36 @@ void _dv_dct_248(dv_coeff_t *block)
   dct248_aan(block);
   postscale248(block);
 #endif /* BRUTE_FORCE_DCT_248 */
-#else /* ARCH_X86 */
+#elif ARCH_X86_64
+  _dv_dct_88_block_mmx_x86_64(block);
+  _dv_transpose_mmx_x86_64(block);
+  _dv_dct_248_block_mmx_x86_64(block);
+  _dv_dct_248_block_mmx_x86_64_post_sum(block);
+  _dv_dct_block_mmx_x86_64_postscale_248(block, postSC248);
+#else /* ((!ARCH_X86) && (!ARCH_X86_64)) */
   _dv_dct_88_block_mmx(block);
   _dv_transpose_mmx(block);
   _dv_dct_248_block_mmx(block);
   _dv_dct_248_block_mmx_post_sum(block);
   _dv_dct_block_mmx_postscale_248(block, postSC248);
   emms();
-#endif /* ARCH_X86 */
+#endif /* ((!ARCH_X86) && (!ARCH_X86_64)) */
 }
 
 void _dv_idct_88(dv_coeff_t *block) 
 {
-#if !ARCH_X86
+#if ARCH_X86_64
+
+  _dv_idct_block_mmx_x86_64(block);
+  emms();
+
+#elif ARCH_X86
+
+  _dv_idct_block_mmx(block);
+  emms();
+
+#else /* ARCH_X86 */
+
   int v,h,y,x,i;
   double temp[64];
 
@@ -430,9 +462,6 @@ void _dv_idct_88(dv_coeff_t *block)
 	
   for (i=0;i<64;i++)
     block[i] = temp[i];
-#else
-  _dv_idct_block_mmx(block);
-  emms();
 #endif
 }
 

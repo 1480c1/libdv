@@ -40,16 +40,16 @@
 
 #include "YUY2.h"
 
-#if ARCH_X86
+#if ARCH_X86 || ARCH_X86_64
 #include "mmx.h"
-#endif // ARCH_X68
+#endif // ARCH_X68 | ARCH_X86_64
 
 /* Lookup tables for mapping signed to unsigned, and clamping */
 static unsigned char	real_uvlut[256], *uvlut;
 static unsigned char	real_ylut[768],  *ylut;
 static unsigned char	real_ylut_setup[768],  *ylut_setup;
 
-#if ARCH_X86
+#if ARCH_X86 || ARCH_X86_64
 /* Define some constants used in MMX range mapping and clamping logic */
 static mmx_t		mmx_0x0010s = (mmx_t) 0x0010001000100010LL,
 			mmx_0x8080s = (mmx_t) 0x8080808080808080LL,
@@ -64,7 +64,7 @@ static mmx_t		mmx_0x0010s = (mmx_t) 0x0010001000100010LL,
 			mmx_cbl  = (mmx_t) 0x1f241f241f241f24LL,
 			mmx_cbb  = (mmx_t) 0x1010101010101010LL;
 
-#endif // ARCH_X86
+#endif // ARCH_X86 || ARCH_X86_64
 
 /* ----------------------------------------------------------------------------
  */
@@ -311,7 +311,7 @@ dv_mb420_YUY2 (dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
   }
 }
 
-#if ARCH_X86
+#if ARCH_X86 || ARCH_X86_64
 
 /* TODO (by Buck):
  *
@@ -948,4 +948,4 @@ dv_mb420_YUY2_hh_mmx (dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
   }
   emms ();
 }
-#endif // ARCH_X86
+#endif // ARCH_X86 || ARCH_X86_64

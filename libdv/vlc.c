@@ -770,7 +770,7 @@ void dv_construct_vlc_table() {
 /* Note we assume bits is right (lsb) aligned, and that (0 < maxbits <
  * 17).  This may look crazy, but there are no branches here. */
 
-#if ! ARCH_X86
+#if (!ARCH_X86) && (!ARCH_X86_64)
 void dv_decode_vlc(int bits,int maxbits, dv_vlc_t *result) {
 #ifdef __GNUC__
   static dv_vlc_t vlc_broken = {run: -1, amp: -1, len: VLC_NOBITS};
@@ -804,4 +804,4 @@ void __dv_decode_vlc(int bits, dv_vlc_t *result) {
   result->amp = amps[has_sign &  /* or vlc not valid */
 		    (bits >> sign_rshift[result->len])];
 } /* __dv_decode_vlc */
-#endif /* ! ARCH_X86 */
+#endif /* (! ARCH_X86) && (!ARCH_X86_64) */

@@ -62,7 +62,12 @@
 #endif
 
 // For now assume ARCH_X86 means GCC with hints.
-#define HAVE_GCC ARCH_X86
+#ifdef ARCH_X86
+#define HAVE_GCC 1
+#endif
+#ifdef ARCH_X86_64
+#define HAVE_GCC 1
+#endif
 //#define HAVE_GCC 0
 
 #if HAVE_GCC
@@ -119,7 +124,7 @@
 #define DV_FSC_0         (0)
 #define DV_FSC_1         (1)
 
-#if ARCH_X86
+#if ARCH_X86 || ARCH_X86_64
 #define DV_WEIGHT_BIAS	 6
 #else
 #define DV_WEIGHT_BIAS	 0
@@ -506,6 +511,8 @@ typedef struct {
 } dv_encoder_t;
 
 #if ARCH_X86
+extern int dv_use_mmx;
+#elif ARCH_X86_64
 extern int dv_use_mmx;
 #endif
 

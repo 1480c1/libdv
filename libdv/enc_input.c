@@ -36,7 +36,7 @@
 #include "encode.h"
 #include "dct.h"
 #include "dv_types.h"
-#if ARCH_X86
+#if ARCH_X86 || ARCH_X86_64
 #include "mmx.h"
 #else
 #include <math.h>
@@ -61,7 +61,7 @@
 
 // #define ARCH_X86 0
 
-#if !ARCH_X86
+#if (!ARCH_X86) && (!ARCH_X86_64)
 static inline int f2b(float f)
 {
 	int b = rint(f);
@@ -85,10 +85,13 @@ static inline int f2sb(float f)
 extern void _dv_rgbtoycb_mmx(unsigned char* inPtr, int rows, int columns,
 			 short* outyPtr, short* outuPtr, short* outvPtr);
 
+extern void _dv_rgbtoycb_mmx_x86_64(unsigned char* inPtr, int rows, int columns,
+			 short* outyPtr, short* outuPtr, short* outvPtr);
+
 void dv_enc_rgb_to_ycb(unsigned char* img_rgb, int height,
 		       short* img_y, short* img_cr, short* img_cb)
 {
-#if !ARCH_X86
+#if (!ARCH_X86) && (!ARCH_X86_64)
 #if 1
        int i;
        int ti;
@@ -162,6 +165,10 @@ void dv_enc_rgb_to_ycb(unsigned char* img_rgb, int height,
 		}
 	}
 #endif
+#elif ARCH_X86_64
+	_dv_rgbtoycb_mmx_x86_64(img_rgb, height, DV_WIDTH, (short*) img_y,
+		     (short*) img_cr, (short*) img_cb);
+	emms();
 #else
 	_dv_rgbtoycb_mmx(img_rgb, height, DV_WIDTH, (short*) img_y,
 		     (short*) img_cr, (short*) img_cb);
@@ -179,7 +186,7 @@ static short* img_y = NULL; /* [DV_PAL_HEIGHT * DV_WIDTH]; */
 static short* img_cr = NULL; /* [DV_PAL_HEIGHT * DV_WIDTH / 2]; */
 static short* img_cb = NULL; /* [DV_PAL_HEIGHT * DV_WIDTH / 2]; */
 
-#if !ARCH_X86
+#if (!ARCH_X86) && (!ARCH_X86_64)
 
 static int need_dct_248_transposed(dv_coeff_t * bl)
 {
@@ -210,7 +217,7 @@ static int need_dct_248_transposed(dv_coeff_t * bl)
 	return ((res_cols * 65536 / res_rows) > DCT_248_THRESHOLD);
 }
 
-#else
+#elif ARCH_X86
 
 extern int _dv_need_dct_248_mmx_rows(dv_coeff_t * bl);
 
@@ -247,6 +254,48 @@ static void finish_mb_mmx(dv_macroblock_t* mb)
 			bl[b].dct_mode = 
 				((need_dct_248_rows[b] * 65536 / 
 				  (_dv_need_dct_248_mmx_rows(bl[b].coeffs) + 1))
+				 > DCT_248_THRESHOLD) ? DV_DCT_248 : DV_DCT_88;
+		}
+	}
+}
+
+#else
+
+extern int _dv_need_dct_248_mmx_x86_64_rows(dv_coeff_t * bl);
+
+extern void _dv_transpose_mmx_x86_64(short * dst);
+extern void _dv_ppm_copy_y_block_mmx_x86_64(short * dst, short * src);
+extern void _dv_ppm_copy_pal_c_block_mmx_x86_64(short * dst, short * src);
+extern void _dv_ppm_copy_ntsc_c_block_mmx_x86_64(short * dst, short * src);
+
+static void finish_mb_mmx_x86_64(dv_macroblock_t* mb)
+{
+	int b;
+	int need_dct_248_rows[6];
+	dv_block_t* bl = mb->b;
+
+	if (force_dct != -1) {
+		for (b = 0; b < 6; b++) {
+			bl[b].dct_mode = force_dct;
+		}
+	} else {
+		for (b = 0; b < 6; b++) {
+			need_dct_248_rows[b]
+				= _dv_need_dct_248_mmx_x86_64_rows(bl[b].coeffs) + 1;
+		}
+	}
+	_dv_transpose_mmx_x86_64(bl[0].coeffs);
+	_dv_transpose_mmx_x86_64(bl[1].coeffs);
+	_dv_transpose_mmx_x86_64(bl[2].coeffs);
+	_dv_transpose_mmx_x86_64(bl[3].coeffs);
+	_dv_transpose_mmx_x86_64(bl[4].coeffs);
+	_dv_transpose_mmx_x86_64(bl[5].coeffs);
+
+	if (force_dct == -1) {
+		for (b = 0; b < 6; b++) {
+			bl[b].dct_mode = 
+				((need_dct_248_rows[b] * 65536 / 
+				  (_dv_need_dct_248_mmx_x86_64_rows(bl[b].coeffs) + 1))
 				 > DCT_248_THRESHOLD) ? DV_DCT_248 : DV_DCT_88;
 		}
 	}
@@ -363,7 +412,7 @@ static void ppm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 	int x = mb->x;
 	dv_block_t* bl = mb->b;
 
-#if !ARCH_X86
+#if (!ARCH_X86) && (!ARCH_X86_64)
 	if (isPAL) { /* PAL */
 		int i,j;
 		for (j = 0; j < 8; j++) {
@@ -463,7 +512,7 @@ static void ppm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 				? DV_DCT_248 : DV_DCT_88;
 		}
 	}
-#else
+#elif ARCH_X86
 	if (isPAL) { /* PAL */
 		short* start_y = img_y + y * DV_WIDTH + x;
 		_dv_ppm_copy_y_block_mmx(bl[0].coeffs, start_y);
@@ -521,6 +570,68 @@ static void ppm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 	}
 
 	finish_mb_mmx(mb);
+
+	emms();
+
+#else
+
+	if (isPAL) { /* PAL */
+		short* start_y = img_y + y * DV_WIDTH + x;
+		_dv_ppm_copy_y_block_mmx_x86_64(bl[0].coeffs, start_y);
+		_dv_ppm_copy_y_block_mmx_x86_64(bl[1].coeffs, start_y + 8);
+		_dv_ppm_copy_y_block_mmx_x86_64(bl[2].coeffs, start_y + 8 * DV_WIDTH);
+		_dv_ppm_copy_y_block_mmx_x86_64(bl[3].coeffs, start_y + 8 * DV_WIDTH + 8);
+		_dv_ppm_copy_pal_c_block_mmx_x86_64(bl[4].coeffs,
+					 img_cr+y * DV_WIDTH/2+ x/2);
+		_dv_ppm_copy_pal_c_block_mmx_x86_64(bl[5].coeffs,
+					 img_cb+y * DV_WIDTH/2+ x/2);
+	} else if (mb->x == DV_WIDTH- 16) { /* rightmost NTSC block */
+		short* start_y = img_y + y * DV_WIDTH + x;
+		int i,j;
+
+		_dv_ppm_copy_y_block_mmx_x86_64(bl[0].coeffs, start_y);
+		_dv_ppm_copy_y_block_mmx_x86_64(bl[1].coeffs, start_y + 8);
+		_dv_ppm_copy_y_block_mmx_x86_64(bl[2].coeffs, start_y + 8 * DV_WIDTH);
+		_dv_ppm_copy_y_block_mmx_x86_64(bl[3].coeffs, start_y + 8 * DV_WIDTH + 8);
+
+		for (j = 0; j < 8; j++) {
+			for (i = 0; i < 4; i++) {
+				bl[4].coeffs[8 * j + i] = 
+					(img_cr[(y + j) * DV_WIDTH/2
+					       + x / 2 + i*2]
+					 + img_cr[(y + j) * DV_WIDTH/2 
+						 + x / 2 + 1 + i*2]) >> 1;
+				bl[5].coeffs[8 * j + i] = 
+					(img_cb[(y + j) * DV_WIDTH/2
+					       + x / 2 + i*2]
+					 + img_cb[(y + j) * DV_WIDTH/2 
+						 + x / 2 + 1 + i*2]) >> 1;
+				bl[4].coeffs[8 * j + i + 4] = 
+					(img_cr[(y + j + 8) * DV_WIDTH/2
+					       + x / 2 + i*2]
+					 + img_cr[(y + j + 8) * DV_WIDTH/2 
+						 + x / 2 + 1 + i*2]) >> 1;
+				bl[5].coeffs[8 * j + i + 4] = 
+					(img_cb[(y + j + 8) * DV_WIDTH/2
+					       + x / 2 + i*2]
+					 + img_cb[(y + j + 8) * DV_WIDTH/2 
+						 + x / 2 + 1 + i*2]) >> 1;
+			}
+		}
+
+	} else { /* NTSC */
+		short* start_y = img_y + y * DV_WIDTH + x;
+		_dv_ppm_copy_y_block_mmx_x86_64(bl[0].coeffs, start_y);
+		_dv_ppm_copy_y_block_mmx_x86_64(bl[1].coeffs, start_y + 8);
+		_dv_ppm_copy_y_block_mmx_x86_64(bl[2].coeffs, start_y + 16);
+		_dv_ppm_copy_y_block_mmx_x86_64(bl[3].coeffs, start_y + 24);
+		_dv_ppm_copy_ntsc_c_block_mmx_x86_64(bl[4].coeffs,
+					  img_cr + y*DV_WIDTH/2 + x/2);
+		_dv_ppm_copy_ntsc_c_block_mmx_x86_64(bl[5].coeffs,
+					  img_cb + y*DV_WIDTH/2 + x/2);
+	}
+
+	finish_mb_mmx_x86_64(mb);
 
 	emms();
 #endif
@@ -640,7 +751,7 @@ static inline short pgm_get_cb_ntsc(int y, int x)
 						<< (DCT_YUV_PRECISION - 1);
 }
 
-#if !ARCH_X86
+#if (!ARCH_X86) && (!ARCH_X86_64)
 static inline short pgm_get_y(int y, int x)
 {
 	return (((short) real_readbuf[y * DV_WIDTH + x]) - 128 + 16)
@@ -662,10 +773,14 @@ static inline short pgm_get_cb_pal(int y, int x)
 
 }
 
-#else
+#elif ARCH_X86
 extern void _dv_pgm_copy_y_block_mmx(short * dst, unsigned char * src);
 extern void _dv_pgm_copy_pal_c_block_mmx(short * dst, unsigned char * src);
 extern void _dv_pgm_copy_ntsc_c_block_mmx(short * dst, unsigned char * src);
+#else
+extern void _dv_pgm_copy_y_block_mmx_x86_64(short * dst, unsigned char * src);
+extern void _dv_pgm_copy_pal_c_block_mmx_x86_64(short * dst, unsigned char * src);
+extern void _dv_pgm_copy_ntsc_c_block_mmx_x86_64(short * dst, unsigned char * src);
 #endif
 
 static void pgm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
@@ -673,7 +788,7 @@ static void pgm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 	int y = mb->y;
 	int x = mb->x;
 	dv_block_t* bl = mb->b;
-#if !ARCH_X86
+#if (!ARCH_X86) && (!ARCH_X86_64)
 	if (isPAL) { /* PAL */
 		int i,j;
 		for (j = 0; j < 8; j++) {
@@ -743,7 +858,7 @@ static void pgm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 				? DV_DCT_248 : DV_DCT_88;
 		}
 	}
-#else
+#elif ARCH_X86
 	if (isPAL) { /* PAL */
 		unsigned char* start_y = real_readbuf + y * DV_WIDTH + x;
 		unsigned char* img_cr = real_readbuf 
@@ -809,6 +924,76 @@ static void pgm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 	}
 
 	finish_mb_mmx(mb);
+
+	emms();
+#else
+
+
+	if (isPAL) { /* PAL */
+		unsigned char* start_y = real_readbuf + y * DV_WIDTH + x;
+		unsigned char* img_cr = real_readbuf 
+			+ DV_WIDTH * DV_PAL_HEIGHT + DV_WIDTH / 2;
+		unsigned char* img_cb = real_readbuf 
+			+ DV_WIDTH * DV_PAL_HEIGHT;
+
+		_dv_pgm_copy_y_block_mmx_x86_64(bl[0].coeffs, start_y);
+		_dv_pgm_copy_y_block_mmx_x86_64(bl[1].coeffs, start_y + 8);
+		_dv_pgm_copy_y_block_mmx_x86_64(bl[2].coeffs, start_y + 8 * DV_WIDTH);
+		_dv_pgm_copy_y_block_mmx_x86_64(bl[3].coeffs, start_y + 8 * DV_WIDTH + 8);
+		_dv_pgm_copy_pal_c_block_mmx_x86_64(bl[4].coeffs,
+					 img_cr + y * DV_WIDTH / 2 + x / 2);
+		_dv_pgm_copy_pal_c_block_mmx_x86_64(bl[5].coeffs,
+					 img_cb + y * DV_WIDTH / 2 + x / 2);
+	} else if (x == DV_WIDTH- 16) {  /* rightmost NTSC block */
+		unsigned char* start_y = real_readbuf + y * DV_WIDTH + x;
+#if 0
+		unsigned char* img_cr = real_readbuf 
+			+ (isPAL ? (DV_WIDTH * DV_PAL_HEIGHT)
+			   : (DV_WIDTH * DV_NTSC_HEIGHT)) + DV_WIDTH / 2;
+		unsigned char* img_cb = real_readbuf 
+			+ (isPAL ? (DV_WIDTH * DV_PAL_HEIGHT) 
+			   : (DV_WIDTH * DV_NTSC_HEIGHT));
+#endif
+		int i,j;
+
+		_dv_pgm_copy_y_block_mmx_x86_64(bl[0].coeffs, start_y);
+		_dv_pgm_copy_y_block_mmx_x86_64(bl[1].coeffs, start_y + 8);
+		_dv_pgm_copy_y_block_mmx_x86_64(bl[2].coeffs, start_y + 8 * DV_WIDTH);
+		_dv_pgm_copy_y_block_mmx_x86_64(bl[3].coeffs, start_y + 8 * DV_WIDTH + 8);
+
+		for (j = 0; j < 8; j++) {
+			for (i = 0; i < 4; i++) {
+				bl[4].coeffs[8*j + i*2] = 
+					bl[4].coeffs[8*j + i*2 + 1] = 
+					pgm_get_cr_ntsc(y/2 + j, x/2 + i * 2);
+				bl[5].coeffs[8*j + i*2] = 
+					bl[5].coeffs[8*j + i*2 + 1] = 
+					pgm_get_cb_ntsc(y/2 + j, x/2 + i * 2);
+				bl[4].coeffs[8*j + (i+4)*2] = 
+					bl[4].coeffs[8*j + (i+4)*2 + 1] = 
+					pgm_get_cr_ntsc(y/2 + j +8, x/2 + i * 2);
+				bl[5].coeffs[8*j + (i+4)*2] = 
+					bl[5].coeffs[8*j + (i+4)*2 + 1] = 
+					pgm_get_cb_ntsc(y/2 + j +8, x/2 + i * 2);
+			}
+		}
+	} else {                              /* NTSC */
+		unsigned char* start_y = real_readbuf + y * DV_WIDTH + x;
+		unsigned char* img_cr = real_readbuf 
+			+ DV_WIDTH * DV_NTSC_HEIGHT + DV_WIDTH / 2;
+		unsigned char* img_cb = real_readbuf 
+			+ DV_WIDTH * DV_NTSC_HEIGHT;
+		_dv_pgm_copy_y_block_mmx_x86_64(bl[0].coeffs, start_y);
+		_dv_pgm_copy_y_block_mmx_x86_64(bl[1].coeffs, start_y + 8);
+		_dv_pgm_copy_y_block_mmx_x86_64(bl[2].coeffs, start_y + 16);
+		_dv_pgm_copy_y_block_mmx_x86_64(bl[3].coeffs, start_y + 24);
+		_dv_pgm_copy_ntsc_c_block_mmx_x86_64(bl[4].coeffs,
+					  img_cr + y * DV_WIDTH / 2 + x / 2);
+		_dv_pgm_copy_ntsc_c_block_mmx_x86_64(bl[5].coeffs,
+					  img_cb + y * DV_WIDTH / 2 + x / 2);
+	}
+
+	finish_mb_mmx_x86_64(mb);
 
 	emms();
 #endif
@@ -937,7 +1122,7 @@ static inline short video_get_cb_ntsc(int y, int x)
 						<< (DCT_YUV_PRECISION - 1);
 }
 
-#if !ARCH_X86
+#if (!ARCH_X86) && (!ARCH_X86_64)
 static inline short video_get_y(int y, int x)
 {
 	return (((short) real_readbuf[y * DV_WIDTH + x]) - 128)
@@ -963,10 +1148,14 @@ static inline short video_get_cb_pal(int y, int x)
 }
 
 
-#else
+#elif ARCH_X86
 extern void _dv_video_copy_y_block_mmx(short * dst, unsigned char * src);
 extern void _dv_video_copy_pal_c_block_mmx(short * dst, unsigned char * src);
 extern void _dv_video_copy_ntsc_c_block_mmx(short * dst, unsigned char * src);
+#else
+extern void _dv_video_copy_y_block_mmx_x86_64(short * dst, unsigned char * src);
+extern void _dv_video_copy_pal_c_block_mmx_x86_64(short * dst, unsigned char * src);
+extern void _dv_video_copy_ntsc_c_block_mmx_x86_64(short * dst, unsigned char * src);
 #endif
 
 
@@ -975,7 +1164,7 @@ static void video_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 	int y = mb->y;
 	int x = mb->x;
 	dv_block_t* bl = mb->b;
-#if !ARCH_X86
+#if (!ARCH_X86) && (!ARCH_X86_64)
 	if (isPAL) { /* PAL */
 		int i,j;
 		for (j = 0; j < 8; j++) {
@@ -1038,7 +1227,7 @@ static void video_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 				? DV_DCT_248 : DV_DCT_88;
 		}
 	}
-#else
+#elif ARCH_X86
 	if (isPAL) { /* PAL */
 		unsigned char* start_y = real_readbuf + y * DV_WIDTH + x;
 		unsigned char* img_cr = real_readbuf 
@@ -1105,6 +1294,73 @@ static void video_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 	finish_mb_mmx(mb);
 
 	emms();
+#else
+	if (isPAL) { /* PAL */
+		unsigned char* start_y = real_readbuf + y * DV_WIDTH + x;
+		unsigned char* img_cr = real_readbuf 
+			+ (isPAL ? DV_WIDTH * DV_PAL_HEIGHT * 3/2  
+			   : DV_WIDTH * DV_NTSC_HEIGHT * 3/2);
+		unsigned char* img_cb = real_readbuf 
+			+ (isPAL ? DV_WIDTH * DV_PAL_HEIGHT
+			   : DV_WIDTH * DV_NTSC_HEIGHT);
+
+		_dv_video_copy_y_block_mmx_x86_64(bl[0].coeffs, start_y);
+		_dv_video_copy_y_block_mmx_x86_64(bl[1].coeffs, start_y + 8);
+		_dv_video_copy_y_block_mmx_x86_64(bl[2].coeffs, start_y + 8 * DV_WIDTH);
+		_dv_video_copy_y_block_mmx_x86_64(bl[3].coeffs, start_y + 8 * DV_WIDTH+8);
+		_dv_video_copy_pal_c_block_mmx_x86_64(bl[4].coeffs,
+					 img_cr + y * DV_WIDTH / 2 + x / 2);
+		_dv_video_copy_pal_c_block_mmx_x86_64(bl[5].coeffs,
+					 img_cb + y * DV_WIDTH / 2 + x / 2);
+	} else if (x == DV_WIDTH- 16) {       /* rightmost NTSC block */
+		unsigned char* start_y = real_readbuf + y * DV_WIDTH + x;
+#if 0
+		unsigned char* img_cr = real_readbuf 
+			+ (isPAL ? DV_WIDTH * DV_PAL_HEIGHT * 3/2  
+			   : DV_WIDTH * DV_NTSC_HEIGHT * 3/2);
+		unsigned char* img_cb = real_readbuf 
+			+ (isPAL ? DV_WIDTH * DV_PAL_HEIGHT
+			   : DV_WIDTH * DV_NTSC_HEIGHT);
+#endif
+		int i,j;
+
+		_dv_video_copy_y_block_mmx_x86_64(bl[0].coeffs, start_y);
+		_dv_video_copy_y_block_mmx_x86_64(bl[1].coeffs, start_y + 8);
+		_dv_video_copy_y_block_mmx_x86_64(bl[2].coeffs, start_y + 8 * DV_WIDTH);
+		_dv_video_copy_y_block_mmx_x86_64(bl[3].coeffs, start_y + 8 * DV_WIDTH+8);
+		
+
+		for (j = 0; j < 8; j++) {
+			for (i = 0; i < 4; i++) {
+				bl[4].coeffs[8*j + i] = 
+					video_get_cr_ntsc(y/2+j, x/2+i);
+				bl[5].coeffs[8*j + i] = 
+					video_get_cb_ntsc(y/2+j, x/2+i);
+				bl[4].coeffs[8*j + (i+4)] = 
+					video_get_cr_ntsc(y/2+j+8, x/2+i);
+				bl[5].coeffs[8*j + (i+4)] = 
+					video_get_cb_ntsc(y/2+j+8, x/2+i);
+			}
+		}
+	} else {                              /* NTSC */
+		unsigned char* start_y = real_readbuf + y * DV_WIDTH + x;
+		unsigned char* img_cr = real_readbuf 
+			+ DV_WIDTH * DV_NTSC_HEIGHT * 3 / 2;
+		unsigned char* img_cb = real_readbuf 
+			+ DV_WIDTH * DV_NTSC_HEIGHT;
+		_dv_video_copy_y_block_mmx_x86_64(bl[0].coeffs, start_y);
+		_dv_video_copy_y_block_mmx_x86_64(bl[1].coeffs, start_y + 8);
+		_dv_video_copy_y_block_mmx_x86_64(bl[2].coeffs, start_y + 16);
+		_dv_video_copy_y_block_mmx_x86_64(bl[3].coeffs, start_y + 24);
+		_dv_video_copy_ntsc_c_block_mmx_x86_64(bl[4].coeffs,
+					  img_cr + y * DV_WIDTH / 2 + x / 2);
+		_dv_video_copy_ntsc_c_block_mmx_x86_64(bl[5].coeffs,
+					  img_cb + y * DV_WIDTH / 2 + x / 2);
+	}
+
+	finish_mb_mmx_x86_64(mb);
+
+	emms();
 #endif
 }
 
@@ -1151,7 +1407,7 @@ void _dv_ycb_fill_macroblock(dv_encoder_t *dv_enc, dv_macroblock_t *mb)
 	dv_block_t *bl = mb->b;
 
 
-#if !ARCH_X86
+#if (!ARCH_X86) && (!ARCH_X86_64)
 	if (dv_enc->isPAL) { /* PAL */
 		int i,j;
 		for (j = 0; j < 8; j++) {
@@ -1286,7 +1542,7 @@ void _dv_ycb_fill_macroblock(dv_encoder_t *dv_enc, dv_macroblock_t *mb)
 				? DV_DCT_248 : DV_DCT_88;
 		}
 	}
-#else
+#elif ARCH_X86
 	int b;
 	int need_dct_248_rows[6];
 
@@ -1369,6 +1625,94 @@ void _dv_ycb_fill_macroblock(dv_encoder_t *dv_enc, dv_macroblock_t *mb)
 			bl[b].dct_mode = 
 				((need_dct_248_rows[b] * 65536 / 
 				  (_dv_need_dct_248_mmx_rows(bl[b].coeffs) + 1))
+				 > DCT_248_THRESHOLD) ? DV_DCT_248 : DV_DCT_88;
+		}
+	}
+
+	emms();
+#else
+	int b;
+	int need_dct_248_rows[6];
+
+	if (dv_enc->isPAL) { /* PAL or rightmost NTSC block */
+		short* start_y = dv_enc->img_y + y * DV_WIDTH + x;
+		_dv_ppm_copy_y_block_mmx_x86_64(bl[0].coeffs, start_y);
+		_dv_ppm_copy_y_block_mmx_x86_64(bl[1].coeffs, start_y + 8);
+		_dv_ppm_copy_y_block_mmx_x86_64(bl[2].coeffs, start_y + 8 * DV_WIDTH);
+		_dv_ppm_copy_y_block_mmx_x86_64(bl[3].coeffs, start_y + 8 * DV_WIDTH + 8);
+		_dv_ppm_copy_pal_c_block_mmx_x86_64(bl[4].coeffs,
+					 dv_enc->img_cr+y * DV_WIDTH/2+ x/2);
+		_dv_ppm_copy_pal_c_block_mmx_x86_64(bl[5].coeffs,
+					 dv_enc->img_cb+y * DV_WIDTH/2+ x/2);
+	} else if (x == DV_WIDTH- 16) { /* rightmost NTSC block */
+		short* start_y = dv_enc->img_y + y * DV_WIDTH + x;
+		int i,j;
+
+		_dv_ppm_copy_y_block_mmx_x86_64(bl[0].coeffs, start_y);
+		_dv_ppm_copy_y_block_mmx_x86_64(bl[1].coeffs, start_y + 8);
+		_dv_ppm_copy_y_block_mmx_x86_64(bl[2].coeffs, start_y + 8 * DV_WIDTH);
+		_dv_ppm_copy_y_block_mmx_x86_64(bl[3].coeffs, start_y + 8 * DV_WIDTH + 8);
+
+		for (j = 0; j < 8; j++) {
+			for (i = 0; i < 4; i++) {
+				bl[4].coeffs[8 * j + i] = 
+					(dv_enc->img_cr[(y + j) * DV_WIDTH/2
+					       + x / 2 + i*2]
+					 + dv_enc->img_cr[(y + j) * DV_WIDTH/2 
+						 + x / 2 + 1 + i*2]) >> 1;
+				bl[5].coeffs[8 * j + i] = 
+					(dv_enc->img_cb[(y + j) * DV_WIDTH/2
+					       + x / 2 + i*2]
+					 + dv_enc->img_cb[(y + j) * DV_WIDTH/2 
+						 + x / 2 + 1 + i*2]) >> 1;
+				bl[4].coeffs[8 * j + i + 4] = 
+					(dv_enc->img_cr[(y + j + 8) * DV_WIDTH/2
+					       + x / 2 + i*2]
+					 + dv_enc->img_cr[(y + j + 8) * DV_WIDTH/2 
+						 + x / 2 + 1 + i*2]) >> 1;
+				bl[5].coeffs[8 * j + i + 4] = 
+					(dv_enc->img_cb[(y + j + 8) * DV_WIDTH/2
+					       + x / 2 + i*2]
+					 + dv_enc->img_cb[(y + j + 8) * DV_WIDTH/2 
+						 + x / 2 + 1 + i*2]) >> 1;
+			}
+		}
+	} else {                              /* NTSC */
+		short* start_y = dv_enc->img_y + y * DV_WIDTH + x;
+		_dv_ppm_copy_y_block_mmx_x86_64(bl[0].coeffs, start_y);
+		_dv_ppm_copy_y_block_mmx_x86_64(bl[1].coeffs, start_y + 8);
+		_dv_ppm_copy_y_block_mmx_x86_64(bl[2].coeffs, start_y + 16);
+		_dv_ppm_copy_y_block_mmx_x86_64(bl[3].coeffs, start_y + 24);
+		_dv_ppm_copy_ntsc_c_block_mmx_x86_64(bl[4].coeffs,
+					  dv_enc->img_cr + y*DV_WIDTH/2 + x/2);
+		_dv_ppm_copy_ntsc_c_block_mmx_x86_64(bl[5].coeffs,
+					  dv_enc->img_cb + y*DV_WIDTH/2 + x/2);
+	}
+
+	
+	/* from finish_mb_mmx() */
+	if (dv_enc->force_dct != -1) {
+		for (b = 0; b < 6; b++) {
+			bl[b].dct_mode = dv_enc->force_dct;
+		}
+	} else {
+		for (b = 0; b < 6; b++) {
+			need_dct_248_rows[b]
+				= _dv_need_dct_248_mmx_x86_64_rows(bl[b].coeffs) + 1;
+		}
+	}
+	_dv_transpose_mmx_x86_64(bl[0].coeffs);
+	_dv_transpose_mmx_x86_64(bl[1].coeffs);
+	_dv_transpose_mmx_x86_64(bl[2].coeffs);
+	_dv_transpose_mmx_x86_64(bl[3].coeffs);
+	_dv_transpose_mmx_x86_64(bl[4].coeffs);
+	_dv_transpose_mmx_x86_64(bl[5].coeffs);
+
+	if (dv_enc->force_dct == -1) {
+		for (b = 0; b < 6; b++) {
+			bl[b].dct_mode = 
+				((need_dct_248_rows[b] * 65536 / 
+				  (_dv_need_dct_248_mmx_x86_64_rows(bl[b].coeffs) + 1))
 				 > DCT_248_THRESHOLD) ? DV_DCT_248 : DV_DCT_88;
 		}
 	}

@@ -1,3 +1,6 @@
+2004-10-19  Dan Dennedy <dan@dennedy.org>
+	* applied x86-64 patch from Dean Kolosiek.
+
 2004-07-14  Charles "Buck" Krasic  <krasic@acm.org>
 
 	* libdv 0.103 release

@@ -31,15 +31,15 @@
 #include <stdlib.h>
 #include "YV12.h"
 
-#if ARCH_X86
+#if ARCH_X86 || ARCH_X86_64
 #include "mmx.h"
-#endif // ARCH_X86
+#endif // ARCH_X86 || ARCH_X86_64
 
 /* Lookup tables for mapping signed to unsigned, and clamping */
 static unsigned char	real_uvlut[256], *uvlut;
 static unsigned char	real_ylut[768],  *ylut;
 
-#if ARCH_X86
+#if ARCH_X86 || ARCH_X86_64
 /* Define some constants used in MMX range mapping and clamping logic */
 static mmx_t		mmx_0x10s   = (mmx_t) 0x1010101010101010LL,
 			mmx_0x0080s = (mmx_t) 0x0080008000800080LL,
@@ -47,7 +47,7 @@ static mmx_t		mmx_0x10s   = (mmx_t) 0x1010101010101010LL,
                         mmx_0x7f94s = (mmx_t) 0x7f947f947f947f94LL,
 			mmx_0x7f7fs = (mmx_t) 0x7f7f7f7f7f7f7f7fLL,
 			mmx_0x7f00s = (mmx_t) 0x7f007f007f007f00LL;
-#endif // ARCH_X86
+#endif // ARCH_X86 || ARCH_X86_64
 
 void 
 dv_YV12_init(int clamp_luma, int clamp_chroma) {
@@ -136,7 +136,7 @@ dv_mb420_YV12(dv_macroblock_t *mb, uint8_t **pixels, uint16_t *pitches) {
 
 } /* dv_mb420_YV12 */
 
-#if ARCH_X86
+#if ARCH_X86 || ARCH_X86_64
 
 /* TODO: clamping */
 void 
@@ -225,5 +225,5 @@ dv_mb420_YV12_mmx(dv_macroblock_t *mb, uint8_t **pixels, uint16_t *pitches,
 } /* dv_mb420_YV12_mmx */
 
 
-#endif // ARCH_X86
+#endif // ARCH_X86 || ARCH_X86_64
 

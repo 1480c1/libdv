@@ -32,7 +32,7 @@
 #define declare(S, M) \
     printf("#define %-40s %d\n", #S "_" #M, offsetof(S, M))
 #define declaresize(S) \
-    printf("#define %-40s %d\n", #S "_size", sizeof(S))
+    printf("#define %-40s %d\n", #S "_size", (int) sizeof(S))
 #define export(S) \
     printf("#define %-40s %d\n", #S, S)
 

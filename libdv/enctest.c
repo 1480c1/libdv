@@ -19,9 +19,11 @@ struct frame_t {
 	unsigned char dv[120000];
 } frame[N];
 
+int thread_number[N];
+
 static void* t(void* arg)
 {
-	int i = (int)arg;
+        int i = *((int*) arg);
 	struct frame_t* f;
 	unsigned char* rgb;
 	dv_encoder_t* enc;
@@ -56,10 +58,11 @@ int main(int argc, char** argv)
 	memset(&frame, 100, sizeof(frame));	/* all frames are gray */
 
 	for (i = 0; i < n; i++) {
+	  thread_number[i] = i;
 		if (parallel)
-			pthread_create(&th[i], 0, t, (void*)i);
+		  pthread_create(&th[i], 0, t, (void*) &thread_number[i]);
 		else
-			t((void*)i);
+			t((void*) &thread_number[i]);
 	}
 
 	for (i = 0; i < n; i++) {

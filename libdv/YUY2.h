@@ -54,7 +54,7 @@ extern void dv_mb411_YUY2(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, i
 extern void dv_mb411_right_YUY2(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_setup);
 extern void dv_mb420_YUY2(dv_macroblock_t *mb, uint8_t **pixels, int *pitches);
 
-#if ARCH_X86
+#if ARCH_X86 || ARCH_X86_64
 /* pentium architecture mmx versions */
 extern void dv_mb411_YUY2_mmx(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
                   int add_ntsc_setup, int clamp_luma, int clamp_chroma);
@@ -62,7 +62,7 @@ extern void dv_mb411_right_YUY2_mmx(dv_macroblock_t *mb, uint8_t **pixels, int *
                   int add_ntsc_setup, int clamp_luma, int clamp_chroma);
 extern void dv_mb420_YUY2_mmx(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
                   int clamp_luma, int clamp_chroma);
-#endif // ARCH_X86
+#endif // ARCH_X86 || ARCH_X86_64
 
 #ifdef __cplusplus
 }

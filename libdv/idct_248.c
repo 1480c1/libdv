@@ -89,7 +89,7 @@ static double tickC(int u)
   return(result);
 } // tickC
 
-#if ARCH_X86 && defined(__GNUC__)
+#if (ARCH_X86 || ARCH_X86_64) && defined(__GNUC__)
 
 static inline int32_t fixed_multiply(int32_t a, int32_t b) {
   register int32_t eax asm("ax");

@@ -64,7 +64,7 @@ dv_coeff_t postSC248[64] ALIGN32;
 
 static double W[8];
 
-#if !ARCH_X86
+#if (!ARCH_X86) && (!ARCH_X86_64)
 static dv_coeff_t dv_weight_inverse_88_matrix[64];
 #endif
 
@@ -143,7 +143,7 @@ void _dv_weight_init(void)
 	double temp[64];
 	double temp_postsc[64];
 	int i, z, x;
-#if ARCH_X86
+#if ARCH_X86 || ARCH_X86_64
 	const double dv_weight_bias_factor = (double)(1UL << DV_WEIGHT_BIAS);
 #endif
 
@@ -162,7 +162,7 @@ void _dv_weight_init(void)
 	weight_88_inverse_float(temp);
 
 	for (i=0;i<64;i++) {
-#if !ARCH_X86
+#if (!ARCH_X86) && (!ARCH_X86_64)
 		dv_weight_inverse_88_matrix[i] = (dv_coeff_t)rint(temp[i]);
 #else
 		/* If we're using MMX assembler, fold weights into the iDCT
@@ -295,7 +295,7 @@ void _dv_weight_88_inverse(dv_coeff_t *block)
 {
 	/* When we're using MMX assembler, weights are applied in the 8x8
 	   iDCT prescale */
-#if !ARCH_X86
+#if (!ARCH_X86) && (!ARCH_X86_64)
 	int i;
 
 	for (i=0;i<64;i++) {

@@ -3,6 +3,9 @@
 /* Define as 1 if host is an IA32 */
 #undef ARCH_X86
 
+/* Define as 1 if host is an AMD64 */
+#undef ARCH_X86_64
+
 /* Define to indicate DEBUGGING is enabled possibly with a level */
 #undef DEBUG
 
