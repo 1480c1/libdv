@@ -437,7 +437,7 @@ void
 dv_decode_full_frame(dv_decoder_t *dv, uint8_t *buffer, 
 		     dv_color_space_t color_space, uint8_t **pixels, int *pitches) {
 
-  static dv_videosegment_t vs;
+  dv_videosegment_t vs;
   dv_videosegment_t *seg = &vs;
   dv_macroblock_t *mb;
   int ds, v, m;
@@ -477,6 +477,7 @@ dv_decode_full_frame(dv_decoder_t *dv, uint8_t *buffer,
       dif+=5;
       seg->i = ds;
       seg->k = v;
+
       switch(color_space) {
       case e_dv_color_yuv:
 	for (m=0,mb = seg->mb;
@@ -509,8 +510,11 @@ dv_decode_full_frame(dv_decoder_t *dv, uint8_t *buffer,
 	} /* for m */
 	break;
       } /* switch */
+
     } /* for v */
+
   } /* ds */
+
 #if RANGE_CHECKING
   for(i=0;i<6;i++) {
     fprintf(stderr, "range[%d] min %d max %d\n", i, ranges[i][0], ranges[i][1]);
@@ -529,6 +533,7 @@ dv_decode_full_audio(dv_decoder_t *dv, uint8_t *buffer, int16_t **outbufs)
   int ch;
 
   dif=0;
+
   if(!dv_parse_audio_header(dv, buffer)) goto no_audio;
 
   for (ds=0; ds < dv->num_dif_seqs; ds++) {
@@ -544,7 +549,7 @@ dv_decode_full_audio(dv_decoder_t *dv, uint8_t *buffer, int16_t **outbufs)
       dv_audio_deemphasis(dv->audio, outbufs[ch]);
     } /* for  */
   } /* if */
-  
+
   return(TRUE);
   
  fail:

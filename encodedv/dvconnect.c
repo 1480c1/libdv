@@ -32,7 +32,7 @@
 #include <fcntl.h>
 #include <sched.h>
 #include <sys/resource.h>
-
+#include <string.h>
 #include <pthread.h>
 #include <signal.h>
 

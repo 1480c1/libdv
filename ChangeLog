@@ -1,5 +1,5 @@
 2002-30-03  Dan Dennedy <dan@dennedy.org>
-        * Apply bugfix from Peter Schlaile to ppm_copy_ntsc_c block.
+	* Apply bugfix from Peter Schlaile to ppm_copy_ntsc_c block.
 	
 	* Added reppm.c test utility to test RGB recoding. Recode
 	  now tests YUV recoding. Both recode 5 times to evaluate
