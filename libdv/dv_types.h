@@ -36,6 +36,7 @@
 
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdio.h>
 
 /* please tell me these are defined somewhere standard??? */
 #ifndef FALSE
