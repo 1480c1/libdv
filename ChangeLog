@@ -1,3 +1,7 @@
+2004-06-10  Dan Dennedy <dan@dennedy.org>
+	* libdv/dv.c: apply patch from Johannes Sixt to fix race condition and bug
+	  using deallocated memory.
+
 2004-05-29  Dan Dennedy <dan@dennedy.org>
 	* configure.ac, libdv.pc.in: remove gtk from libdv pkg-config dependencies
 	  as the core lib has not required glib for some time now!

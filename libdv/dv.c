@@ -71,7 +71,6 @@
 #define MAX(a,b) ((a)<(b)?(b):(a))
 
 int dv_use_mmx;
-pthread_mutex_t dv_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 #if HAVE_LIBPOPT
 static void
@@ -161,7 +160,6 @@ dv_decoder_free( dv_decoder_t *decoder)
 	if (decoder != NULL) {
 		if (decoder->audio != NULL) free(decoder->audio);
 		if (decoder->video != NULL) free(decoder->video);
-		if (decoder->bs != NULL) free(decoder->bs);
 		free(decoder);
 	}
 } /* dv_decoder_free */
@@ -443,20 +441,17 @@ void
 dv_decode_full_frame(dv_decoder_t *dv, const uint8_t *buffer,
 		     dv_color_space_t color_space, uint8_t **pixels, int *pitches) {
 
-  static dv_videosegment_t vs;
+  bitstream_t bs = { 0 };
+  dv_videosegment_t vs = { 0, 0, &bs };
+  static pthread_mutex_t dv_mutex = PTHREAD_MUTEX_INITIALIZER;
   dv_videosegment_t *seg = &vs;
   dv_macroblock_t *mb;
   int ds, v, m;
   unsigned int offset = 0, dif = 0, audio=0;
 
-  if(!seg->bs) {
-    dv->bs = seg->bs = _dv_bitstream_init();
-    if(!seg->bs)
-      goto no_mem;
-  } /* if */
+  pthread_mutex_lock(&dv_mutex);
   seg->isPAL = (dv->system == e_dv_system_625_50);
 
-  pthread_mutex_lock(&dv_mutex);
   /* each DV frame consists of a sequence of DIF segments  */
   for (ds=0; ds < dv->num_dif_seqs; ds++) {
     /** Each DIF segment conists of 150 dif blocks, 135 of which are video blocks
@@ -528,10 +523,6 @@ dv_decode_full_frame(dv_decoder_t *dv, const uint8_t *buffer,
     fprintf(stderr, "range[%d] min %d max %d\n", i, ranges[i][0], ranges[i][1]);
   }
 #endif
-  return;
- no_mem:
-  fprintf(stderr,"no memory for bitstream!\n");
-  exit(-1);
 } /* dv_decode_full_frame  */
 
 /* ---------------------------------------------------------------------------
