@@ -1,3 +1,9 @@
+2004-07-14  Charles "Buck" Krasic  <krasic@acm.org>
+
+	* libdv 0.103 release
+	* update README to note that "bootstrap" is now obolete in light of
+	  autoreconf provided by autotools.
+
 2004-07-13  Dan Dennedy <dan@dennedy.org>
 	* libdv/dv.h, dv_types.h, headers.c, encode.c: use inttypes.h instead of
 	  stdint.h as it is more universal.

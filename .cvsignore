@@ -5,9 +5,6 @@
 .libs
 .nfs*
 Makefile
-Makefile.in
-aclocal.m4
-asmoff.h
 autom4te-2.53.cache
 autom4te-2.5x.cache
 autom4te.cache
@@ -16,16 +13,13 @@ config
 config.cache
 config.guess
 config.h
-config.h.in
 config.log
 config.status
 config.sub
-configure
 configure.scan
 depcomp
 dovlc
 dv_config.h
-dv_config.h.in
 encode
 fix_headers
 gasmoff
@@ -45,7 +39,6 @@ mkinstalldirs
 ppmqscale
 scan_packet_headers
 stamp-h
-stamp-h.in
 stamp-h1
 steal_header
 testbitstream

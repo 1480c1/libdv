@@ -10,7 +10,8 @@ AUX_DIST                  = $(ac_aux_dir)/config.guess \
                                    $(ac_aux_dir)/mkinstalldirs 
 
 EXTRA_DIST                = bootstrap COPYRIGHT README.encoder README.dvconnect \
-                            @PACKAGE@.spec @PACKAGE@.spec.in @PACKAGE@.pc @PACKAGE@.pc.in
+                            @PACKAGE@.spec @PACKAGE@.spec.in @PACKAGE@.pc @PACKAGE@.pc.in \
+							Makefile.in aclocal.m4 configure config.h.in
 
 MAINTAINERCLEANFILES      = Makefile.in aclocal.m4 configure config.h.in \
                             stamp-h.in config.log config.status $(AUX_DIST)
