@@ -1,3 +1,11 @@
+2002-06-19  Dan Dennedy <dan@dennedy.org>
+	* YUY2.c, bitstream.h, dv_types.h:
+		big-endian fixes by Daniel Kobras
+	* libdv.pc.in, configure.ac:
+		remove glib/gtk, add popt dependencies by Daniel Kobras
+	* libdv/Makefile.am: bump libtool version to 2:0:0
+	* configure.ac: bump package version to 0.9.6
+
 2002-05-26  Stefan Lucke <Stefan.Lucke1@epost.de>
 	* apply portability patch of Steven M. Schultz
 	* fix off by one in rgb.c array bounds check
@@ -8,7 +16,7 @@
 2002-05-22  Stefan Lucke <Stefan.Lucke1@epost.de>
 	* added clamping for rgb render too. (green speckle bug)
 
-2002-05-22  Dan Dennedy
+2002-05-22  Dan Dennedy <dan@dennedy.org>
 	* dv.h: add int dv_get_recording_datetime_tm()
 
 2002-05-21  Stefan Lucke <Stefan.Lucke1@epost.de>

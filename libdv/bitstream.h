@@ -32,6 +32,7 @@
 #define DV_BITSTREAM_H
 
 #include <dv_types.h>
+#include <endian.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,7 +40,7 @@ extern "C" {
 
 //My new and improved vego-matic endian swapping routine
 //(stolen from the kernel)
-#if defined(WORDS_BIGENDIAN)
+#if (BYTE_ORDER == BIG_ENDIAN)
 #define swab32(x) (x)
 #else // LITTLE_ENDIAN
 #    define swab32(x)\

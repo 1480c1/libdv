@@ -29,6 +29,7 @@
 
 #include <dv_types.h>
 
+#include <endian.h>
 #include <stdlib.h>
 
 #include "YUY2.h"
@@ -111,29 +112,43 @@ dv_mb411_YUY2(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_
     for (i = 0; i < 4; ++i) {     // Four Y blocks
       dv_coeff_t *Ytmp = Y[i];   // less indexing in inner loop speedup?
 
+
       for (j = 0; j < 2; ++j) {   // two 4-pixel spans per Y block
 
         cb = uvlut[CLAMP(*cb_frame, -128, 127)];
         cr = uvlut[CLAMP(*cr_frame, -128, 127)];
-	cb_frame++;
-	cr_frame++;
+        cb_frame++;
+        cr_frame++;
 
-
-	/* TODO: endianess stuff like 420 code below */
+#if (BYTE_ORDER == BIG_ENDIAN)
+       *pwyuv++ = cb;
+       *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+       Ytmp++;
+       *pwyuv++ = cr;
 	*pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
 	Ytmp++;
+       
 	*pwyuv++ = cb;
 	*pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
 	Ytmp++;
 	*pwyuv++ = cr;
-
 	*pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
 	Ytmp++;
-	*pwyuv++ = cb;
+#else
 	*pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+       *pwyuv++ = cb;
 	Ytmp++;
+       *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
 	*pwyuv++ = cr;
+       Ytmp++;
 
+       *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+       *pwyuv++ = cb;
+       Ytmp++;
+       *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+       *pwyuv++ = cr;
+       Ytmp++;
+#endif
       } /* for j */
 
       Y[i] = Ytmp;
@@ -178,7 +193,21 @@ dv_mb411_right_YUY2(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add
 	  cb_frame++;
 	  cr_frame++;
 
-	  /* TODO: endianess stuff like 420 code below */
+#if (BYTE_ORDER == BIG_ENDIAN)
+         *pwyuv++ = cb;
+         *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+         Ytmp++;
+         *pwyuv++ = cr;
+         *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+         Ytmp++;
+       
+         *pwyuv++ = cb;
+         *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+         Ytmp++;
+         *pwyuv++ = cr;
+         *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+         Ytmp++;
+#else
 	  *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
 	  Ytmp++;
 	  *pwyuv++ = cb;
@@ -192,6 +221,7 @@ dv_mb411_right_YUY2(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add
 	  *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
 	  Ytmp++;
 	  *pwyuv++ = cr;
+#endif
         } /* for col */
         Y[j + i] = Ytmp;
 
@@ -238,7 +268,7 @@ dv_mb420_YUY2 (dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
 	  cb_frame++;
 	  cr_frame++;
 
-#ifndef WORDS_BIGENDIAN
+#if (BYTE_ORDER == LITTLE_ENDIAN)
             *pwyuv0++ = ylut[CLAMP(*Ytmp0, -256, 511)];
 	    Ytmp0++;
 	    *pwyuv0++ = cb;

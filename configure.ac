@@ -4,7 +4,7 @@ dnl AC_CONFIG_AUX_DIR(config)
 AM_CONFIG_HEADER(config.h)
 
 RPM_RELEASE=1
-AM_INIT_AUTOMAKE(libdv, 0.9.5)
+AM_INIT_AUTOMAKE(libdv, 0.9.6)
 
 AC_CANONICAL_HOST
 AM_MAINTAINER_MODE
@@ -152,6 +152,8 @@ dnl Checks for libraries.
 
 REQUIRES='glib >= 1.2.4 gtk+ >= 1.2.4'
 PKG_CHECK_MODULES(GTK,$REQUIRES)
+dnl Libs above are required for the apps, but not for the lib itself.
+REQUIRES=''
 
 dnl pass-thru to .pc files
 AC_SUBST(REQUIRES)
@@ -196,14 +198,21 @@ AC_CHECK_LIB(m, sqrt)
 
 dnl Don't bother with popt on non-gcc build, because we make heavy use of 
 dnl gcc struct initialization extension in our popt code.  (Could be fixed)
+REQUIRES_NOPKGCONFIG=""
 if test "$GCC" = "yes"; then
-      AC_CHECK_LIB(popt, poptGetContext,,
+      AC_CHECK_LIB(popt, poptGetContext,
       [
-	AC_MSG_WARN(playdv needs the popt package for command line parsing.
+        LIBS="-lpopt ${LIBS}"
+        AC_DEFINE(HAVE_LIBPOPT, 1, [Define if you have the 'popt' library])
+        REQUIRES_NOPKGCONFIG="-lpopt"
+      ],
+      [
+        AC_MSG_WARN(playdv needs the popt package for command line parsing.
  		    The source archive for popt is available at:  
 			ftp://ftp.redhat.com/pub/redhat/code/popt)
       ])
 fi
+AC_SUBST(REQUIRES_NOPKGCONFIG)
 
 dnl Checks for header files.
 AC_PATH_X

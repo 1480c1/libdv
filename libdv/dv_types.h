@@ -38,6 +38,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <time.h>
+#include <endian.h>
 
 /* please tell me these are defined somewhere standard??? */
 #ifndef FALSE
@@ -240,17 +241,17 @@ typedef struct {
 
 /* About bitfield ordering: The C standard does not specify the order
    of bits within a unit of storage.  In the code here, I will use the
-   definition of WORDS_BIGENDIAN to determine whether to set
+   definition of BYTE_ORDER to determine whether to set
    BIG_ENDIAN_BITFIELD or LITTLE_ENDIAN_BITFIELD.  There is nothing
    that guarantees this relationship to be correct, but I know of no
    counter examples.  If we do find out there is one, we'll have to
    fix it... */
 
-#if (G_BYTE_ORDER == G_LITTLE_ENDIAN)
+#if (BYTE_ORDER == LITTLE_ENDIAN)
 #define LITTLE_ENDIAN_BITFIELD
 #else
 #define BIG_ENDIAN_BITFIELD
-#endif  /* (G_BYTE_ORDER == G_LITTLE_ENDIAN) */
+#endif  /* (BYTE_ORDER == LITTLE_ENDIAN) */
 
 typedef struct {
 #if defined(LITTLE_ENDIAN_BITFIELD)

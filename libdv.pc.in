@@ -7,5 +7,5 @@ Name: libdv
 Description: DV software codec
 Requires: @REQUIRES@
 Version: @VERSION@
-Libs: -L${libdir} -ldv
+Libs: -L${libdir} -ldv @REQUIRES_NOPKGCONFIG@
 Cflags: -I${includedir}
