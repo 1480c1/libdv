@@ -382,7 +382,12 @@ main(int argc,char *argv[])
       dv_display_set_norm (dv_player->display, dv_player->decoder->system);
     } /* if */
 
-    /*
+    /* -----------------------------------------------------------------------
+     * now frame is complete, so we may parse all the rest of info packs
+     */
+    dv_parse_packs (dv_player -> decoder, dv_player -> mmap_region. data_start);
+
+    /* -----------------------------------------------------------------------
      * keep track of any possible format changes of dv source material
      */
     dv_display_check_format (dv_player->display,
@@ -406,6 +411,9 @@ main(int argc,char *argv[])
       if (!dv_player->decoder->prev_frame_decoded ||
           dv_frame_changed (dv_player->decoder)) {
 
+        dv_report_video_error (dv_player -> decoder,
+                               dv_player -> mmap_region. data_start);
+                               
 	/* Parse and decode video */
 	dv_decode_full_frame(dv_player->decoder, dv_player->mmap_region.data_start, 
 			     dv_player->display->color_space, 
@@ -447,6 +455,9 @@ main(int argc,char *argv[])
     if((dv_player->arg_num_frames > 0) && (frame_count >= dv_player->arg_num_frames)) {
       goto end_of_file;
     } /* if  */
+#if 0
+{int dummy;read(0,&dummy,1);}
+#endif
 
     /* Release the frame's data */
     munmap_unaligned(&dv_player->mmap_region, dv_player->no_mmap); 
