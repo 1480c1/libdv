@@ -39,7 +39,7 @@ static void write_header_block(unsigned char* target, int ds, int isPAL)
 	target[1] = 0x07 | (ds << 4);
 	target[2] = 0x00;
 
-	target[3] = ( isPAL ? 0x80 : 0); /* FIXME: 0x3f */
+	target[3] = ( isPAL ? 0xbf : 0x3f);
 	target[4] = 0x68; /* FIXME ? */
 	target[5] = 0x78; /* FIXME ? */
 	target[6] = 0x78; /* FIXME ? */

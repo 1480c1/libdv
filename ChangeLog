@@ -1,3 +1,7 @@
+2003-08-20 Dan Dennedy <dan@dennedy.org>
+	* headers.c: correct target[3] that indicates NTSC/PAL to 
+	  correct values based upon my SMPTE 314M spec and data samples
+
 2003-07-22 Dan Dennedy <dan@dennedy.org>
 	* applied feature patches to insert_audio.c and dvconnect.c from 
 	  Marko Mäkelä.
