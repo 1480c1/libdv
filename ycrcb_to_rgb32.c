@@ -38,6 +38,8 @@ gint32 table_1_596[256];
 
 gint32 real_ylut[512], *ylut;
 
+guint8 real_clamptab[512], *clamptab;
+
 void dv_ycrcb_init()
 {
   gint i;
@@ -61,6 +63,11 @@ void dv_ycrcb_init()
     real_ylut[i] = (gint32)(1.164 * 256 * clamped_offset);
   } // for 
   ylut = real_ylut + 128;
+
+  for(i=0; i < 512; i++) {
+    real_clamptab[i] = CLAMP(i - 128, 0, 255);
+  }
+  clamptab = real_clamptab + 128;
 }
 
 void dv_ycrcb_411_block(guint8 *base, dv_block_t *bl)
@@ -89,9 +96,9 @@ void dv_ycrcb_411_block(guint8 *base, dv_block_t *bl)
           gint32 r = (y + ro) >> 8;
           gint32 g = (y - go) >> 8;
           gint32 b = (y + bo) >> 8;
-          *rgbp++ = (guint8)CLAMP(r,0,255);
-          *rgbp++ = (guint8)CLAMP(g,0,255);
-          *rgbp++ = (guint8)CLAMP(b,0,255);
+          *rgbp++ = clamptab[r];
+          *rgbp++ = clamptab[g];
+          *rgbp++ = clamptab[b];
 #if (DVC_IMAGE_CHANS == 4)
           rgbp++;
 #endif
@@ -134,9 +141,9 @@ void dv_ycrcb_420_block(guint8 *base, dv_block_t *bl)
             gint32 r = (y + ro) >> 8;
             gint32 g = (y - go) >> 8;
             gint32 b = (y + bo) >> 8;
-            *(rgbp0)++ = (guint8)CLAMP(r,0,255);
-            *(rgbp0)++ = (guint8)CLAMP(g,0,255);
-            *(rgbp0)++ = (guint8)CLAMP(b,0,255);
+	    *rgbp0++ = clamptab[r];
+	    *rgbp0++ = clamptab[g];
+	    *rgbp0++ = clamptab[b];
 #if (DVC_IMAGE_CHANS == 4)
             rgbp0++;
 #endif
@@ -145,9 +152,9 @@ void dv_ycrcb_420_block(guint8 *base, dv_block_t *bl)
             r = (y + ro) >> 8;
             g = (y - go) >> 8;
             b = (y + bo) >> 8;
-            *(rgbp1)++ = (guint8)CLAMP(r,0,255);
-            *(rgbp1)++ = (guint8)CLAMP(g,0,255);
-            *(rgbp1)++ = (guint8)CLAMP(b,0,255);
+	    *rgbp1++ = clamptab[r];
+	    *rgbp1++ = clamptab[g];
+	    *rgbp1++ = clamptab[b];
 #if (DVC_IMAGE_CHANS == 4)
             rgbp1++;
 #endif
