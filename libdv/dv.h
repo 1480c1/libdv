@@ -121,6 +121,7 @@ extern int dv_frame_changed (dv_decoder_t *dv),
            dv_frame_is_color (dv_decoder_t *dv),
            dv_system_50_fields (dv_decoder_t *dv),
            dv_format_normal (dv_decoder_t *dv),
+           dv_is_progressive (dv_decoder_t *dv),
            dv_format_wide (dv_decoder_t *dv),
            dv_get_vaux_pack (dv_decoder_t *dv, uint8_t pack_id,
                              uint8_t *pack_data);

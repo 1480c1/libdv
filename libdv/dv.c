@@ -1078,6 +1078,22 @@ dv_frame_changed (dv_decoder_t *dv)
 }
 
 /* ---------------------------------------------------------------------------
+ */
+int
+dv_is_progressive (dv_decoder_t *dv)
+{
+  uint8_t  id;
+
+  if ((id = dv -> vaux_pack [0x61]) != 0xff) {
+    if (dv -> vaux_data [id] [2] & 0x08) {
+      return 0;
+    }
+    return 1;
+  }
+  return -1;
+}
+
+/* ---------------------------------------------------------------------------
  * query functions based upon SSYB data
  * decoding code is taken from kino
  */
