@@ -1,4 +1,4 @@
-/* 
+/*
  *  dv.h
  *
  *     Copyright (C) Charles 'Buck' Krasic - April 2000
@@ -57,7 +57,7 @@ extern void         dv_reconfigure      (int clamp_luma, int clamp_chroma);
 extern int          dv_parse_header     (dv_decoder_t *dv, const uint8_t *buffer);
 extern void         dv_parse_packs      (dv_decoder_t *dv, const uint8_t *buffer);
 extern void         dv_decode_full_frame(dv_decoder_t *dv, 
-					  const uint8_t *buffer, dv_color_space_t color_space, 
+					  const uint8_t *buffer, dv_color_space_t color_space,
 					  uint8_t **pixels, int *pitches);
 extern int          dv_decode_full_audio(dv_decoder_t *dv, 
 					  const uint8_t *buffer, int16_t **outbufs);
@@ -97,7 +97,7 @@ extern void         dv_encode_timecode(uint8_t *target, int isPAL, int frame);
 extern int dv_parse_video_segment(dv_videosegment_t *seg, unsigned int quality);
 extern void dv_decode_video_segment(dv_decoder_t *dv, dv_videosegment_t *seg, unsigned int quality);
 
-extern void dv_render_video_segment_rgb(dv_decoder_t *dv, dv_videosegment_t *seg, 
+extern void dv_render_video_segment_rgb(dv_decoder_t *dv, dv_videosegment_t *seg,
 					uint8_t **pixels, int *pitches);
 
 extern void dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, 
@@ -111,11 +111,11 @@ extern int dv_encode_videosegment( dv_encoder_t *dv_enc,
  * return value: <0 unknown, 0 no, >0 yes
  */
 extern int dv_frame_changed (dv_decoder_t *dv),
-	   dv_frame_is_color (dv_decoder_t *dv),
-	   dv_system_50_fields (dv_decoder_t *dv),
-	   dv_format_normal (dv_decoder_t *dv),
-	   dv_format_wide (dv_decoder_t *dv),
-	   dv_get_vaux_pack (dv_decoder_t *dv, uint8_t pack_id, uint8_t *pack_data);
+           dv_frame_is_color (dv_decoder_t *dv),
+           dv_system_50_fields (dv_decoder_t *dv),
+           dv_format_normal (dv_decoder_t *dv),
+           dv_format_wide (dv_decoder_t *dv),
+           dv_get_vaux_pack (dv_decoder_t *dv, uint8_t pack_id, uint8_t *pack_data);
 
 /* ---------------------------------------------------------------------------
  * functions based on ssyb data
@@ -124,8 +124,13 @@ extern int dv_frame_changed (dv_decoder_t *dv),
 extern int dv_get_timestamp (dv_decoder_t *dv, char *tstprt),
            dv_get_recording_datetime (dv_decoder_t *dv, char *dtptr),
            dv_get_timestamp_int (dv_decoder_t *dv, int *timestamp),
-		   dv_get_recording_datetime_tm (dv_decoder_t *dv, struct tm *rec_dt)
-;
+           dv_get_recording_datetime_tm (dv_decoder_t *dv, struct tm *rec_dt);
+
+/* ---------------------------------------------------------------------------
+ * functions based on aaux data
+ */
+extern int dv_is_new_recording (dv_decoder_t *dv, const uint8_t *buffer),
+           dv_set_mixing_level (dv_decoder_t *dv, int new_value);
 
 #ifdef __cplusplus
 }

@@ -1,4 +1,4 @@
-/* 
+/*
  *  dv.c
  *
  *     Copyright (C) Charles 'Buck' Krasic - November 2000
@@ -476,7 +476,7 @@ dv_decode_full_frame(dv_decoder_t *dv, const uint8_t *buffer,
     for (v=0;v<27;v++) {
       /* skip audio block - interleaved before every 3rd video segment */
       if(!(v % 3)) {
-	/*dv_dump_aaux_as(buffer+(dif*80), ds, audio); */
+        /*dv_dump_aaux_as(buffer+(dif*80), ds, audio); */
 	dif++; 
 	audio++;
       } /* if */
@@ -548,21 +548,33 @@ dv_frame_has_audio_errors (dv_decoder_t *dv)
 
 /* ---------------------------------------------------------------------------
  */
-int 
+int
 dv_decode_full_audio(dv_decoder_t *dv, const uint8_t *buffer, int16_t **outbufs)
 {
   int ds, dif, audio_dif, result;
   int ch;
 
   dif=0;
-
-  if(!dv_parse_audio_header(dv, buffer)) goto no_audio;
-  dv->audio->block_failure = dv->audio->sample_failure = 0;
-  for (ds=0; ds < dv->num_dif_seqs; ds++) {
+//fprintf (stderr, " ---------- \n");
+  if (!dv_parse_audio_header (dv, buffer))
+  {
+    goto no_audio;
+  }
+  dv -> audio -> block_failure = dv -> audio -> sample_failure = 0;
+  for (ds = 0; ds < dv -> num_dif_seqs; ds++) {
     dif += 6;
-    for(audio_dif=0; audio_dif<9; audio_dif++) {
-      if((result = dv_decode_audio_block(dv->audio, buffer+(dif *80), ds, audio_dif, outbufs))) goto fail;
-      dif+=16;
+//    fprintf (stderr, "(%d) ", ds);
+//    dv_dump_audio_header (dv, ds, buffer + (dif * 80));
+    for (audio_dif = 0; audio_dif < 9; audio_dif++) {
+      if ((result = dv_decode_audio_block (dv -> audio,
+                                           buffer + (dif * 80),
+                                           ds,
+                                           audio_dif,
+                                           outbufs)))
+      {
+        goto fail;
+      }
+      dif += 16;
     } /* for  */
   } /* for */
 
@@ -572,7 +584,7 @@ dv_decode_full_audio(dv_decoder_t *dv, const uint8_t *buffer, int16_t **outbufs)
                "# audio block failure for %d blocks = %d samples of %d\n",
                dv -> audio -> block_failure,
                dv -> audio -> sample_failure,
-               dv -> audio -> samples_this_frame);
+               dv -> audio -> raw_samples_this_frame [0]); /* TODO: second channel */
     }
     dv_audio_correct_errors (dv -> audio, outbufs);
   }
@@ -585,15 +597,19 @@ dv_decode_full_audio(dv_decoder_t *dv, const uint8_t *buffer, int16_t **outbufs)
   }
 
   if(dv->audio->emphasis) {
-    for(ch=0; ch< dv->audio->num_channels; ch++) {
+    for(ch=0; ch< dv->audio->raw_num_channels; ch++) {
       dv_audio_deemphasis(dv->audio, outbufs[ch]);
     } /* for  */
   } /* if */
 
+  dv_audio_mix4ch (dv -> audio, outbufs);
+
   return(TRUE);
   
  fail:
+fprintf (stderr, "# decode failure \n");
  no_audio:
+fprintf (stderr, "# no audio\n");
   return(FALSE);
   
 } /* dv_decode_full_audio */
@@ -861,11 +877,12 @@ FILE *
 dv_set_error_log (dv_decoder_t *dv, FILE *log)
 {
     FILE *old_log;
-    
+
   old_log = dv -> audio -> error_log;
   dv -> audio -> error_log =
     dv -> video -> error_log =
       log;
   return old_log;
 }
+
 /*@}*/

@@ -1,4 +1,4 @@
-/* 
+/*
  *  dv_types.h
  *
  *     Copyright (C) Charles 'Buck' Krasic - April 2000
@@ -82,8 +82,9 @@
 #define DV_AUDIO_OPT_FREQUENCY    0
 #define DV_AUDIO_OPT_QUANTIZATION 1
 #define DV_AUDIO_OPT_EMPHASIS     2
-#define DV_AUDIO_OPT_CALLBACK     3
-#define DV_AUDIO_NUM_OPTS         4
+#define DV_AUDIO_OPT_CHAN_MIX     3
+#define DV_AUDIO_OPT_CALLBACK     4
+#define DV_AUDIO_NUM_OPTS         5
 
 #define DV_AUDIO_CORRECT_NONE     0
 #define DV_AUDIO_CORRECT_SILENCE  1
@@ -206,14 +207,14 @@ typedef struct {
   int         class_no;
   int8_t        *reorder;
   int8_t        *reorder_sentinel;
-  int         offset;   // bitstream offset of first unused bit 
+  int         offset;   // bitstream offset of first unused bit
   int         end;      // bitstream offset of last bit + 1
   int         eob;
   int     mark;     // used during passes 2 & 3 for tracking fragmented vlcs
 } dv_block_t;
 
 typedef struct {
-  int       i,j;   // superblock row/column, 
+  int       i,j;   // superblock row/column,
   int       k;     // macroblock no. within superblock */
   int       x, y;  // top-left corner position
   dv_block_t b[6];
@@ -226,7 +227,7 @@ typedef struct {
 typedef struct {
   int            i, k;
   bitstream_t    *bs;
-  dv_macroblock_t mb[5]; 
+  dv_macroblock_t mb[5];
   int        isPAL;
 } dv_videosegment_t;
 
@@ -237,7 +238,7 @@ typedef struct {
 // Frame
 typedef struct {
   int           placement_done;
-  dv_dif_sequence_t  ds[12];  
+  dv_dif_sequence_t  ds[12];
 } dv_frame_t;
 
 /* From Section 8.1 of 61834-4: Audio auxiliary data source pack fields pc1-pc4.
@@ -259,7 +260,7 @@ typedef struct {
 
 typedef struct {
 #if defined(LITTLE_ENDIAN_BITFIELD)
-  uint8_t af_size : 6; /* Samples per frame: 
+  uint8_t af_size : 6; /* Samples per frame:
 		       * 32 kHz: 1053-1080
 		       * 44.1: 1452-1489
 		       * 48: 1580-1620 */
@@ -268,7 +269,7 @@ typedef struct {
 #elif defined(BIG_ENDIAN_BITFIELD)
   uint8_t lf      : 1; // Locked mode flag (1 = unlocked)
   uint8_t         : 1; // Should be 1
-  uint8_t af_size : 6; /* Samples per frame: 
+  uint8_t af_size : 6; /* Samples per frame:
 		       * 32 kHz: 1053-1080
 		       * 44.1: 1452-1489
 		       * 48: 1580-1620 */
@@ -278,13 +279,13 @@ typedef struct {
 typedef struct {
 #if defined(LITTLE_ENDIAN_BITFIELD)
   uint8_t audio_mode: 4; // See 8.1...
-  uint8_t pa        : 1; // pair bit: 0 = one pair of channels, 1 = independent channel (for sm = 1, pa shall be 1) 
+  uint8_t pa        : 1; // pair bit: 0 = one pair of channels, 1 = independent channel (for sm = 1, pa shall be 1)
   uint8_t chn       : 2; // number of audio channels per block: 0 = 1 channel, 1 = 2 channels, others reserved
   uint8_t sm        : 1; // stereo mode: 0 = Multi-stereo, 1 = Lumped
 #elif defined(BIG_ENDIAN_BITFIELD)
   uint8_t sm        : 1; // stereo mode: 0 = Multi-stereo, 1 = Lumped
   uint8_t chn       : 2; // number of audio channels per block: 0 = 1 channel, 1 = 2 channels, others reserved
-  uint8_t pa        : 1; // pair bit: 0 = one pair of channels, 1 = independent channel (for sm = 1, pa shall be 1) 
+  uint8_t pa        : 1; // pair bit: 0 = one pair of channels, 1 = independent channel (for sm = 1, pa shall be 1)
   uint8_t audio_mode: 4; // See 8.1...
 #endif // BIG_ENDIAN_BITFIELD
 } dv_aaux_as_pc2_t;
@@ -391,17 +392,26 @@ typedef struct {
 typedef struct dv_decoder_s  *dv_decoder_tp;
 
 typedef struct {
-  dv_aaux_as_t      aaux_as;           // low-level audio format info direct from the stream
-  dv_aaux_asc_t     aaux_asc;          
-  int              samples_this_frame; 
+  dv_aaux_as_t      aaux_as, /* low-level audio format info direct from the stream */
+                    aaux_as1;
+  dv_aaux_asc_t     aaux_asc,
+                    aaux_asc1;
+  int              samples_this_frame;
+  int              raw_samples_this_frame [2];
   int              quantization;
   int              max_samples;
   int              frequency;
   int              num_channels;
-  int          emphasis;              
+  int              raw_num_channels;
+  int              emphasis;
   int              arg_audio_emphasis;
   int              arg_audio_frequency;
   int              arg_audio_quantization;
+
+  int              new_recording_on_next_frame;
+  int              new_recording_current_time_stamp [4],
+                   arg_mixing_level;
+
   /* -------------------------------------------------------------------------
    * audio error correction handling
    */
@@ -410,15 +420,15 @@ typedef struct {
                    sample_failure,
                    real_samples_this_frame,
                    fail_samples_this_frame;
-  FILE             *error_log;                   
+  FILE             *error_log;
   dv_decoder_tp    dv_decoder;
 #if HAVE_LIBPOPT
-  struct poptOption option_table[DV_AUDIO_NUM_OPTS+1]; 
+  struct poptOption option_table[DV_AUDIO_NUM_OPTS+1];
 #endif // HAVE_LIBPOPT
 } dv_audio_t;
 
 typedef struct {
-  unsigned int              quality;        
+  unsigned int              quality;
   int               arg_block_quality; // default 3
   int               arg_monochrome;
   /* -------------------------------------------------------------------------
@@ -427,7 +437,7 @@ typedef struct {
   FILE              *error_log;
   dv_decoder_tp     dv_decoder;
 #if HAVE_LIBPOPT
-  struct poptOption  option_table[DV_VIDEO_NUM_OPTS+1]; 
+  struct poptOption  option_table[DV_VIDEO_NUM_OPTS+1];
 #endif // HAVE_LIBPOPT
 
 } dv_video_t;
@@ -461,12 +471,12 @@ typedef struct dv_decoder_s {
   uint8_t             ssyb_data [45][4];
 
 #if HAVE_LIBPOPT
-  struct poptOption option_table[DV_DECODER_NUM_OPTS+1]; 
+  struct poptOption option_table[DV_DECODER_NUM_OPTS+1];
 #endif // HAVE_LIBPOPT
 } dv_decoder_t;
 
 typedef struct {
-  int                  fd;
+  int                 fd;
   int16_t             *buffer;
   uint8_t             *arg_audio_file;
   char                *arg_audio_device;

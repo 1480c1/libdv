@@ -1,3 +1,12 @@
+2003-01-19 Stefan Lucke <Stefan.Lucke1@epost.de>
+        * 4 channel audio support for 32kHz 12bit
+          default behaviour is mixing both channels (res = ch0 / 2 + ch1 / 2),
+          this way it breaks no applications.
+          - new functions:
+            dv_set_mixing_level (dv, level)
+            dv_is_new_recording (dv, buffer)
+        * updated playdv's man page (still some TODOs)
+
 2003-01-02  Charles 'Buck' Krasic  <krasic@acm.org>
 
 	* libdv 0.99 release.

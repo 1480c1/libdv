@@ -18,7 +18,7 @@
 .\" This manual page was written especially for Debian Linux. It is based
 .\" on playdv's help output.
 .\"
-.TH PLAYDV 1 "April 2001"
+.TH PLAYDV 1 "January 2003"
 .SH NAME
 playdv \- display digital video streams on screen
 .SH SYNOPSIS
@@ -60,6 +60,10 @@ target audio device; e.g. /dev/dsp, which is also the default.
 .TP
 \fB\-\-audio\-file\fR=\fIfile\fR
 send raw decoded audio stream to \fIfile\fR, skipping audio ioctls.
+.TP
+\fB\-\-audio\-mix\fR=\fI(-16 .. 16)\fR
+mixing level of 4 channel audio for 32KHz 12bit. 0 [default].
+-16 selects second channel, 16 selects first channel.
 .PP
 Video Output Options
 .TP
@@ -67,6 +71,14 @@ Video Output Options
 method used to display video data on screen: 0=autoselect [default],
 1=gtk, 2=Xv, 3=SDL. Xv is usually the fastest but requires XFree86
 version 4.0 or higher with XVideo extensions.
+.TP
+\fB\-\-aspect\fR=\fR(n|w|normal|wide)
+video display aspect ratio (for Xv only): n=normal 4:3, w=wide 16:9 .
+Not all window manager support resizing at fixed aspect ratio. If they do,
+resizing is done at fixed aspect ratio.
+.TP
+\fB\-\-size\fR=\fR(10 .. 100)
+initial scaleing percentage (for Xv only): 10 <= n <= 100.
 .PP
 Decoder Options
 .TP
@@ -106,7 +118,7 @@ first-order preemphasis of 50/15 us:
 Help Options
 .TP
 -\fB?\fR, \fB\-\-help\fR
-Show help message.
+Show help message. Use this command to get a brief description of available options.
 .TP
 \fB\-\-usage\fR
 Display brief usage message.
@@ -122,4 +134,3 @@ Erik Walthinsen <omega@cse.ogi.edu>.
 This manual page is based on playdv's help message and was written by
 Daniel Kobras <kobras@debian.org> for the Debian GNU/Linux system
 (but may be used by others).
-

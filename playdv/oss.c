@@ -1,4 +1,4 @@
-/* 
+/*
  *  oss.c
  *
  *     Copyright (C) Charles 'Buck' Krasic - January 2001
@@ -93,7 +93,7 @@ dv_oss_init(dv_audio_t *audio, dv_oss_t *oss)
   } else {
     device = (gchar *)(oss->arg_audio_device ? oss->arg_audio_device : default_device);
     /* open audio device */
-    if ((oss->fd = open(device, O_WRONLY, 0)) == -1) goto no_device;
+    if ((oss->fd = open(device, O_RDWR, 0)) == -1) goto no_device;
     /* set sample format -- try for 16bit */
     if (ioctl(oss->fd, SNDCTL_DSP_SETFMT, &format) == -1) goto format_ioctl;
     if (format != AFMT_S16_NE) goto format_unsupported;
