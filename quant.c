@@ -83,7 +83,40 @@ static guint8 dv_quant_steps[22][4] = {
   { 1,1,1,1 }
 };
 
-static guint8 dv_quant_offset[4] = { 6,3,0,1 };
+guint8 dv_quant_shifts[22][4] = {
+  { 3,3,4,4 }, 
+  { 3,3,4,4 }, 
+
+  { 2,3,3,4 }, 
+  { 2,3,3,4 },
+
+  { 2,2,3,3 }, 
+  { 2,2,3,3 }, 
+
+  { 1,2,2,3 }, 
+  { 1,2,2,3 }, 
+
+  { 1,1,2,2 }, 
+  { 1,1,2,2 }, 
+
+  { 0,1,1,2 }, 
+  { 0,1,1,2 }, 
+
+  { 0,0,1,1 }, 
+  { 0,0,1,1 },
+
+  { 0,0,0,1 }, 
+
+  { 0,0,0,0 }, 
+  { 0,0,0,0 }, 
+  { 0,0,0,0 }, 
+  { 0,0,0,0 }, 
+  { 0,0,0,0 }, 
+  { 0,0,0,0 }, 
+  { 0,0,0,0 }
+};
+
+guint8 dv_quant_offset[4] = { 6,3,0,1 };
 
 void quant_88(dv_coeff_t *block,int qno,int class) {
   int i;
@@ -91,8 +124,8 @@ void quant_88(dv_coeff_t *block,int qno,int class) {
 
   dc = block[0];
   for (i=0;i<64;i++) {
-    block[i] /=
-      dv_quant_steps[qno+dv_quant_offset[class]][dv_88_areas[i]];
+    block[i] >>=
+      dv_quant_shifts[qno+dv_quant_offset[class]][dv_88_areas[i]];
   }
   if(class==3) { for (i=0;i<64;i++) block[i] /= 2; }
   block[0] = dc;
@@ -104,39 +137,37 @@ void quant_248(dv_coeff_t *block,int qno,int class) {
 
   dc = block[0];
   for (i=0;i<64;i++) {
-    block[i] /=
-      dv_quant_steps[qno+dv_quant_offset[class]][dv_248_areas[i]];
+    block[i] >>=
+      dv_quant_shifts[qno+dv_quant_offset[class]][dv_248_areas[i]];
   }
   if(class==3) { for (i=0;i<64;i++) block[i] /= 2; }
   block[0] = dc;
 }
 
+#if !USE_MMX_ASM
 void quant_88_inverse(dv_coeff_t *block,int qno,int class) {
   int i;
-  dv_coeff_t dc;
   guint8 *pq;			/* pointer to the four quantization
                                    factors that we'll use */
+  gint extra;
 
-  dc = block[0];		/* preserve the DC term */
-
-  pq = dv_quant_steps[qno + dv_quant_offset[class]];
-  for (i = 0; i < 64; i++)
-    block[i] *= pq[dv_88_areas[i]];
-
-  if(class==3) { for (i=0;i<64;i++) block[i] *= 2; }
-
-  block[0] = dc;
+  extra = (class == 3);		/* if class==3, shift everything left
+                                   one more place */
+  pq = dv_quant_shifts[qno + dv_quant_offset[class]];
+  for (i = 1; i < 64; i++)
+    block[i] <<= (pq[dv_88_areas[i]] + extra);
 }
+#endif
 
 void quant_248_inverse(dv_coeff_t *block,int qno,int class) {
   int i;
-  dv_coeff_t dc;
+  guint8 *pq;			/* pointer to the four quantization
+                                   factors that we'll use */
+  gint extra;
 
-  dc = block[0];
-  for (i=0;i<64;i++) {
-    block[i] *=
-      dv_quant_steps[qno+dv_quant_offset[class]][dv_248_areas[i]];
-  }
-  if(class==3) { for (i=0;i<64;i++) block[i] *= 2; }
-  block[0] = dc;
+  extra = (class == 3);		/* if class==3, shift everything left
+                                   one more place */
+  pq = dv_quant_shifts[qno + dv_quant_offset[class]];
+  for (i = 1; i < 64; i++)
+    block[i] <<= (pq[dv_248_areas[i]] + extra);
 }

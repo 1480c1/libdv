@@ -1,4 +1,4 @@
-CPPFLAGS += -I. $(shell glib-config --cflags) $(shell gtk-config --cflags) 
+CPPFLAGS += -I. $(shell glib-config --cflags) $(shell gtk-config --cflags)
 #CFLAGS += -mcpu=i686 -pg -O6 -funroll-all-loops -Wall  $(CPPFLAGS) # for regular profiling with gprof
 #CFLAGS += -mcpu=i686 -g -pg -ax -O6 -funroll-all-loops -Wall  $(CPPFLAGS) # for line by line profiling with gprof
 #CFLAGS += -mcpu=i686 -s -O6 -funroll-all-loops -Wall  $(CPPFLAGS) # for maximum speed
@@ -7,7 +7,7 @@ LDFLAGS += $(shell glib-config --libs) $(shell gtk-config --libs) -lm
 
 asm = idct_block_mmx.S
 CPPFLAGS += -DUSE_MMX_ASM=1
-asm += vlc_x86.S
+asm += vlc_x86.S quant_x86.S
 
 sources = playdv.c dct.c weighting.c quant.c vlc.c place.c parse.c bitstream.c ycrcb_to_rgb32.c
 objects= $(sources:.c=.o) $(asm:.S=.o)
