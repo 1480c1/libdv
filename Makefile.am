@@ -43,8 +43,13 @@ playdv_SOURCES= playdv.c display.c display.h
 playdv_LDADD= libdv.la
 
 dovlc_SOURCES= dovlc.c bitstream.c vlc.c bitstream.h vlc.h
+dovlc_LDADD= libdv.la
+
 testvlc_SOURCES= testvlc.c vlc.c parse.c bitstream.c vlc.h bitstream.h
+testvlc_LDADD=libdv.la
+
 testbitstream_SOURCES= testbitstream.c bitstream.c bitstream.h
+
 encode_SOURCES= encode.c 
 encode_LDADD= libdv.la
 

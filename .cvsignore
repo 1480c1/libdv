@@ -17,6 +17,7 @@ config.log
 config.status
 configure
 configure.scan
+dovlc
 encode
 gasmoff
 gmon.out
@@ -27,4 +28,5 @@ ltconfig
 playdv
 stamp-h
 stamp-h.in
+testbitstream
 testvlc
