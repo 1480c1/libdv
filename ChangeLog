@@ -1,3 +1,6 @@
+2002-05-22  Dan Dennedy
+	* dv.h: add int dv_get_recording_datetime_tm()
+
 2002-05-21  Stefan Lucke <Stefan.Lucke1@epost.de>
 	* avoid remaining shared memory segment after playdv crash
 	* avoid decoder crash (bug #231580, #558590 etc.). There are some

@@ -114,7 +114,9 @@ extern int dv_frame_changed (dv_decoder_t *dv),
  */
 extern int dv_get_timestamp (dv_decoder_t *dv, char *tstprt),
            dv_get_recording_datetime (dv_decoder_t *dv, char *dtptr),
-           dv_get_timestamp_int (dv_decoder_t *dv, int *timestamp);
+           dv_get_timestamp_int (dv_decoder_t *dv, int *timestamp),
+		   dv_get_recording_datetime_tm (dv_decoder_t *dv, struct tm *rec_dt)
+;
 
 #ifdef __cplusplus
 }
