@@ -210,27 +210,34 @@ dv_display_Xv_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name) {
   /* -------------------------------------------------------------------
    * So let's first check for an available adaptor and port
    */
-  XvQueryAdaptors(dv_dpy->dpy, dv_dpy->rwin, &ad_cnt, &ad_info);
-  for(i = 0, got_port = False; i < ad_cnt; ++i) {
-    fprintf(stderr,
-	     "Xv: %s: ports %ld - %ld\n",
-	     ad_info[i].name,
-	     ad_info[i].base_id,
-	     ad_info[i].base_id +
-	     ad_info[i].num_ports - 1);
-    for(dv_dpy->port = ad_info[i].base_id, k = 0;
-	 k < ad_info[i].num_ports;
-	 ++k, ++(dv_dpy->port)) {
-      if(!XvGrabPort(dv_dpy->dpy, dv_dpy->port, CurrentTime)) {
-	fprintf(stderr, "Xv: grabbed port %ld\n",
-		 dv_dpy->port);
-	got_port = True;
-	break;
+  if(Success == XvQueryAdaptors(dv_dpy->dpy, dv_dpy->rwin, &ad_cnt, &ad_info)) {
+  
+    for(i = 0, got_port = False; i < ad_cnt; ++i) {
+      fprintf(stderr,
+	      "Xv: %s: ports %ld - %ld\n",
+	      ad_info[i].name,
+	      ad_info[i].base_id,
+	      ad_info[i].base_id +
+	      ad_info[i].num_ports - 1);
+      for(dv_dpy->port = ad_info[i].base_id, k = 0;
+	  k < ad_info[i].num_ports;
+	  ++k, ++(dv_dpy->port)) {
+	if(!XvGrabPort(dv_dpy->dpy, dv_dpy->port, CurrentTime)) {
+	  fprintf(stderr, "Xv: grabbed port %ld\n",
+		  dv_dpy->port);
+	  got_port = True;
+	  break;
+	}
       }
+      if(got_port)
+	break;
     }
-    if(got_port)
-      break;
+
+  } else {
+    // Xv extension probably not present
+    return 0;
   }
+
   if(!ad_cnt) {
     fprintf(stderr, "Xv: (ERROR) no adaptor found!\n");
     return 0;
