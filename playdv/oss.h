@@ -1,4 +1,4 @@
-/* 
+/*
  *  oss.h
  *
  *     Copyright (C) Charles 'Buck' Krasic - January 2001
@@ -26,16 +26,15 @@
 #ifndef DV_OSS_H
 #define DV_OSS_H
 
-#include "libdv/dv_types.h"
-#include <glib.h>
+#include "libdv/dv.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 extern dv_oss_t *dv_oss_new(void);
-extern gboolean  dv_oss_init (dv_audio_t *audio, dv_oss_t *oss);
-extern gboolean  dv_oss_play (dv_audio_t *audio, dv_oss_t *oss, gint16 **out);
+extern int       dv_oss_init (dv_decoder_t *dv, dv_oss_t *oss),
+                 dv_oss_play (dv_decoder_t *dv, dv_oss_t *oss, short **out);
 extern void      dv_oss_close(dv_oss_t *oss);
 
 #ifdef __cplusplus

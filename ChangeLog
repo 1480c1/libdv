@@ -9,6 +9,7 @@
       dv_is_progressive (dv_decoder_t *dv)
       dv_set_quality (dv_decoder_t *dv, int q)
       dv_get_frequency (dv_decoder_t *dv)
+   * removed some internal struct usage from playdv
 
 2003-11-17  Dan Dennedy <dan@dennedy.org>
 	* libdv/encode.c: revert change on encoder lookup table allocation.

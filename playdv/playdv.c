@@ -1,4 +1,4 @@
-/* 
+/*
  *  playdv.c
  *
  *     Copyright (C) Charles 'Buck' Krasic - April 2000
@@ -378,7 +378,7 @@ main(int argc,char *argv[])
   } /* if */
 
   dv_player->arg_disable_audio = 
-    dv_player->arg_disable_audio || (!dv_oss_init(dv_player->decoder->audio, dv_player->oss));
+    dv_player->arg_disable_audio || (!dv_oss_init(dv_player->decoder, dv_player->oss));
 
   for(i=0; i < 4; i++) {
     if(!(audio_buffers[i] = malloc(DV_AUDIO_MAX_SAMPLES*sizeof(gint16)))) goto no_mem;
@@ -426,7 +426,7 @@ restart:
     /* Parse and unshuffle audio */
     if(!dv_player->arg_disable_audio) {
       if(dv_decode_full_audio(dv_player->decoder, dv_player->mmap_region.data_start, audio_buffers)) {
-	dv_oss_play(dv_player->decoder->audio, dv_player->oss, audio_buffers);
+	dv_oss_play(dv_player->decoder, dv_player->oss, audio_buffers);
       } /* if */
     } /* if */
 
