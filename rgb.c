@@ -74,7 +74,7 @@ static gint32 *table_0_813;
 static gint32 *table_0_391;
 static gint32 *table_1_596;
 
-static gint32 real_ylut[512], *ylut;
+static gint32 real_ylut[768], *ylut;
 
 /* rgb lookup - clamps values in range -256 .. 512 to 0 .. 255 */
 static guint8 real_rgblut[768], *rgblut;
@@ -105,7 +105,7 @@ dv_rgb_init(void) {
   } // for
 
   ylut = real_ylut + 256;
-  for(i=-256; i < 256; i++) {
+  for(i=-256; i < 512; i++) {
     if(i < (16-128)) clamped_offset = (16-128);
     else if(i > (235-128)) clamped_offset = (235-128);
     else clamped_offset = i;
