@@ -849,47 +849,32 @@ static void convert_to_yuv(unsigned char* img_rgb, int height,
 			   short* img_y, short* img_cr, short* img_cb)
 {
 #if !ARCH_X86
-	int x,y;
-	/* This is the RGB -> YUV color matrix */
-	static const double cm[3][3] = {
-		{.299 * 219.0/255.0,.587* 219.0/255.0,.114* 219.0/255.0},
-		{.5* 224.0/255.0,-.419* 224.0/255.0,-.081* 224.0/255.0},
-		{-.169 * 224.0/255.0,-.331* 224.0/255.0,.5* 224.0/255.0}
-	};
+	int i;
+	int ti;
+	unsigned char *ip;
+	register int r,g,b ;
+	int colr, colb;
+	register short int *ty, *tr, *tb;
+	ip =  img_rgb;	
+	colr = colb =  0;
+	ty = img_y;	
+	tr = img_cr;
+	tb = img_cb;
+	ti = height * DV_WIDTH ;
+	for (i = 0; i < ti; i++) {
+			r = *ip++;
+			g = *ip++; 
+			b = *ip++;
 
-	double tmp_cr[DV_PAL_HEIGHT][DV_WIDTH];
-	double tmp_cb[DV_PAL_HEIGHT][DV_WIDTH];
-	double fac = pow(2, DCT_YUV_PRECISION);
-	int i,j;
+			*ty++ =  (( ( (16828 * r) + (33038 * g) + (6416 * b) )  >> 16   ) - 128 + 16) << 1  ; 
 
-	for (y = 0; y < height; y++) {
-		for (x = 0; x < DV_WIDTH; x++) {
-			register double cy, cr, cb;
-			register int r = img_rgb[(y * DV_WIDTH + x)*3 + 0];
-			register int g = img_rgb[(y * DV_WIDTH + x)*3 + 1];
-			register int b = img_rgb[(y * DV_WIDTH + x)*3 + 2];
-			cy =    (cm[0][0] * r) + (cm[0][1] * g) +
-				(cm[0][2] * b);
-			cr =    (cm[1][0] * r) + (cm[1][1] * g) +
-				(cm[1][2] * b);
-			cb =    (cm[2][0] * r) + (cm[2][1] * g) +
-				(cm[2][2] * b);
-			
-			img_y[y * DV_WIDTH + x] = 
-				(f2sb(cy) - 128 + 16) * fac;
-			tmp_cr[y][x] = cr * fac;
-			tmp_cb[y][x] = cb * fac;
-		}
-	}
-	for (y = 0; y < height; y++) {
-		for (x = 0; x < DV_WIDTH / 2; x++) {
-			img_cr[y * DV_WIDTH / 2 + x] = 
-				f2sb((tmp_cr[y][2*x] +
-				      tmp_cr[y][2*x+1]) / 2.0);
-			img_cb[y * DV_WIDTH / 2 + x] = 
-				f2sb((tmp_cb[y][2*x] +
-				      tmp_cb[y][2*x+1]) / 2.0);
-		}
+			colr +=   ( (28784 * r) + (-24121 * g) + (-4663 * b) ) ; 
+			colb +=   ( (-9729 * r) + (-19055 * g) + (28784 * b) ) ;
+			if (! (i % 4)){
+				*tr++ = colr >> 17 ;
+				*tb++ = colb >> 17 ;
+				colr = colb = 0;
+				}	
 	}
 #else
 	rgbtoyuv_mmx(img_rgb, height, DV_WIDTH, (short*) img_y,
@@ -916,6 +901,7 @@ int need_dct_248_transposed(dv_coeff_t * bl)
 	return (res > DCT_248_THRESHOLD);
 }
 
+#if ARCH_X86
 extern int need_dct_248_mmx(dv_coeff_t * bl, short* thres_mask);
 
 int need_dct_248_mmx_normal(dv_coeff_t * bl)
@@ -927,10 +913,12 @@ int need_dct_248_mmx_normal(dv_coeff_t * bl)
 	return (res > DCT_248_THRESHOLD);
 }
 
+
 extern void transpose_mmx(short * dst);
 extern void copy_y_block_mmx(short * dst, short * src);
 extern void copy_pal_c_block_mmx(short * dst, short * src);
 extern void copy_ntsc_c_block_mmx(short * dst, short * src);
+#endif /* ARCH_X86 */
 
 void build_coeff(short* img_y, short* img_cr, short* img_cb,
 		 dv_macroblock_t *mb, int isPAL)

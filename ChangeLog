@@ -2,7 +2,9 @@
 
 	* Version 0.7
 
-	* Compilation fixups for building without Xv.
+	* Faster C version of convert_to_yuv from Andreas Wacker.
+
+	* Compilation fixups for building without Xv, and without x86 asm.
 
 2001-03-17  Charles 'Buck' Krasic  <krasic@acm.org>
 
