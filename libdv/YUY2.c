@@ -67,7 +67,7 @@ static mmx_t  mmx_0x0010s = (mmx_t) 0x0010001000100010LL,
 #endif // ARCH_X86
 
 #if ARCH_X86
-#define NUM_RENDERER    4
+#define NUM_RENDERER    6
 #else
 #define NUM_RENDERER    2
 #endif
@@ -702,6 +702,128 @@ dv_mb420_YUY2_mmx (dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
 }
 
 /* ----------------------------------------------------------------------------
+ */
+static void
+dv_mb420p_YUY2_mmx (dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
+                  int add_ntsc_setup,
+                  int clamp_luma,
+                  int clamp_chroma)
+{
+    dv_coeff_t    *Y [4], *Ytmp0, *cr_frame, *cb_frame;
+    unsigned char *pyuv,
+                  *pwyuv0, *pwyuv1;
+    int           i, j, row;
+
+  pyuv = pixels[0] + (mb->x * 2) + (mb->y * DV_WIDTH_DOUBLE);
+
+  Y [0] = mb->b[0].coeffs;
+  Y [1] = mb->b[1].coeffs;
+  Y [2] = mb->b[2].coeffs;
+  Y [3] = mb->b[3].coeffs;
+  cr_frame = mb->b[4].coeffs;
+  cb_frame = mb->b[5].coeffs;
+
+  if (clamp_luma && clamp_chroma) {
+    movq_m2r (mmx_cbh, mm5);
+    movq_m2r (mmx_cbl, mm6);
+    movq_m2r (mmx_cbb, mm7);
+  } else if (clamp_luma) {
+    movq_m2r (mmx_clh, mm5);
+    movq_m2r (mmx_cll, mm6);
+    movq_m2r (mmx_clb, mm7);
+  } else if (clamp_chroma) {
+    movq_m2r (mmx_cch, mm5);
+    movq_m2r (mmx_ccl, mm6);
+    movq_m2r (mmx_ccb, mm7);
+  } else {
+    movq_m2r (mmx_zero, mm5);
+    movq_m2r (mmx_zero, mm6);
+    movq_m2r (mmx_zero, mm7);
+  }
+
+  for (j = 0; j < 4; j += 2) { // Two rows of blocks j, j+1
+    for (row = 0; row < 4; row++) { // 4 pairs of two rows
+      pwyuv0 = pyuv;
+      pwyuv1 = pyuv + (DV_WIDTH_DOUBLE * 2); //inc_l2;
+      for (i = 0; i < 2; ++i) { // Two columns of blocks
+        Ytmp0 = Y[j + i];
+
+        /* -------------------------------------------------------------------
+         */
+        movq_m2r (*cb_frame, mm2);	/* mm2 = b1 b2 b3 b4	*/
+        movq_m2r (*cr_frame, mm3);	/* mm3 = r1 r2 r3 r4	*/
+        movq_r2r (mm2, mm4);		/* mm4 = b1 b2 b3 b4	*/
+        punpcklwd_r2r (mm3, mm4);	/* mm4 = b3 r3 b4 r4	*/
+
+        movq_m2r (Ytmp0[0], mm0);	/* mm0 = y1 y2 y3 y4	*/
+        movq_r2r (mm0, mm1);
+
+        punpcklwd_r2r (mm4, mm0);	/* mm0 = b4 y3 r4 y4	*/
+        punpckhwd_r2r (mm4, mm1);	/* mm1 = b3 y1 r3 y2	*/
+
+        packsswb_r2r (mm1, mm0);	/* mm0 = b3 y1 r3 y2 b4 y3 r4 y4	*/
+        paddb_m2r (mmx_0x8080s, mm0);
+        paddusb_r2r (mm5, mm0);		/* clamp high		*/
+        psubusb_r2r (mm6, mm0);		/* clamp low		*/
+        paddusb_r2r (mm7, mm0);		/* to black level	*/
+        movq_r2m (mm0, pwyuv0[0]);
+
+        movq_m2r (Ytmp0[8+8], mm0); // next row
+        movq_r2r (mm0, mm1);
+
+        punpcklwd_r2r (mm4, mm0);
+        punpckhwd_r2r (mm4, mm1);
+        packsswb_r2r (mm1, mm0);
+        paddb_m2r (mmx_0x8080s, mm0);
+        paddusb_r2r (mm5, mm0);		/* clamp high		*/
+        psubusb_r2r (mm6, mm0);		/* clamp low		*/
+        paddusb_r2r (mm7, mm0);		/* to black level	*/
+        movq_r2m (mm0, pwyuv1[0]);
+
+        movq_r2r (mm2, mm4);
+        punpckhwd_r2r (mm3, mm4);
+        movq_m2r (Ytmp0[4], mm0);
+        movq_r2r (mm0, mm1);
+        punpcklwd_r2r (mm4, mm0);
+        punpckhwd_r2r (mm4, mm1);
+        packsswb_r2r (mm1, mm0);
+        paddb_m2r (mmx_0x8080s, mm0);
+        paddusb_r2r (mm5, mm0);		/* clamp high		*/
+        psubusb_r2r (mm6, mm0);		/* clamp low		*/
+        paddusb_r2r (mm7, mm0);		/* to black level	*/
+        movq_r2m (mm0, pwyuv0[8]);
+
+        movq_m2r (Ytmp0[8+12], mm0);// next row
+        movq_r2r (mm0, mm1);
+        punpcklwd_r2r (mm4, mm0);
+        punpckhwd_r2r (mm4, mm1);
+        packsswb_r2r (mm1, mm0);
+        paddb_m2r (mmx_0x8080s, mm0);
+        paddusb_r2r (mm5, mm0);		/* clamp high		*/
+        psubusb_r2r (mm6, mm0);		/* clamp low		*/
+        paddusb_r2r (mm7, mm0);		/* to black level	*/
+        movq_r2m (mm0, pwyuv1[8]);
+
+        pwyuv0 += 16;
+        pwyuv1 += 16;
+        cb_frame += 4;
+        cr_frame += 4;
+        if (row & 1) {
+          Ytmp0 += 24;
+        } else {
+          Ytmp0 += 8;
+        }
+        Y[j + i] = Ytmp0;// + 16;
+      }
+      pyuv += DV_WIDTH_DOUBLE;
+      if (row & 1)
+        pyuv += DV_WIDTH_QUAD;
+    }
+  }
+  emms ();
+}
+
+/* ----------------------------------------------------------------------------
  * start of half high render functions
  */
 
@@ -750,46 +872,46 @@ dv_mb411_YUY2_hh_mmx(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
     for (row = 0; row < 4; ++row) { // Eight rows
       pwyuv = pyuv;
       for (i = 0; i < 4; ++i) {     // Four Y blocks
-dv_coeff_t *Ytmp = Y [i];   // less indexing in inner loop speedup?
-/* ---------------------------------------------------------------------
- */
-movq_m2r (*cb_frame, mm2);	// cb0 cb1 cb2 cb3
-movq_m2r (*cr_frame, mm3);	// cr0 cr1 cr2 cr3
-punpcklwd_r2r (mm3, mm2);	// cb0cr0 cb1cr1
-movq_r2r (mm2, mm3);
-punpckldq_r2r (mm2, mm2);	// cb0cr0 cb0cr0
-movq_m2r (Ytmp [0], mm0);
-movq_r2r (mm0, mm1);
-punpcklwd_r2r (mm2, mm0);	/* mm0 = b4 y3 r4 y4	*/
-punpckhwd_r2r (mm2, mm1);	/* mm1 = b3 y1 r3 y2	*/
+        dv_coeff_t *Ytmp = Y [i];   // less indexing in inner loop speedup?
+        /* ---------------------------------------------------------------------
+         */
+        movq_m2r (*cb_frame, mm2);	// cb0 cb1 cb2 cb3
+        movq_m2r (*cr_frame, mm3);	// cr0 cr1 cr2 cr3
+        punpcklwd_r2r (mm3, mm2);	// cb0cr0 cb1cr1
+        movq_r2r (mm2, mm3);
+        punpckldq_r2r (mm2, mm2);	// cb0cr0 cb0cr0
+        movq_m2r (Ytmp [0], mm0);
+        movq_r2r (mm0, mm1);
+        punpcklwd_r2r (mm2, mm0);	/* mm0 = b4 y3 r4 y4	*/
+        punpckhwd_r2r (mm2, mm1);	/* mm1 = b3 y1 r3 y2	*/
 
-packsswb_r2r (mm1, mm0);	/* mm0 = b3 y1 r3 y2 b4 y3 r4 y4	*/
-paddb_m2r (mmx_0x8080s, mm0);
-paddusb_r2r (mm5, mm0);		/* clamp high		*/
-psubusb_r2r (mm6, mm0);		/* clamp low		*/
-paddusb_r2r (mm7, mm0);		/* to black level	*/
-movq_r2m (mm0, pwyuv [0]);
+        packsswb_r2r (mm1, mm0);	/* mm0 = b3 y1 r3 y2 b4 y3 r4 y4	*/
+        paddb_m2r (mmx_0x8080s, mm0);
+        paddusb_r2r (mm5, mm0);		/* clamp high		*/
+        psubusb_r2r (mm6, mm0);		/* clamp low		*/
+        paddusb_r2r (mm7, mm0);		/* to black level	*/
+        movq_r2m (mm0, pwyuv [0]);
 
-/* ---------------------------------------------------------------------
- */
-movq_m2r (Ytmp [4], mm0);
-punpckhdq_r2r (mm3, mm3);
-movq_r2r (mm0, mm1);
-punpcklwd_r2r (mm3, mm0);	/* mm0 = b4 y3 r4 y4	*/
-punpckhwd_r2r (mm3, mm1);	/* mm1 = b3 y1 r3 y2	*/
+        /* ---------------------------------------------------------------------
+         */
+        movq_m2r (Ytmp [4], mm0);
+        punpckhdq_r2r (mm3, mm3);
+        movq_r2r (mm0, mm1);
+        punpcklwd_r2r (mm3, mm0);	/* mm0 = b4 y3 r4 y4	*/
+        punpckhwd_r2r (mm3, mm1);	/* mm1 = b3 y1 r3 y2	*/
 
-  packsswb_r2r (mm1, mm0);	/* mm0 = b3 y1 r3 y2 b4 y3 r4 y4	*/
-paddb_m2r (mmx_0x8080s, mm0);
-paddusb_r2r (mm5, mm0);		/* clamp high		*/
-psubusb_r2r (mm6, mm0);		/* clamp low		*/
-paddusb_r2r (mm7, mm0);		/* to black level	*/
-movq_r2m (mm0, pwyuv [8]);
+        packsswb_r2r (mm1, mm0);	/* mm0 = b3 y1 r3 y2 b4 y3 r4 y4	*/
+        paddb_m2r (mmx_0x8080s, mm0);
+        paddusb_r2r (mm5, mm0);		/* clamp high		*/
+        psubusb_r2r (mm6, mm0);		/* clamp low		*/
+        paddusb_r2r (mm7, mm0);		/* to black level	*/
+        movq_r2m (mm0, pwyuv [8]);
 
-pwyuv += 16;
+        pwyuv += 16;
 
-cr_frame += 2;
-cb_frame += 2;
-Y [i] = Ytmp + 16;
+        cr_frame += 2;
+        cb_frame += 2;
+        Y [i] = Ytmp + 16;
       } /* for i */
       cr_frame += 8;
       cb_frame += 8;
@@ -1001,6 +1123,109 @@ dv_mb420_YUY2_hh_mmx (dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
   }
   emms ();
 }
+
+/* ---------------------------------------------------------------------------
+ */
+static void
+dv_mb420p_YUY2_hh_mmx (dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
+                  int add_ntsc_setup,
+                  int clamp_luma,
+                  int clamp_chroma)
+{
+    dv_coeff_t    *Y [4], *Ytmp0, *cr_frame, *cb_frame;
+    unsigned char *pyuv,
+                  *pwyuv0;
+    int           i, j, row;
+
+  pyuv = pixels[0] + (mb->x * 2) + (mb->y * DV_WIDTH);
+
+  Y [0] = mb->b[0].coeffs;
+  Y [1] = mb->b[1].coeffs;
+  Y [2] = mb->b[2].coeffs;
+  Y [3] = mb->b[3].coeffs;
+  cr_frame = mb->b[4].coeffs;
+  cb_frame = mb->b[5].coeffs;
+
+  if (clamp_luma && clamp_chroma) {
+    movq_m2r (mmx_cbh, mm5);
+    movq_m2r (mmx_cbl, mm6);
+    movq_m2r (mmx_cbb, mm7);
+  } else if (clamp_luma) {
+    movq_m2r (mmx_clh, mm5);
+    movq_m2r (mmx_cll, mm6);
+    movq_m2r (mmx_clb, mm7);
+  } else if (clamp_chroma) {
+    movq_m2r (mmx_cch, mm5);
+    movq_m2r (mmx_ccl, mm6);
+    movq_m2r (mmx_ccb, mm7);
+  } else {
+    movq_m2r (mmx_zero, mm5);
+    movq_m2r (mmx_zero, mm6);
+    movq_m2r (mmx_zero, mm7);
+  }
+
+  for (j = 0; j < 4; j += 2) {        // Two rows of blocks j, j+1
+    for (row = 0; row < 4; row++) {  // 4 pairs of two rows
+      pwyuv0 = pyuv;
+      for (i = 0; i < 2; ++i) {       // Two columns of blocks
+        Ytmp0 = Y[j + i];
+
+        /* -------------------------------------------------------------------
+         */
+        movq_m2r (*cb_frame, mm2);    /* mm2 = b1 b2 b3 b4	*/
+        movq_m2r (*cr_frame, mm3);    /* mm3 = r1 r2 r3 r4	*/
+        movq_r2r (mm2, mm4);          /* mm4 = b1 b2 b3 b4	*/
+        punpcklwd_r2r (mm3, mm4);     /* mm4 = b3 r3 b4 r4	*/
+
+        movq_m2r (Ytmp0[0], mm0);     /* mm0 = y1 y2 y3 y4	*/
+        movq_r2r (mm0, mm1);
+
+        punpcklwd_r2r (mm4, mm0);     /* mm0 = b4 y3 r4 y4	*/
+        punpckhwd_r2r (mm4, mm1);     /* mm1 = b3 y1 r3 y2	*/
+
+        packsswb_r2r (mm1, mm0);      /* mm4 = b3 y1 r3 y2 b4 y3 r4 y4	*/
+        paddb_m2r (mmx_0x8080s, mm0);
+        paddusb_r2r (mm5, mm0);       /* clamp high		*/
+        psubusb_r2r (mm6, mm0);       /* clamp low		*/
+        paddusb_r2r (mm7, mm0);       /* to black level	*/
+        movq_r2m (mm0, pwyuv0[0]);
+
+        movq_r2r (mm2, mm4);
+        punpckhwd_r2r (mm3, mm4);
+        movq_m2r (Ytmp0[4], mm0);
+        movq_r2r (mm0, mm1);
+        punpcklwd_r2r (mm4, mm0);     /* mm4 = b4 y3 r4 y4	*/
+        punpckhwd_r2r (mm4, mm1);     /* mm5 = b3 y1 r3 y2	*/
+        packsswb_r2r (mm1, mm0);      /* mm4 = b3 y1 r3 y2 b4 y3 r4 y4	*/
+        paddb_m2r (mmx_0x8080s, mm0);
+        paddusb_r2r (mm5, mm0);       /* clamp high		*/
+        psubusb_r2r (mm6, mm0);       /* clamp low		*/
+        paddusb_r2r (mm7, mm0);       /* to black level	*/
+        movq_r2m (mm0, pwyuv0[8]);
+
+        pwyuv0 += 16;
+        cb_frame += 4;
+        cr_frame += 4;
+        Y[j + i] = Ytmp0 + 16;
+      }
+      /* ---------------------------------------------------------------------
+       * for odd value of row counter (this is NOT an odd line number)
+       * we have to go one additional step forward, and for even value
+       * we have to go one step back to use the color information again.
+       * Assuming that chroma information is fields based.
+       */
+      if (row & 1) {
+        cb_frame += 8;
+        cr_frame += 8;
+      } else {
+        cb_frame -= 8;
+        cr_frame -= 8;
+      }
+      pyuv += DV_WIDTH_DOUBLE;
+    }
+  }
+  emms ();
+}
 #endif // ARCH_X86
 
 dv_renderer YUY2_renderer [NUM_RENDERER] =
@@ -1032,6 +1257,15 @@ dv_renderer YUY2_renderer [NUM_RENDERER] =
           "YUY2_mmx",
           "YUY2 mmx   render functions"
          },
+         {{dv_mb411_YUY2_mmx, dv_mb411_right_YUY2_mmx,
+           dv_mb420p_YUY2_mmx, dv_mb420p_YUY2_mmx},
+          {720, 720, 720, 720},
+          {480, 480, 576, 576},
+          DV_ATTR_FULL_HIGH | DV_ATTR_MMX,
+          DV_FOURCC_YUY2,
+          "YUY2_mmx_palfix",
+          "YUY2 mmx   render functions"
+         },
 #endif
 #if ARCH_X86
          {{dv_mb411_YUY2_hh_mmx, dv_mb411_right_YUY2_hh_mmx,
@@ -1041,6 +1275,15 @@ dv_renderer YUY2_renderer [NUM_RENDERER] =
           DV_ATTR_HALF_HIGH | DV_ATTR_MMX,
           DV_FOURCC_YUY2,
           "YUY2_mmx_hh",
+          "YUY2 half high mmx   render functions"
+         },
+         {{dv_mb411_YUY2_hh_mmx, dv_mb411_right_YUY2_hh_mmx,
+           dv_mb420p_YUY2_hh_mmx, dv_mb420p_YUY2_hh_mmx},
+          {720, 720, 720, 720},
+          {240, 240, 288, 288},
+          DV_ATTR_HALF_HIGH | DV_ATTR_MMX,
+          DV_FOURCC_YUY2,
+          "YUY2_mmx_hh_palfix",
           "YUY2 half high mmx   render functions"
          },
 #endif
