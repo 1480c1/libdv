@@ -40,7 +40,7 @@
 
 void bitstream_next_buffer(bitstream_t * bs) {
   if (bs->bitstream_next_buffer) {
-    bs->buflen = bs->bitstream_next_buffer(&bs->buf,bs->private);
+    bs->buflen = bs->bitstream_next_buffer(&bs->buf,bs->priv);
     bs->bufoffset = 0;
   }
 }
@@ -63,9 +63,9 @@ bitstream_t *bitstream_init() {
   return bs;
 }
 
-void bitstream_set_fill_func(bitstream_t *bs,guint32 (*next_function) (guint8 **,void *),void *private) {
+void bitstream_set_fill_func(bitstream_t *bs,guint32 (*next_function) (guint8 **,void *),void *priv) {
   bs->bitstream_next_buffer = next_function;
-  bs->private = private;
+  bs->priv = priv;
 
   bitstream_next_buffer(bs);
 

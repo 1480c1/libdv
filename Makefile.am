@@ -33,7 +33,7 @@ gasmoff_SOURCES=
 
 endif # HOST_X86
 
-pkginclude_HEADERS= dv.h rgb.h display.h
+pkginclude_HEADERS= dv.h rgb.h display.h bitstream.h
 libdv_la_SOURCES= dv.c dct.c idct_248.c weighting.c quant.c vlc.c place.c \
 	parse.c bitstream.c YUY2.c YV12.c rgb.c \
 	YUY2.h    bitstream.h  dv.h        parse.h  rgb.h \

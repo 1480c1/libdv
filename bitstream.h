@@ -50,13 +50,13 @@ typedef struct bitstream_s {
   gint32  bufoffset;
 
   guint32 (*bitstream_next_buffer) (guint8 **,void *);
-  void *private;
+  void *priv;
 
   gint32 bitsread;
 } bitstream_t;
 
 bitstream_t *bitstream_init();
-void bitstream_set_fill_func(bitstream_t *bs,guint32 (*next_function) (guint8 **,void *),void *private);
+void bitstream_set_fill_func(bitstream_t *bs,guint32 (*next_function) (guint8 **,void *),void *priv);
 void bitstream_next_buffer(bitstream_t * bs);
 void bitstream_new_buffer(bitstream_t *bs,guint8 *buf,guint32 len);
 void bitstream_byte_align(bitstream_t *bs);
