@@ -1,3 +1,8 @@
+2001-10-27  Charles 'Buck' Krasic  <krasic@acm.org>
+
+	* Apply patch #475394: "Fix for mmx_ok SEGV with broken gcc-fPIC"
+	  submitted by David Daney.
+
 2001-06-24  Charles 'Buck' Krasic  <krasic@acm.org>
 
 	* Version 0.9
