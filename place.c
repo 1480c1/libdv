@@ -128,7 +128,7 @@ static guint16 dv_411_mb_c_offset[3][27] = {
 #undef C_POS
 
 #define Y_POS(ROW,COL) ((ROW * 180 * 4 * 8 * 2) + (COL * 2 * 8))
-#define C_POS(ROW,COL) ((ROW * 180 * 8) + (COL * 8))
+#define C_POS(ROW,COL) ((ROW * 360 * 8) + (COL * 8))
 
 static guint32 dv_420_sb_y_offset[12][5] = {
   { Y_POS(0, 0), Y_POS(0,  9), Y_POS(0,  18), Y_POS(0,  27), Y_POS(0,  36) },
@@ -410,7 +410,7 @@ void dv_place_420_macroblock(dv_macroblock_t *mb,guint8 *y_frame,guint8 *cr_fram
   c = cb_base;
   for(row=0; 
       row<8; 
-      row++, c+=(180-8)) 
+      row++, c+=(360-8)) 
     for(col=0; 
 	col<8; 
 	col++) 
@@ -421,7 +421,7 @@ void dv_place_420_macroblock(dv_macroblock_t *mb,guint8 *y_frame,guint8 *cr_fram
   c = cr_base;
   for(row=0; 
       row<8; 
-      row++, c+=(180-8)) 
+      row++, c+=(360-8)) 
     for(col=0; 
 	col<8; 
 	col++) 

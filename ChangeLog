@@ -1,5 +1,8 @@
 2000-04-20  Charles 'Buck' Krasic  <krasic@acm.org>
 
+	* place.c: Fixes to 4:2:0 placement.  Color resembles something
+ 	like correct now. :}
+
 	* Add initial macroblock placement for 4:2:0 (IEC61834).  Initial
  	  test shows luma is OK, but color isn't working correctly.
  
