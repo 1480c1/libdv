@@ -6,16 +6,14 @@ AUX_DIST                  = $(ac_aux_dir)/config.guess \
                                    $(ac_aux_dir)/ltconfig \
                                    $(ac_aux_dir)/ltmain.sh \
                                    $(ac_aux_dir)/missing \
+                                   $(ac_aux_dir)/depcomp \
                                    $(ac_aux_dir)/mkinstalldirs 
 
-AUX_DIST_EXTRA		  = $(ac_aux_dir)/ac_c_bigendian_cross.m4 \
-                                   $(ac_aux_dir)/README
-
 EXTRA_DIST                = bootstrap COPYRIGHT README.encoder README.dvconnect \
-                            @PACKAGE@.spec @PACKAGE@.pc
+                            @PACKAGE@.spec @PACKAGE@.spec.in @PACKAGE@.pc @PACKAGE@.pc.in
 
 MAINTAINERCLEANFILES      = Makefile.in aclocal.m4 configure config.h.in \
-                            stamp-h.in $(AUX_DIST)
+                            stamp-h.in config.log config.status $(AUX_DIST)
 
 CLEANFILES                = 
 
@@ -26,10 +24,11 @@ rpm: dist
 	rpm -ta @PACKAGE@-@VERSION@.tar.gz
 
 dist-hook:
-	(cd $(distdir) && mkdir $(ac_aux_dir))
+	(cd $(distdir) && if [ ! -d $(ac_aux_dir); then mkdir $(ac_aux_dir); fi)
 	for file in $(AUX_DIST) $(AUX_DIST_EXTRA); do \
 		cp $$file $(distdir)/$$file; \
 	done
 
 maintainer-clean-local:
 	rm -f libdv*.tar.gz
+	rm -rf autom*.cache

@@ -1,3 +1,13 @@
+2002-04-07  Charles 'Buck' Krasic  <krasic@acm.org>
+	* Version 0.9.5
+
+	* Build fixups for 0.9.5 release.  For now, stop using an
+	  auxiliary directory (was config).  The current release of
+	  libtool has a bug where it looks to configure.in for that, which
+	  we no longer have, and so it gets terribly confused.  Some
+	  changes to bootstrap to get the right versions of autotools.
+	  This needs more work.  Autotools sure can be a pain.
+	
 2002-04-04  Dan Dennedy <dan@dennedy.org>
 	* Fix type mismatch in dv_oss_t.arg_audio_device
 	

@@ -1,19 +1,16 @@
 # Note that this is NOT a relocatable package
 
-Name: @PACKAGE@
-Version: @VERSION@
-Release: @RPM_RELEASE@
+Summary:   @PACKAGE@ - DV software codec
+Name:      @PACKAGE@
+Version:   @VERSION@
+Release:   @RPM_RELEASE@
 CopyRight: GPL
-Group: Video
-Source: http://download.sourceforge.net/@PACKAGE@/@PACKAGE@-@VERSION@.tar.gz
-URL: http://@PACKAGE@.sourceforge.net/
-BuildRoot: /tmp/@PACKAGE@-@VERSION@-root
-Requires: glib
-Summary: libdv DV software codec
-Packager: Charles 'Buck' Krasic <krasic@acm.org>
-Docdir: /usr/share/doc
+Group:     Libraries/Multimedia
+Source:    http://download.sourceforge.net/libdv/@PACKAGE@-@VERSION@.tar.gz
+URL:       http://libdv.sourceforge.net/
+BuildRoot: %{_tmppath}/@PACKAGE@-@VERSION@-root
 
-%changelog
+Packager: Charles 'Buck' Krasic <krasic@acm.org>
 
 %description 
 
@@ -22,6 +19,16 @@ the encoding format used by most digital camcorders, typically those
 that support the IEEE 1394 (aka FireWire or i.Link) interface.  libdv
 was developed according to the official standards for DV video, IEC
 61834 and SMPTE 314M.  See http://libdv.sourceforge.net/ for more.
+
+%files
+%defattr(-,root,root)
+%doc ChangeLog COPYING README README.encoder AUTHORS NEWS INSTALL TODO COPYRIGHT 
+%{_mandir}/man1/playdv.1.gz
+%{_mandir}/man1/encodedv.1.gz
+%{_bindir}/playdv
+%{_bindir}/encodedv
+%{_libdir}/libdv.so*
+
 
 %package devel
 Summary: Libraries, includes and more from libdv
@@ -37,6 +44,16 @@ was developed according to the official standards for DV video, IEC
 This is the libraries, include files and other resources you can use
 to incorporate libdv into applications.
 
+%files devel
+%defattr(-, root, root)
+%doc ChangeLog COPYING README README.encoder AUTHORS NEWS INSTALL TODO COPYRIGHT
+%{_includedir}/libdv
+%{_libdir}/libdv.a
+%{_libdir}/libdv.la
+%{_libdir}/pkgconfig/*
+
+%changelog
+
 %prep
 %setup -n @PACKAGE@-@VERSION@
 
@@ -46,32 +63,19 @@ if [ ! -f configure ]; then
   ./bootstrap
 fi
 
-./configure --prefix=/usr --without-debug
+./configure --prefix=${_prefix} --without-debug --mandir=%{_mandir} 
 make
 
 %install
-rm -rf $RPM_BUILD_ROOT
-mkdir -p $RPM_BUILD_ROOT
-make prefix=$RPM_BUILD_ROOT/usr install
+[ -n "$RPM_BUILD_ROOT" -a "$RPM_BUILD_ROOT" != / ] && rm -rf $RPM_BUILD_ROOT
 
-#%post
-#/sbin/ldconfig
-
-%files
-%defattr(-,root,root)
-%doc ChangeLog COPYING README README.encoder AUTHORS NEWS INSTALL TODO COPYRIGHT 
-/usr/man/man1/playdv.1.gz
-/usr/man/man1/encodedv.1.gz
-/usr/bin/playdv
-/usr/bin/encodedv
-
-%files devel
-%defattr(-, root, root)
-%doc ChangeLog COPYING README README.encoder AUTHORS NEWS INSTALL TODO COPYRIGHT
-/usr/include/libdv/*
-/usr/lib/lib*.a
-/usr/lib/pkgconfig/libdv.pc
+%makeinstall
 
 %clean
-rm -rf ${RPM_BUILD_ROOT}
+[ -n "$RPM_BUILD_ROOT" -a "$RPM_BUILD_ROOT" != / ] && rm -rf $RPM_BUILD_ROOT
 
+%post
+/sbin/ldconfig
+
+%postun
+/sbin/ldconfig

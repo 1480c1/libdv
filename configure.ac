@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_INIT(libdv/parse.c)
-AC_CONFIG_AUX_DIR(config)
+dnl AC_CONFIG_AUX_DIR(config)
 AM_CONFIG_HEADER(config.h)
 
 RPM_RELEASE=1
@@ -45,7 +45,7 @@ AH_TEMPLATE([HAVE_LIBXV],
 AC_DEFINE(_GNU_SOURCE)
 
 AC_PROG_INSTALL
-AM_PROG_LIBTOOL
+AC_PROG_LIBTOOL
 
 use_asm=:
 arch_x86=false

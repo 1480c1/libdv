@@ -4,6 +4,18 @@ DIE=0
 package=libdv
 srcfile=libdv/dv.c
 
+# Local settings for autotools, set them
+# as appropriate for your system.
+
+export AUTOCONF=autoconf-2.53
+export AUTOHEADER=autoheader-2.53
+export AUTOMAKE=automake-1.5
+export ACLOCAL=aclocal-1.5
+export LIBTOOLIZE=libtoolize
+export LIBTOOL=libtool
+
+# End of local settings
+
 function autoconf_version_msg() {
     echo
     echo "You must have autoconf 2.50 or greater to bootstrap $package."
@@ -11,12 +23,12 @@ function autoconf_version_msg() {
     DIE=1
 }
 
-(autoconf --version) < /dev/null > /dev/null 2>&1 || {
+($AUTOCONF --version) < /dev/null > /dev/null 2>&1 || {
     autoconf_version_msg
 }
 
-autoconf_major=`autoconf --version | head -n 1 | sed 's/^[^0-9]*//' | sed 's/\([0-9]*\).\([0-9]*\)/\1/'`
-autoconf_minor=`autoconf --version | head -n 1 | sed 's/^[^0-9]*//' | sed 's/\([0-9]*\).\([0-9]*\)/\2/'`
+autoconf_major=`$AUTOCONF --version | head -n 1 | sed 's/^[^0-9]*//' | sed 's/\([0-9]*\).\([0-9]*\)/\1/'`
+autoconf_minor=`$AUTOCONF --version | head -n 1 | sed 's/^[^0-9]*//' | sed 's/\([0-9]*\).\([0-9]*\)/\2/'`
 
 if [ $autoconf_major -le 2 ]; then
 	if [ $autoconf_major -lt 2 ]; then
@@ -32,13 +44,13 @@ function automake_version_msg () {
     echo "Get the latest version from ftp://ftp.gnu.org/gnu/automake/"
     DIE=1
 }
-(automake --version) < /dev/null > /dev/null 2>&1 || {
+($AUTOMAKE --version) < /dev/null > /dev/null 2>&1 || {
     automake_version_msg
 }
 
 
-automake_major=`automake --version | head -n 1 | sed 's/^[^0-9]*//' | sed 's/\([0-9]*\).\([0-9]*\)/\1/'`
-automake_minor=`automake --version | head -n 1 | sed 's/^[^0-9]*//' | sed 's/\([0-9]*\).\([0-9]*\)/\2/'`
+automake_major=`$AUTOMAKE --version | head -n 1 | sed 's/^.*\([0-9][0-9]*\)\.\([0-9][0-9]*\)\(-[^-]*\)*/\1/'`
+automake_minor=`$AUTOMAKE --version | head -n 1 | sed 's/^.*\([0-9][0-9]*\)\.\([0-9][0-9]*\)\(-[^-]*\)*/\2/'`
 
 if [ $automake_major -le 1 ]; then
 	if [ $automake_major -lt 1 ]; then
@@ -55,11 +67,11 @@ function libtool_version_msg () {
 	DIE=1
 } 
 
-(libtool --version) < /dev/null > /dev/null 2>&1 || {
+($LIBTOOL --version) < /dev/null > /dev/null 2>&1 || {
 	libtool_version_msg 
 }
 
-libtool_version=`libtool --version | sed 's/^.* \([0-9\.]*\) .*$/\1/'`
+libtool_version=`$LIBTOOL --version | sed 's/^.* \([0-9\.]*\) .*$/\1/'`
 libtool_major=`echo $libtool_version | cut -d. -f1`
 libtool_minor=`echo $libtool_version | cut -d. -f2`
 if [ $libtool_major -le 1 ]; then
@@ -116,9 +128,9 @@ test -f $srcfile || {
 }
 
 set -x
-aclocal -I config
-libtoolize --force --copy
-aclocal -I config
-autoheader
-automake --foreign --copy --add-missing
-autoconf
+$ACLOCAL 
+$LIBTOOLIZE --force --copy
+$ACLOCAL 
+$AUTOHEADER
+$AUTOMAKE --foreign --copy --add-missing
+$AUTOCONF
