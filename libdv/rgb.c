@@ -81,7 +81,7 @@ static int32_t real_ylut_setup[768], *ylut_setup;
 /* rgb lookup - clamps values in range -256 .. 511 to 0 .. 255 */
 static uint8_t real_rgblut[768], *rgblut;
 
-#define NUM_RENDERER    3
+#define NUM_RENDERER    4
 
 /* ---------------------------------------------------------------------------
  */
@@ -529,6 +529,76 @@ dv_mb420_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
   } // for j
 } /* dv_mb420_bgr0 */
 
+/* ---------------------------------------------------------------------------
+ */
+void
+dv_mb420p_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
+              int add_ntsc_setup,
+              int clamp_luma,
+              int clamp_chroma)
+{
+  dv_coeff_t *Y[4], *cr_frame, *cb_frame;
+  uint8_t *prgb, *pwrgb0, *pwrgb1;
+  int i, j, k, row, col;
+
+  Y[0] = mb->b[0].coeffs;
+  Y[1] = mb->b[1].coeffs;
+  Y[2] = mb->b[2].coeffs;
+  Y[3] = mb->b[3].coeffs;
+  cr_frame = mb->b[4].coeffs;
+  cb_frame = mb->b[5].coeffs;
+
+  prgb = pixels[0] + (mb->x * 4) + (mb->y * pitches[0]);
+
+  for (j = 0; j < 4; j += 2) { // Two rows of blocks j, j+1
+
+    for (row = 0; row < 8; row+=2) { // 4 pairs of two rows
+      pwrgb0 = prgb;
+      pwrgb1 = prgb + pitches[0] * 2;
+
+      for (i = 0; i < 2; ++i) { // Two columns of blocks
+        int yindex = j + i;
+        dv_coeff_t *Ytmp0 = Y[yindex];
+        dv_coeff_t *Ytmp1 = Y[yindex] + 16;
+        for (col = 0; col < 4; ++col) {  // 4 spans of 2x2 pixels
+          int8_t cb = clamp (-128, *cb_frame++, 127); // +128;
+          int8_t cr = clamp (-128, *cr_frame++, 127); // +128
+          int ro = table_1_596[cr];
+          int go = table_0_813[cr] + table_0_391[cb];
+          int bo =                   table_2_018[cb];
+
+          for (k = 0; k < 2; ++k) { // 2x2 pixel
+            int32_t y = ylut[clamp (-256, *Ytmp0++, 511)];
+            int32_t r = (y + ro) >> COLOR_FRACTION_BITS;
+            int32_t g = (y - go) >> COLOR_FRACTION_BITS;
+            int32_t b = (y + bo) >> COLOR_FRACTION_BITS;
+            *pwrgb0++ = rgblut[b];
+            *pwrgb0++ = rgblut[g];
+            *pwrgb0++ = rgblut[r];
+            *pwrgb0++ = 0;
+
+            y = ylut[clamp (-256, *Ytmp1++, 511)];
+            r = (y + ro) >> COLOR_FRACTION_BITS;
+            g = (y - go) >> COLOR_FRACTION_BITS;
+            b = (y + bo) >> COLOR_FRACTION_BITS;
+            *pwrgb1++ = rgblut[b];
+            *pwrgb1++ = rgblut[g];
+            *pwrgb1++ = rgblut[r];
+            *pwrgb1++ = 0;
+          } // for k
+
+        } // for col
+        if (row & 1)
+          Ytmp0 += 16;
+        Y[yindex] = Ytmp0;
+      } // for i
+
+//      prgb += (2 * pitches[0]);
+      prgb += (row & 1) ? 3 * pitches [0] : pitches [0];
+    } // for row
+
+  } // for j
+} /* dv_mb420_bgr0 */
 
 /* TODO: MMX versions */
 static dv_renderer RGB_renderer [NUM_RENDERER] =
@@ -555,8 +625,17 @@ static dv_renderer RGB_renderer [NUM_RENDERER] =
           {720, 720, 720, 720},
           {480, 480, 576, 576},
           DV_ATTR_FULL_HIGH | DV_ATTR_C,
-          DV_FOURCC_RGB24,
+          DV_FOURCC_BRG32,
           "BGR32",
+          "BGR32 std C render functions"
+         },
+         {{dv_mb411_bgr0, dv_mb411_right_bgr0,
+           dv_mb420p_bgr0, dv_mb420p_bgr0},
+          {720, 720, 720, 720},
+          {480, 480, 576, 576},
+          DV_ATTR_FULL_HIGH | DV_ATTR_C,
+          DV_FOURCC_BRG32,
+          "BGR32_palfix",
           "BGR32 std C render functions"
          },
         };
