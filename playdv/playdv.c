@@ -267,7 +267,7 @@ main(int argc,char *argv[])
   dv_player_t *dv_player = NULL;
   const char *filename;     /* name of input file */
   int fd;
-  off_t offset = 0, eof;
+  off_t offset = 0, eof = 0;
   guint frame_count = 0;
   gint i;
   gdouble seconds = 0.0;

@@ -6,6 +6,8 @@ MAINTAINERCLEANFILES      = Makefile.in $(AUX_DIST)
 
 CLEANFILES                = 
 
+LIBTOOL = $(SHELL) $(top_builddir)/libtool --silent
+
 bin_PROGRAMS= playdv
 
 noinst_HEADERS=  display.h oss.h

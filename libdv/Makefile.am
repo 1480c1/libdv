@@ -3,6 +3,8 @@ MAINTAINERCLEANFILES      = Makefile.in $(AUX_DIST)
 
 CLEANFILES                = asmoff.h 
 
+LIBTOOL = $(SHELL) $(top_builddir)/libtool --silent
+
 lib_LTLIBRARIES= libdv.la
 
 if HOST_X86

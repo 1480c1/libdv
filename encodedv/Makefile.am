@@ -5,6 +5,8 @@ EXTRA_DIST                = $(man_MANS)
 
 MAINTAINERCLEANFILES      = Makefile.in $(AUX_DIST)
 
+LIBTOOL = $(SHELL) $(top_builddir)/libtool --silent
+
 CLEANFILES                = 
 
 bin_PROGRAMS= encodedv
