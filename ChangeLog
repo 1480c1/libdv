@@ -1,5 +1,7 @@
 2001-10-27  Charles 'Buck' Krasic  <krasic@acm.org>
 
+	* Apply bugfix from bug report #448856 submitted by Tristan Dufay.
+
 	* Apply patch #475394: "Fix for mmx_ok SEGV with broken gcc-fPIC"
 	  submitted by David Daney.
 
