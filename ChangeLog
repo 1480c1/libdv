@@ -1,3 +1,9 @@
+2004-01-19  Dan Dennedy <dan@dennedy.org>
+	* libdv/enc_input.c: workaround potential V4L compilation error.
+	  (bug 879258)
+	* libdv/Makefile.am: set the AGE back to 0 on the current interface
+	  version due to breaking binary compatibility.
+
 2004-01-16  Charles 'Buck' Krasic  <krasic@acm.org>
 
 	* libdv 0.100 release

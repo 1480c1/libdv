@@ -47,6 +47,8 @@
 #endif
 
 #if HAVE_DEV_VIDEO
+#define _DEVICE_H_
+#define _LINUX_TIME_H
 #include <sys/types.h>
 #include <linux/videodev.h>
 #include <sys/time.h>
