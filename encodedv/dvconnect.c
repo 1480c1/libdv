@@ -1069,10 +1069,15 @@ int main(int argc, const char** argv)
 		setpriority (PRIO_PROCESS, 0, -20);
 	}
 
-	if (mlockall(MCL_CURRENT | MCL_FUTURE) == -1) {
+#if _POSIX_MEMLOCK > 0
+	if (mlockall(MCL_CURRENT | MCL_FUTURE) == -1)
+	{
 		if (verbose_mode)
 			fprintf(stderr, "Cannot disable swapping\n");
-	} else {
+	} 
+	else
+#endif
+	{
 		/* Prevent excessive underruns from locking down all mem. */
 		ceil_buffer_blocks = 10*max_buffer_blocks;
 	}
