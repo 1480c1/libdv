@@ -116,6 +116,11 @@ extern int dv_encode_videosegment(dv_encoder_t *dv_enc,
 /* ---------------------------------------------------------------------------
  */
 extern void dv_renderer_info (char ***info);
+extern int  dv_is_PAL (dv_decoder_t *dv);
+
+/* ---------------------------------------------------------------------------
+ */
+extern int dv_set_quality (dv_decoder_t *dv, int quality);
 
 /* ---------------------------------------------------------------------------
  * functions based on vaux data
@@ -146,6 +151,13 @@ extern int dv_get_timestamp (dv_decoder_t *dv, char *tstprt),
  */
 extern int dv_is_new_recording (dv_decoder_t *dv, const uint8_t *buffer),
            dv_set_mixing_level (dv_decoder_t *dv, int new_value);
+
+/* ---------------------------------------------------------------------------
+ * audio query functions
+ */
+extern int dv_get_num_samples (dv_decoder_t *dv),
+           dv_get_raw_samples (dv_decoder_t *dv, int chan),
+           dv_is_4ch (dv_decoder_t *dv);
 
 #ifdef __cplusplus
 }

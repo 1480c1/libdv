@@ -923,7 +923,6 @@ int
 dv_decode_full_audio(dv_decoder_t *dv, const uint8_t *buffer, int16_t **outbufs)
 {
   int ds, dif, audio_dif, result;
-  int ch;
 
   dif=0;
   if (!dv_parse_audio_header (dv, buffer))
@@ -978,8 +977,10 @@ dv_report_video_error (dv_decoder_t *dv, uint8_t *data)
 {
     int  i,
          error_code;
+#if 0
     char err_msg1 [40],
          err_msg2 [40];
+#endif
 
   if (!dv -> video -> error_log)
     return;
@@ -1010,6 +1011,25 @@ dv_report_video_error (dv_decoder_t *dv, uint8_t *data)
 #endif
     }
   }
+}
+
+/* ---------------------------------------------------------------------------
+ */
+int
+dv_is_PAL (dv_decoder_t *dv)
+{
+  return dv -> system == e_dv_system_625_50;
+}
+
+/* ---------------------------------------------------------------------------
+ */
+int
+dv_set_quality (dv_decoder_t *dv, int q)
+{
+    int old_q = dv -> quality;
+    
+  dv -> quality = q;
+  return old_q;
 }
 
 /* ---------------------------------------------------------------------------

@@ -888,6 +888,30 @@ dv_set_mixing_level (dv_decoder_t *dv, int new_value)
 /* ---------------------------------------------------------------------------
  */
 int
+dv_get_num_samples (dv_decoder_t *dv)
+{
+  return dv -> audio -> samples_this_frame;
+}
+
+/* ---------------------------------------------------------------------------
+ */
+int
+dv_is_4ch (dv_decoder_t *dv)
+{
+  return dv -> audio -> raw_num_channels == 4;
+}
+
+/* ---------------------------------------------------------------------------
+ */
+int
+dv_get_raw_samples (dv_decoder_t *dv, int chan)
+{
+  return dv -> audio -> raw_samples_this_frame [chan];
+}
+
+/* ---------------------------------------------------------------------------
+ */
+int
 dv_is_new_recording (dv_decoder_t *dv, const uint8_t *buffer)
 {
     int temp_time_stamp [4],
