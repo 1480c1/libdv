@@ -462,6 +462,8 @@ dv_parse_audio_header(dv_decoder_t *decoder, const uint8_t *inbuf)
     if (dv_aaux_as1 -> pc2. audio_mode != 0xf)
     {
       audio -> raw_num_channels = 4;
+      audio -> aaux_as1  = *dv_aaux_as1;
+      audio -> aaux_asc1 = *dv_aaux_asc1;
     }
   }
   audio -> samples_this_frame =
@@ -474,8 +476,6 @@ dv_parse_audio_header(dv_decoder_t *decoder, const uint8_t *inbuf)
   } else {
     audio -> raw_samples_this_frame [1] = 0;
   }
-  audio -> aaux_as1  = *dv_aaux_as1;
-  audio -> aaux_asc1 = *dv_aaux_asc1;
   audio -> aaux_as  = *dv_aaux_as;
   audio -> aaux_asc = *dv_aaux_asc;
 
