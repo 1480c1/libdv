@@ -24,8 +24,20 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
+/** @file
+ *  @ingroup weighting
+ *  @brief Implementation for @link weighting Coefficient Weighting @endlink
+ */
 
-#include <dv_types.h>
+/** @weakgroup weighting Coefficient Weighting
+ *
+ *  DCT coeffictions are stored with 10 bits of precision, although
+ *  there is the possibility that the DCT transform will produce
+ *  values outside of this range.  The weighting operation ensures
+ *  that all values fit into the allocated 10 bit range.
+ *  
+ *  @{
+ */
 
 #include <math.h>
 
@@ -306,3 +318,5 @@ void weight_248_inverse(dv_coeff_t *block)
 	block[0] = dc * 4;
 #endif
 }
+
+/*@}*/

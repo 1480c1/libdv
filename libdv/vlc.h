@@ -27,8 +27,6 @@
 #ifndef DV_VLC_H
 #define DV_VLC_H
 
-#include <libdv/dv_types.h>
-
 #include <libdv/bitstream.h>
 
 #define VLC_NOBITS (-1)

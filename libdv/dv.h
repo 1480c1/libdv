@@ -24,13 +24,21 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
+/** @file
+ *  @ingroup decoder
+ *  @brief   Interface for @link decoder DV Decoder @endlink
+ */
+
+/** @addtogroup decoder DV Decoder
+ *  @{
+ */
+
 #ifndef DV_H
 #define DV_H
 
 
 #include <libdv/dv_types.h>
 
-#include <stdlib.h>
 #include <stdio.h>
 
 #ifdef __cplusplus
@@ -73,3 +81,5 @@ extern int dv_frame_changed (dv_decoder_t *dv),
 #endif
 
 #endif // DV_H 
+
+/*@}*/

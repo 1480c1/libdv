@@ -24,6 +24,15 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
+/** @file
+ *  @ingroup parser
+ *  @brief   Interface for @link parser Video Parser @endlink
+ */
+
+/** @addtogroup parser Video Parser
+ *  @{
+ */
+
 #ifndef DV_PARSE_H
 #define DV_PARSE_H
 
@@ -41,3 +50,5 @@ extern void        dv_parse_init(void);
 #endif
 
 #endif // DV_PARSE_H
+
+/*@}*/

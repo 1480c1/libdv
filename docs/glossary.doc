@@ -1,0 +1,57 @@
+/*!
+
+ \page glossary Glossary
+
+ \c libdv source code makes frequent reference to the following
+    terminology, most of which comes from the DV
+    standards documents, especially the SMPTE version.  
+
+ <dl>
+    <dt><a name="glossary-dif">DIF</a></dt>
+    <dd>
+      Digital Interface.  DV standard specific terminology, referring
+      to the digital data format of <a name="glossary-dvc">DVC</a>
+      tapes.
+    </dd>
+
+    <dt><a name="glossary-dif-block">DIF blocks</a></dt>
+    <dd>
+      A block of 80 bytes.  This is the basic data framing unit of the
+      <a href="#glossary-dvc">DVC</a> tape format, analogous to
+      sectors of hard disc.  
+    </dd>
+
+    <dt><a name="glossary-dvc">DVC</a></dt>
+    <dd>
+      Digital Video Cassette, refers to the family of tape formats for
+      DV video that differ in their physical design, but share the
+      same digital format for data.  Examples are
+      <strong>miniDV<strong>, <strong>dvCAM</strong>, etc.
+    </dd>
+
+    <dt><a name="glossary-video-segment">Video Segment</a></dt>
+    <dd>
+      A video segment consists of 5 <a href="#glossary-dif-block>DIF
+      blocks</a>, each corresponding to a single compressed
+      macroblock, assembled from various areas within the video frame.
+      DV format requires a 3 pass parsing algorithm for compressed
+      macroblocks, where data is spilled between blocks of a
+      macroblock, and then macroblocks of a video segment.  Because
+      the macroblocks in a video segment are shuffled from various
+      areas of the video frame, more visually complex areas of the
+      frame may be able to spill their data into space for less
+      visually complex areas of the frame.  This helps the encoder map
+      the variable rate requirements of the video to the constant rate
+      data layout of the format.
+    </dd>
+
+    <dt><a name="glossary-video-section">Video Section</a></dt>
+    <dd>
+      Each DIF sequence contains a video section, consisting of 135 <a
+      href="#glossary-dif-block">DIF blocks</a>, which are further
+      subdivided into <a href="#glossary-video-segment>Video
+      Segments</a>.
+    </dt>
+ </dl>
+
+*/

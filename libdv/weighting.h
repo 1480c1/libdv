@@ -24,6 +24,15 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
+/** @file
+ *  @ingroup weighting
+ *  @brief   Interface for @link weighting Coefficient Weighting @endlink
+ */
+
+/** @addtogroup weighting Coefficient Weighting
+ *  @{
+ */
+
 #ifndef DV_WEIGHTING_H
 #define DV_WEIGHTING_H
 
@@ -44,3 +53,5 @@ void weight_248_inverse(dv_coeff_t *block);
 #endif
 
 #endif // DV_WEIGHTING_H
+
+/*@}*/

@@ -23,15 +23,23 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#include <stdio.h>
-#include <stdlib.h>
+/** @file
+ *  @ingroup decoder
+ *  @brief Implementation for @link decoder DV Decoder @endlink
+ */
+
+/** @weakgroup decoder DV Decoder
+ *
+ *  This is the toplevel module of the \c liddv decoder.  
+ *  
+ *  @{
+ */
+
 #include <string.h>
 
-#include "dv_types.h"
 #include "dv.h"
 #include "encode.h"
 #include "util.h"
-#include "dct.h"
 #include "audio.h"
 #include "idct_248.h"
 #include "quant.h"
@@ -586,3 +594,5 @@ dv_frame_changed (dv_decoder_t *dv)
   }
   return -1;
 }
+
+/*@}*/

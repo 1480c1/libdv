@@ -24,8 +24,6 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#include <dv_types.h>
-
 #include <math.h>
 #include <string.h>
 
@@ -35,6 +33,26 @@
 #if ARCH_X86
 #include "mmx.h"
 #endif /* ARCH_X86 */
+
+/** @file
+ *  @ingroup dct
+ *  @brief Implementation for @link dct Discrete Cosine Transform @endlink
+ */
+
+/** @weakgroup dct Discrete Cosine Transform
+ *
+ *  The Discrete Cosine Transform is the basis of most popular video
+ *  and image coding standards.  To oversimplify, the power of the
+ *  transform is that for most video, energy gets concentrated around
+ *  the lower frequency coefficients.  The human visual system is less
+ *  sensitive to higher frequency components.  Because of this it is
+ *  possible to achieve significant compression ratios in a hybrid
+ *  coder, where by reducing the precision of higher frequency terms,
+ *  causing many terms towards zero.  The result is highly amenable to
+ *  losseless entropy coders such as huffman encoding.
+ *
+ *  @{
+ */
 
 typedef short var;
 
@@ -479,3 +497,5 @@ void idct_248(double *block)
 
 
 #endif /* BRUTE_FORCE_248 */
+
+/*@}*/

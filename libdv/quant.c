@@ -24,8 +24,18 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
+/** @file
+ *  @ingroup quant
+ *  @brief Implementation for @link quant Coefficient Quantization @endlink
+ */
 
-#include <dv_types.h>
+/** @weakgroup quant Coefficient Quantization
+ *
+ *  Quantization is the primary means of controlling
+ *  compression-quality tradeoff in modern hybrid coders.
+ *  
+ *  @{
+ */
 
 #include <math.h>
 
@@ -235,3 +245,5 @@ quant_248_inverse_mmx(dv_coeff_t *block,int qno,int klass,dv_248_coeff_t *co) {
     co [i] = block [i] * pm [i];
   }
 }
+
+/*@}*/

@@ -24,6 +24,15 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
  
+/** @file
+ *  @ingroup dct
+ *  @brief   Interface for @link dct Discrete Cosine Transform @endlink
+ */
+
+/** @addtogroup dct Discrete Cosine Transform
+ *  @{
+ */
+
 #ifndef DV_DCT_H
 #define DV_DCT_H
 

@@ -24,14 +24,27 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#include <dv_types.h>
+/** @file
+ *  @ingroup parser
+ *  @brief Implementation for @link parser Video Parser @endlink
+ */
 
-#include <stdio.h>
+/** @weakgroup parser Video Parser
+ *
+ *  The video parser is the front end of the video decoder.  From byte
+ *  sequences (<a href="glossary.html#glossary-dif-block">DIF *
+ *  blocks</a>) the parser constructs structures for DV video headers
+ *  and video segments.  These structures become the input to the back
+ *  end which does the steps of the hybrid (lossless variable length
+ *  coding + lossy transform coding) video decompression.
+ *
+ *  @{
+ */
+
 #include <string.h>
 
 #include "util.h"
 #include "dv.h"
-#include "bitstream.h"
 #include "vlc.h"
 #include "parse.h"
 #include "audio.h"
@@ -62,7 +75,8 @@ static inline void vlc_trace(char *format, ...)
 /* Assign coefficient in zigzag order without indexing multiply */
 #define ZERO_MULT_ZIGZAG 1
 #if ZERO_MULT_ZIGZAG
-#define SET_COEFF(COEFFS,REORDER,VALUE) (*((dv_coeff_t *)(((guint8 *)(COEFFS)) + *(REORDER)++)) = (VALUE))
+#define SET_COEFF(COEFFS,REORDER,VALUE) \
+  (*((dv_coeff_t *)(((guint8 *)(COEFFS)) + *(REORDER)++)) = (VALUE))
 #else
 #define SET_COEFF(COEFFS,REORDER,VALUE) COEFFS[*REORDER++] = VALUE
 #endif
@@ -442,8 +456,8 @@ void dv_parse_ac_coeffs_pass0(bitstream_t *bs,
 
 #if ! ARCH_X86
 __inline__ void dv_parse_ac_coeffs_pass0(bitstream_t *bs,
-						dv_macroblock_t *mb,
-						dv_block_t *bl) {
+                                         dv_macroblock_t *mb,
+                                         dv_block_t *bl) {
   dv_vlc_t         vlc;
   gint             bits_left;
   guint32 bits;
@@ -733,3 +747,4 @@ dv_parse_header(dv_decoder_t *dv, guchar *buffer) {
   return(-1);
 } /* dv_parse_header */
 
+/*@}*/

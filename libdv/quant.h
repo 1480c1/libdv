@@ -5,6 +5,15 @@
  * at <quasar-help@cse.ogi.edu>.
  */
 
+/** @file
+ *  @ingroup quant
+ *  @brief   Interface for @link quant Coefficient Quantization @endlink
+ */
+
+/** @addtogroup quant Coefficient Quantization
+ *  @{
+ */
+
 #ifndef DV_QUANT_H
 #define DV_QUANT_H
 
@@ -25,3 +34,5 @@ extern void dv_quant_init (void);
 #endif
 
 #endif /* DV_QUANT_H */
+
+/*@}*/

@@ -1,0 +1,16 @@
+/**
+ * @mainpage Quasar DV Codec
+ *
+ * This is the main page.
+ */
+
+/**
+ * @defgroup quant     Coefficient Quantization
+ * @defgroup weighting Coefficient Weighting
+ * @defgroup dct       Discrete Cosine Transform
+ * @defgroup parser    Video Parser
+ * @defgroup decoder   DV Decoder
+ * 
+ */
+
+
