@@ -403,7 +403,11 @@ macloop:
 	movl	dv_videosegment_t_i(%ebx),%ecx
 	addl	%ecx,%edx
 
+skarly:	
 	movl	dv_videosegment_t_isPAL(%ebx),%ecx
+	addl	$-1,%ecx
+	sbbl	%ecx,%ecx
+	andl	$1,%ecx
 	shll	$5,%ecx		/* ecx = (isPAL ? 32 : 0) */
 
 	movzbl	mod_10(%edx,%ecx,1),%edx	/* uses mod_12 for PAL */
