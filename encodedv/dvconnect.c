@@ -1009,7 +1009,7 @@ int main(int argc, const char** argv)
                 shortName:  'd', 
                 argInfo: POPT_ARG_STRING,
                 arg:     &device,
-                descrip: "Specify the video1394 device (default /dev/video1394)",
+                descrip: "Specify the video1394 device (default /dev/video1394/0)",
         }; /* device */
 
         option_table[DV_CONNECT_NUM_OPTS] = (struct poptOption) { 
@@ -1056,7 +1056,7 @@ int main(int argc, const char** argv)
 	}
 
 	if ( device == NULL )
-		device = "/dev/video1394";
+		device = "/dev/video1394/0";
 
 	if (send_mode) {
 		send_raw(poptGetArgs(optCon), channel, buffers, start, end,

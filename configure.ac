@@ -151,10 +151,13 @@ AM_CONDITIONAL(HOST_X86, $arch_x86)
 
 dnl Checks for libraries.
 
-REQUIRES='glib >= 1.2.4 gtk+ >= 1.2.4'
-PKG_CHECK_MODULES(GTK,$REQUIRES)
-dnl Libs above are required for the apps, but not for the lib itself.
-REQUIRES=''
+if $use_gtk; then
+	REQUIRES='glib >= 1.2.4 gtk+ >= 1.2.4'
+	PKG_CHECK_MODULES(GTK,$REQUIRES)
+else
+	dnl Libs above are required for the apps, but not for the lib itself.
+	REQUIRES=''
+fi
 
 dnl pass-thru to .pc files
 AC_SUBST(REQUIRES)
@@ -178,14 +181,24 @@ if $use_gtk; then
 	])
 fi
 
-if $use_xv; then
-      AC_CHECK_LIB(Xv,XvQueryAdaptors,
-	  [AC_DEFINE(HAVE_LIBXV)
-	  AC_SUBST(XV_LIB)
-	  XV_LIB='-lXv'],
-	  AC_MSG_ERROR(Could not find Xv Lib),
-	  $GTK_LIBS)
+if [ $use_gtk && $use_xv ]; then
+	AC_CHECK_LIB(Xv, XvQueryAdaptors,
+		[AC_DEFINE(HAVE_LIBXV)
+			AC_SUBST(XV_LIB)
+			XV_LIB='-lXv'
+		],
+		[AC_MSG_ERROR([Could not find Xv Lib])],
+		$GTK_LIBS
+	)
 fi
+
+if $use_gtk; then
+	PLAYDV_SUBDIR='playdv'
+else
+	PLAYDV_SUBDIR=''
+fi
+AC_SUBST(PLAYDV_SUBDIR)
+
 
 dnl *********************************************************************
 dnl Check for the pthread lib
@@ -233,4 +246,5 @@ AC_CHECK_FUNCS(gettimeofday)
 AC_SUBST(ac_aux_dir)
 AC_SUBST(RPM_RELEASE)
 
-AC_OUTPUT(Makefile libdv.spec libdv.pc libdv/Makefile playdv/Makefile encodedv/Makefile)
+AC_CONFIG_FILES(Makefile libdv.spec libdv.pc libdv/Makefile playdv/Makefile encodedv/Makefile)
+AC_OUTPUT

@@ -1,4 +1,4 @@
-SUBDIRS                   = libdv playdv encodedv
+SUBDIRS                   = libdv encodedv @PLAYDV_SUBDIR@
 
 AUX_DIST                  = $(ac_aux_dir)/config.guess \
                                    $(ac_aux_dir)/config.sub \

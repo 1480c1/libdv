@@ -119,7 +119,7 @@ int main(int argc, const char** argv)
 	option_table[OPT_VERSION] = (struct poptOption) {
 		longName: "version", 
 		val: 'v',
-		descrip: "show insert_audio version number"
+		descrip: "show dubdv version number"
 	}; /* version */
 
 	option_table[OPT_VERBOSE] = (struct poptOption) {
@@ -134,7 +134,7 @@ int main(int argc, const char** argv)
 		shortName:  'a', 
 		arg:        &audio_input_filter_str,
 		argInfo:    POPT_ARG_STRING, 
-		descrip:    "choose audio-input-filter [>none<, wav, dsp]"
+		descrip:    "choose audio-input-filter [none, >wav<, dsp]"
 	}; /* audio input */
 
 	option_table[OPT_OUTPUT] = (struct poptOption) {
@@ -206,7 +206,7 @@ int main(int argc, const char** argv)
 	poptFreeContext(optCon);
 
 #else
-#warning insert_audio does not work without libpopt!
+#warning dubdv does not work without libpopt!
 
 #endif
 

@@ -1,5 +1,5 @@
 
-man_MANS                  = encodedv.1
+man_MANS                  = encodedv.1 dvconnect.1 dubdv.1
 
 EXTRA_DIST                = $(man_MANS)
 
@@ -9,15 +9,15 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool --silent
 
 CLEANFILES                = 
 
-bin_PROGRAMS= encodedv dvconnect
+bin_PROGRAMS= encodedv dvconnect dubdv
 
-noinst_PROGRAMS= insert_audio fix_headers scan_packet_headers steal_header ppmqscale dvavi
+noinst_PROGRAMS= fix_headers scan_packet_headers steal_header ppmqscale dvavi
 
 encodedv_SOURCES= encodedv.c 
 encodedv_LDADD= ../libdv/libdv.la $(POPT_LIB)
 
-insert_audio_SOURCES = insert_audio.c 
-insert_audio_LDADD= ../libdv/libdv.la $(POPT_LIB)
+dubdv_SOURCES = insert_audio.c 
+dubdv_LDADD= ../libdv/libdv.la $(POPT_LIB)
 
 fix_headers_SOURCES = fix_headers.c 
 fix_headers_LDADD= ../libdv/libdv.la

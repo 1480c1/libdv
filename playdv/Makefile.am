@@ -8,7 +8,7 @@ CLEANFILES                =
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool --silent
 
-CFLAGS = @CFLAGS@ $(SDL_CFLAGS) $(GTK_CFLAGS)
+AM_CFLAGS = $(SDL_CFLAGS) $(GTK_CFLAGS)
 
 bin_PROGRAMS= playdv
 
