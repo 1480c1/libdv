@@ -26,16 +26,34 @@
 #ifndef DV_OSS_H
 #define DV_OSS_H
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif // HAVE_CONFIG_H
+
+#if HAVE_LIBPOPT
+#include <popt.h>
+#endif // HAVE_LIBPOPT
+
 #include <glib.h>
 #include "audio.h"
 
+#define DV_OSS_OPT_DEVICE 0
+#define DV_OSS_OPT_FILE   1
+#define DV_OSS_NUM_OPTS   2
+
 typedef struct dv_oss_s {
-  gint        fd;
-  gint16     *buffer;
+  gint               fd;
+  gint16            *buffer;
+  gchar             *arg_audio_file;
+  gchar             *arg_audio_device;
+#ifdef HAVE_LIBPOPT
+  struct poptOption option_table[DV_OSS_NUM_OPTS+1];
+#endif // HAVE_LIBPOPT
 } dv_oss_t;
 
-extern gboolean dv_oss_init (dv_audio_t *audio, dv_oss_t *oss);
-extern gboolean dv_oss_play (dv_audio_t *audio, dv_oss_t *oss, gint16 **out);
-extern void     dv_oss_close(dv_oss_t *oss);
+extern dv_oss_t *dv_oss_new(void);
+extern gboolean  dv_oss_init (dv_audio_t *audio, dv_oss_t *oss);
+extern gboolean  dv_oss_play (dv_audio_t *audio, dv_oss_t *oss, gint16 **out);
+extern void      dv_oss_close(dv_oss_t *oss);
 
 #endif DV_OSS_H

@@ -23,6 +23,15 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#if HAVE_LIBPOPT
+#include <popt.h>
+#endif // HAVE_LIBPOPT
+
+
 #include "dv.h"
 #include "audio.h"
 
@@ -127,6 +136,37 @@ dv_upsample(gint32 sample) {
   } // switch
   return(result);
 } // dv_upsample
+
+dv_audio_t *
+dv_audio_new(void)
+{
+  dv_audio_t *result;
+  
+  if(!(result = calloc(1,sizeof(dv_audio_t)))) goto no_mem;
+
+#if HAVE_LIBPOPT
+  result->option_table[DV_AUDIO_OPT_FREQUENCY] = (struct poptOption){ 
+    longName:   "frequency", 
+    shortName:  'f', 
+    argInfo:    POPT_ARG_INT, 
+    arg:        &result->arg_audio_frequency,
+    descrip:    "audio frequency: 0=autodetect [default], 1=32 kHz, 2=44.1 kHz, 3=48 kHz",
+    argDescrip: "(0|1|2|3)"
+  }; // freq
+  result->option_table[DV_AUDIO_OPT_QUANTIZATION] = (struct poptOption){ 
+    longName:   "quantization", 
+    shortName:  'Q', 
+    argInfo:    POPT_ARG_INT, 
+    arg:        &result->arg_audio_quantization,
+    descrip:    "force audio quantization: 0=autodetect [default], 1=12 bit, 2=16bit",
+    argDescrip: "(0|1|2)"
+  }; // quant
+#endif // HAVE_POPT
+  return(result);
+
+ no_mem:
+  return(result);
+} // dv_audio_new
 
 void 
 dv_dump_aaux_as(void *buffer, int ds, int audio_dif) 

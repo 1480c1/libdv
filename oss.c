@@ -23,6 +23,14 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#if HAVE_LIBPOPT
+#include <popt.h>
+#endif // HAVE_LIBPOPT
+
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,8 +40,37 @@
 #include <glib.h>
 #include "oss.h"
 
-/* Very simplistic for sound output using the OSS API */
+dv_oss_t *
+dv_oss_new(void)
+{
+  dv_oss_t *result;
+  
+  result = calloc(1,sizeof(dv_oss_t));
+  if(!result) goto no_mem;
 
+#ifdef HAVE_LIBPOPT
+  result->option_table[DV_OSS_OPT_DEVICE] = (struct poptOption) {
+    longName:   "audio-device", 
+    argInfo:    POPT_ARG_STRING, 
+    arg:        &result->arg_audio_device,
+    descrip:    "target audio device; e.g. /dev/dsp [default]",
+    argDescrip: "devicename",
+  }; // device
+
+  result->option_table[DV_OSS_OPT_FILE] = (struct poptOption) {
+    longName:   "audio-file", 
+    argInfo:    POPT_ARG_STRING, 
+    arg:        &result->arg_audio_file,
+    descrip:    "send raw decoded audio to file, skipping audio ioctls",
+    argDescrip: "filename",
+  }; // file
+#endif // HAVE_LIBPOPT
+
+ no_mem:
+  return(result);
+} // dv_oss_new
+
+/* Very simplistic for sound output using the OSS API */
 gboolean
 dv_oss_init(dv_audio_t *audio, dv_oss_t *oss)
 {

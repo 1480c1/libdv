@@ -28,6 +28,10 @@
 #include <config.h>
 #endif
 
+#if HAVE_LIBPOPT
+#include <popt.h>
+#endif // HAVE_LIBPOPT
+
 #include <glib.h>
 #include <stdio.h>
 #include <assert.h>
@@ -78,6 +82,76 @@ gint8  dv_reorder[2][64] = {
     14, 46, 7, 39, 15, 47, 22, 54,		29, 61, 30, 62, 23, 55, 31, 63 }
 };
 
+#if HAVE_LIBPOPT
+static void
+dv_video_popt_callback(poptContext con, enum poptCallbackReason reason, 
+		       const struct poptOption * opt, const char * arg, const void * data)
+{
+  dv_video_t *video = (dv_video_t *)data;
+  
+  switch(video->arg_block_quality) {
+  case 1:
+    video->quality |= DV_QUALITY_DC;
+    break;
+  case 2:
+    video->quality |= DV_QUALITY_AC_1;
+    break;
+  case 3:
+    video->quality |= DV_QUALITY_AC_2;
+    break;
+  default:
+    dv_opt_usage(video->option_table, DV_VIDEO_OPT_BLOCK_QUALITY);
+    break;
+  } // switch 
+  if(!video->arg_monochrome) {
+    video->quality |= DV_QUALITY_COLOR;
+  } // if
+  
+} // dv_video_popt_callback 
+#endif // HAVE_POPT
+
+dv_video_t *
+dv_video_new(void)
+{
+  dv_video_t *result;
+  
+  result = calloc(1,sizeof(dv_video_t));
+  if(!result) goto noopt;
+
+  result->arg_block_quality = 3; // Default is best quality 
+
+#if HAVE_LIBPOPT
+  result->option_table[DV_VIDEO_OPT_BLOCK_QUALITY] = (struct poptOption){
+    longName:   "quality", 
+    shortName:  'q', 
+    argInfo:    POPT_ARG_INT, 
+    arg:        &result->arg_block_quality,
+    argDescrip: "(1|2|3)",
+    descrip:    "set video quality level (coeff. parsing):"
+    "  1=DC and no ACs,"
+    " 2=DC and single-pass for ACs ,"
+    " 3=DC and multi-pass for ACs [default]",
+  }; // block quality
+
+  result->option_table[DV_VIDEO_OPT_MONOCHROME] = (struct poptOption){
+    longName:  "monochrome", 
+    shortName: 'm', 
+    arg:       &result->arg_monochrome,
+    descrip:   "skip decoding of color blocks",
+  }; // monochrome
+
+  result->option_table[DV_VIDEO_OPT_CALLBACK] = (struct poptOption){
+    argInfo: POPT_ARG_CALLBACK|POPT_CBFLAG_POST,
+    arg:     dv_video_popt_callback,
+    descrip: (char *)result, // data passed to callback
+  }; // callback
+#else
+  video->quality = DV_QUALITY_BEST;
+#endif // HAVE_POPT
+
+ noopt:
+  return(result);
+} // dv_video_new
 
 void dv_parse_init(void) {
   gint i;
@@ -575,7 +649,7 @@ dv_parse_header(dv_decoder_t *dv, guchar *buffer) {
   dv_parse_id(bs,&id);				// should be VA3
   bitstream_flush_large(bs,616);
 
-  dv_parse_audio_header(&dv->audio, buffer);
+  dv_parse_audio_header(dv->audio, buffer);
   return(0);
 
  parse_error:

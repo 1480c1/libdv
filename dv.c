@@ -40,6 +40,58 @@ convert_coeffs_prime(dv_block_t *bl) {
   } // for 
 } // convert_coeffs_prime
 
+dv_decoder_t * 
+dv_decoder_new(void) {
+  dv_decoder_t *result;
+  
+  result = calloc(1,sizeof(dv_decoder_t));
+  if(!result) goto no_mem;
+  
+  result->video = dv_video_new();
+  if(!result->video) goto no_video;
+
+  result->audio = dv_audio_new();
+  if(!result->audio) goto no_audio;
+
+#if HAVE_LIBPOPT
+  result->option_table[DV_DECODER_OPT_SYSTEM] = (struct poptOption) {
+    longName: "video system", 
+    shortName: 'V', 
+    argInfo: POPT_ARG_INT, 
+    descrip: "select video system:" 
+    "0=autoselect [default]," 
+    " 1=525/60 4:1:1 (NTSC),"
+    " 2=625/50 4:2:0 (PAL,IEC 61834 DV),"
+    " 3=625/50 4:1:1 (PAL,SMPTE 314M DV)",
+    argDescrip: "(0|1|2)",
+    arg: &result->arg_video_system,
+  }; // system
+
+  result->option_table[DV_DECODER_OPT_VIDEO_INCLUDE] = (struct poptOption) {
+    argInfo: POPT_ARG_INCLUDE_TABLE,
+    descrip: "Video decode options",
+    arg: &result->video->option_table[0],
+  }; // video include
+
+  result->option_table[DV_DECODER_OPT_AUDIO_INCLUDE] = (struct poptOption) {
+    argInfo: POPT_ARG_INCLUDE_TABLE,
+    descrip: "Audio decode options",
+    arg: result->audio->option_table,
+  }; // audio include
+
+#endif // HAVE_POPT
+
+  return(result);
+
+ no_audio:
+  free(result->video);
+ no_video:
+  free(result);
+  result=NULL;
+ no_mem:
+  return(result);
+} // dv_decoder_new
+
 void dv_init(dv_decoder_t *dv) {
 #if ARCH_X86
   dv->use_mmx = mmx_ok(); 
@@ -268,7 +320,7 @@ dv_decode_full_frame(dv_decoder_t *dv, guchar *buffer,
   if(!seg->bs) {
     seg->bs = bitstream_init();
     if(!seg->bs) 
-      goto nomem;
+      goto no_mem;
   } // if
   seg->isPAL = (dv->system == e_dv_system_625_50);
 
@@ -326,7 +378,7 @@ dv_decode_full_frame(dv_decoder_t *dv, guchar *buffer,
   }
 #endif
   return;
- nomem:
+ no_mem:
   fprintf(stderr,"no memory for bitstream!\n");
   exit(-1);
 } // dv_decode_full_frame 
@@ -337,12 +389,12 @@ dv_decode_full_audio(dv_decoder_t *dv, guchar *buffer, gint16 **outbufs)
   gint ds, dif, audio_dif, result;
 
   dif=0;
-  if(!dv_update_num_samples(&dv->audio, buffer)) goto no_audio;
+  if(!dv_update_num_samples(dv->audio, buffer)) goto no_audio;
 
   for (ds=0; ds < dv->num_dif_seqs; ds++) {
     dif += 6;
     for(audio_dif=0; audio_dif<9; audio_dif++) {
-      if((result = dv_decode_audio_block(&dv->audio, buffer+(dif *80), ds, audio_dif, outbufs))) goto fail;
+      if((result = dv_decode_audio_block(dv->audio, buffer+(dif *80), ds, audio_dif, outbufs))) goto fail;
       dif+=16;
     } // for 
   } // for

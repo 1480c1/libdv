@@ -27,8 +27,34 @@
 #ifndef __PARSE_H__
 #define __PARSE_H__
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif // HAVE_CONFIG_H
+
+#if HAVE_LIBPOPT
+#include <popt.h>
+#endif // HAVE_LIBPOPT
+
 #include <glib.h>
 #include "dv.h"
+
+#define DV_VIDEO_OPT_BLOCK_QUALITY 0
+#define DV_VIDEO_OPT_MONOCHROME    1
+#define DV_VIDEO_OPT_CALLBACK      2
+#define DV_VIDEO_NUM_OPTS          3
+
+typedef struct {
+  guint              quality;        
+  gint               arg_block_quality; // default 3
+  gint               arg_monochrome;
+
+#ifdef HAVE_LIBPOPT
+  struct poptOption  option_table[DV_VIDEO_NUM_OPTS+1]; 
+#endif // HAVE_LIBPOPT
+
+} dv_video_t;
+
+extern dv_video_t *dv_video_new(void);
 
 extern void dv_parse_init(void);
 

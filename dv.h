@@ -27,8 +27,18 @@
 #ifndef __DV_H__
 #define __DV_H__
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif // HAVE_CONFIG_H
+
+#if HAVE_LIBPOPT
+#include <popt.h>
+#endif // HAVE_LIBPOPT
+
+#include <stdlib.h>
 #include <stdio.h>
 #include <bitstream.h>
+#include "parse.h"
 #include "audio.h"
 
 #ifdef __cplusplus
@@ -62,6 +72,11 @@ extern "C" {
 
 #define DV_QUALITY_BEST       (DV_QUALITY_COLOR | DV_QUALITY_AC_2)
 #define DV_QUALITY_FASTEST     0     /* Monochrome, DC coeffs only */
+
+#define DV_DECODER_OPT_SYSTEM        0
+#define DV_DECODER_OPT_VIDEO_INCLUDE 1
+#define DV_DECODER_OPT_AUDIO_INCLUDE 2
+#define DV_DECODER_NUM_OPTS          3
 
 typedef enum color_space_e { 
   e_dv_color_yuv, 
@@ -150,25 +165,41 @@ typedef struct dv_frame_s {
 } dv_frame_t;
 
 typedef struct dv_decoder_s {
-  guint       quality;
-  dv_system_t system;
-  dv_std_t    std;
-  dv_sample_t sampling;
-  gint        num_dif_seqs; // DIF sequences per frame
-  gint        height, width;
-  size_t      frame_size;
-  dv_header_t header;
-  dv_audio_t  audio;
+  guint              quality;
+  dv_system_t        system;
+  dv_std_t           std;
+  dv_sample_t        sampling;
+  gint               num_dif_seqs; // DIF sequences per frame
+  gint               height, width;
+  size_t             frame_size;
+  dv_header_t        header;
+  dv_audio_t        *audio;
+  dv_video_t        *video;
 #if ARCH_X86
-  gboolean    use_mmx;
+  gboolean           use_mmx;
 #endif
+  gint               arg_video_system;
+
+#ifdef HAVE_LIBPOPT
+  struct poptOption option_table[DV_DECODER_NUM_OPTS+1]; 
+#endif // HAVE_LIBPOPT
 } dv_decoder_t;
 
 static const gint header_size = 80 * 52; // upto first audio AAUX AS
 static const gint frame_size_525_60 = 10 * 150 * 80;
 static const gint frame_size_625_50 = 12 * 150 * 80;
 
+#ifdef HAVE_LIBPOPT
+extern inline void
+dv_opt_usage(struct poptOption *opt, gint num)
+{
+  fprintf(stderr,"%s %s\n", opt[num].longName, opt[num].argDescrip);
+  exit(-1);
+} // dv_opt_usage
+#endif // HAVE_LIBPOPT
+
 /* Main API */
+extern dv_decoder_t *dv_decoder_new(void);
 extern void dv_init(dv_decoder_t *dv);
 extern gint dv_parse_header(dv_decoder_t *dv, guchar *buffer);
 extern void dv_decode_full_frame(dv_decoder_t *dv, guchar *buffer, 

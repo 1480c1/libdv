@@ -26,7 +26,7 @@
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
-#endif
+#endif // HAVE_CONFIG_H
 
 #include <stdlib.h>
 #include <glib.h>
@@ -47,17 +47,119 @@
 #include "bitstream.h"
 #include "place.h"
 
-/* Book-keeping for mmap */
+#define DV_PLAYER_OPT_VERSION         0
+#define DV_PLAYER_OPT_DISABLE_AUDIO   1
+#define DV_PLAYER_OPT_DISABLE_VIDEO   2
+#define DV_PLAYER_OPT_NUM_FRAMES      3
+#define DV_PLAYER_OPT_OSS_INCLUDE     4
+#define DV_PLAYER_OPT_DISPLAY_INCLUDE 5
+#define DV_PLAYER_OPT_DECODER_INCLUDE 6
+#define DV_PLAYER_OPT_AUTOHELP        7
+#define DV_PLAYER_NUM_OPTS            8
 
+/* Book-keeping for mmap */
 typedef struct dv_mmap_region_s {
   void   *map_start;  /* Start of mapped region (page aligned) */
   size_t  map_length; /* Size of mapped region */
   guint8 *data_start; /* Data we asked for */
 } dv_mmap_region_t;
 
+typedef struct {
+  dv_decoder_t    *decoder;
+  dv_display_t    *display;
+  dv_oss_t        *oss;
+  dv_mmap_region_t mmap_region;
+  struct stat      statbuf;
+  struct timeval   tv[3];
+  gint             arg_disable_audio;
+  gint             arg_disable_video;
+  gint             arg_num_frames;
+#ifdef HAVE_LIBPOPT
+  struct poptOption option_table[DV_PLAYER_NUM_OPTS+1]; 
+#endif // HAVE_LIBPOPT
+} dv_player_t;
+
+dv_player_t *
+dv_player_new(void) 
+{
+  dv_player_t *result;
+  
+  if(!(result = calloc(1,sizeof(dv_player_t)))) goto no_mem;
+  if(!(result->display = dv_display_new())) goto no_display;
+  if(!(result->oss = dv_oss_new())) goto no_oss;
+  if(!(result->decoder = dv_decoder_new())) goto no_decoder;
+
+#if HAVE_LIBPOPT
+  result->option_table[DV_PLAYER_OPT_VERSION] = (struct poptOption) {
+    longName: "version", 
+    shortName: 'v', 
+    val: 'v', 
+    descrip: "show playdv version number",
+  }; // version
+
+  result->option_table[DV_PLAYER_OPT_DISABLE_AUDIO] = (struct poptOption) {
+    longName: "disable-audio", 
+    arg:      &result->arg_disable_audio,
+    descrip:  "skip audio decoding",
+  }; // disable audio
+
+  result->option_table[DV_PLAYER_OPT_DISABLE_VIDEO] = (struct poptOption) {
+    longName: "disable-video", 
+    descrip:  "skip video decoding",
+    arg:      &result->arg_disable_video, 
+  }; // disable video
+
+  result->option_table[DV_PLAYER_OPT_NUM_FRAMES] = (struct poptOption) {
+    longName:   "num-frames", 
+    shortName:  'n', 
+    argInfo:    POPT_ARG_INT, 
+    arg:        &result->arg_num_frames,
+    argDescrip: "count",
+    descrip:    "stop after <count> frames",
+  }; // number of frames
+
+  result->option_table[DV_PLAYER_OPT_OSS_INCLUDE] = (struct poptOption) {
+    argInfo: POPT_ARG_INCLUDE_TABLE,
+    arg:     result->oss->option_table,
+    descrip: "Audio output options",
+  }; // oss
+
+  result->option_table[DV_PLAYER_OPT_DISPLAY_INCLUDE] = (struct poptOption) {
+    argInfo: POPT_ARG_INCLUDE_TABLE,
+    arg:     result->display->option_table,
+    descrip: "Video output options",
+  }; // display
+
+  result->option_table[DV_PLAYER_OPT_DECODER_INCLUDE] = (struct poptOption) {
+    argInfo: POPT_ARG_INCLUDE_TABLE,
+    arg:     result->decoder->option_table,
+    descrip: "Decoder options",
+  }; // decoder
+
+  result->option_table[DV_PLAYER_OPT_AUTOHELP] = (struct poptOption) {
+    argInfo: POPT_ARG_INCLUDE_TABLE,
+    arg:     poptHelpOptions,
+    descrip: "Help options",
+  }; // autohelp
+
+#endif // HAVE_LIBPOPT
+
+  return(result);
+
+ no_decoder:
+  free(result->oss);
+ no_oss:
+  free(result->display);
+ no_display:
+  free(result);
+  result = NULL;
+ no_mem:
+  return(result);
+} // dv_player_new
+
+
 /* I decided to try to use mmap for reading the input.  I got a slight
  * (about %5-10) performance improvement */
-
 void
 mmap_unaligned(int fd, off_t offset, size_t length, dv_mmap_region_t *mmap_region) {
   size_t real_length;
@@ -82,155 +184,25 @@ munmap_unaligned(dv_mmap_region_t *mmap_region) {
   return(munmap(mmap_region->map_start,mmap_region->map_length));
 } // munmap_unaligned
 
-static dv_decoder_t dv;
-static dv_mmap_region_t mmap_region;
-static struct stat statbuf;
-static struct timeval tv[3];
-
-/* Note buggy GCC of RH7.0 screws up if these are statics.
- * I guess the alias analysis fails to see how they are used in
- * the table below, and treats them as contants, optimizing away
- * the branches that depend on them. */
-
-gint arg_disable_audio;
-gint arg_disable_video;
-gint arg_block_quality = 3;
-gint arg_monochrome;
-gint arg_audio_frequency;
-gint arg_audio_quantization;
-gint arg_num_frames;
-gint arg_video_system;
-gchar * arg_audio_file;
-gchar * arg_audio_device;
-
-#if HAVE_LIBPOPT
-struct poptOption optionsTable[] = {
-  { longName: "version", 
-    shortName: 'v', 
-    argInfo: POPT_ARG_NONE, 
-    arg: NULL,
-    val: 'v', 
-    descrip: "show playdv version number",
-    argDescrip: NULL
-  },
-  { longName: "disable-audio", 
-    shortName: '\0', 
-    argInfo: POPT_ARG_NONE, 
-    arg: &arg_disable_audio,
-    val: 0, 
-    descrip: "skip audio decoding",
-    argDescrip: NULL
-  },
-  { longName: "disable-video", 
-    shortName: '\0', 
-    argInfo: POPT_ARG_NONE, 
-    arg: &arg_disable_video,
-    val: 0, 
-    descrip: "skip video decoding",
-    argDescrip: NULL
-  },
-  { longName: "quality", 
-    shortName: 'q', 
-    argInfo: POPT_ARG_INT, 
-    arg: &arg_block_quality,
-    val: 0, 
-    descrip: "set video quality level (coeff. parsing):"
-    "  1=DC and no ACs,"
-    " 2=DC and single-pass for ACs ,"
-    " 3=DC and multi-pass for ACs [default]",
-    argDescrip: "(1|2|3)"
-  },
-  { longName: "monochrome", 
-    shortName: 'm', 
-    argInfo: POPT_ARG_NONE, 
-    arg: &arg_monochrome,
-    val: 0, 
-    descrip: "skip decoding of color blocks",
-    argDescrip: NULL
-  },
-  { longName: "frequency", 
-    shortName: 'f', 
-    argInfo: POPT_ARG_INT, 
-    arg: &arg_audio_frequency,
-    val: 0, 
-    descrip: "audio frequency: 0=autodetect [default], 1=32 kHz, 2=44.1 kHz, 3=48 kHz",
-    argDescrip: "(0|1|2|3)"
-  },
-  { longName: "quantization", 
-    shortName: 'Q', 
-    argInfo: POPT_ARG_INT, 
-    arg: &arg_audio_quantization,
-    val: 0, 
-    descrip: "force audio quantization: 0=autodetect [default], 1=12 bit, 2=16bit",
-    argDescrip: "(0|1|2)"
-  },
-  { longName: "num-frames", 
-    shortName: 'n', 
-    argInfo: POPT_ARG_INT, 
-    arg: &arg_num_frames,
-    val: 0, 
-    descrip: "stop after <count> frames",
-    argDescrip: "count",
-  },
-  { longName: "video system", 
-    shortName: 'V', 
-    argInfo: POPT_ARG_INT, 
-    arg: &arg_video_system,
-    val: 0, 
-    descrip: "select video system:" 
-    "0=autoselect [default]," 
-    " 1=525/60 4:1:1 (NTSC),"
-    " 2=625/50 4:2:0 (PAL,IEC 61834 DV),"
-    " 3=625/50 4:1:1 (PAL,SMPTE 314M DV)",
-    argDescrip: "(0|1|2)",
-  },
-  { longName: "audio-device", 
-    shortName: '\0', 
-    argInfo: POPT_ARG_STRING, 
-    arg: &arg_audio_device,
-    val: 0, 
-    descrip: "target audio device; e.g. /dev/dsp [default]",
-    argDescrip: "devicename",
-  },
-  { longName: "audio-file", 
-    shortName: '\0', 
-    argInfo: POPT_ARG_STRING, 
-    arg: &arg_audio_file,
-    val: 0, 
-    descrip: "send raw decoded audio to file, skipping audio ioctls",
-    argDescrip: "filename",
-  },
-  { longName: NULL,
-    shortName: '\0',
-    argInfo: POPT_ARG_INCLUDE_TABLE,
-    arg: &dv_display_option_table,
-    descrip: "Display options",
-    argDescrip: NULL,
-  },
-  POPT_AUTOHELP
-  { NULL, 0, 0, NULL, 0, 0 }
-}; /* optionsTable */
-#endif // HAVE_LIBPOPT
-
 int 
 main(int argc,char *argv[]) 
 {
+  dv_player_t *dv_player;
   const char *filename;     /* name of input file */
-  dv_display_t *dv_dpy = NULL;
-  dv_oss_t      dv_oss;
   int fd;
   off_t offset = 0, eof;
   guint frame_count = 0;
   gint i;
-  gdouble seconds;
-  gboolean audio_present;
+  gdouble seconds = 0.0;
   gint16 *audio_buffers[4];
 #if HAVE_LIBPOPT
   int rc;             /* return code from popt */
   poptContext optCon; /* context for parsing command-line options */
 
+  if(!(dv_player = dv_player_new())) goto no_mem;
+
   /* Parse options using popt */
-  optCon = poptGetContext(NULL, argc, (const char **)argv, optionsTable, 0);
+  optCon = poptGetContext(NULL, argc, (const char **)argv, dv_player->option_table, 0);
   poptSetOtherOptionHelp(optCon, "<filename>");
 
   while ((rc = poptGetNextOpt(optCon)) > 0) {
@@ -257,46 +229,31 @@ main(int argc,char *argv[])
 
   /* Open the input file, do fstat to get it's total size */
   if(-1 == (fd = open(filename,O_RDONLY))) goto openfail;
-  if(fstat(fd, &statbuf)) goto fstatfail;
-  eof = statbuf.st_size;
+  if(fstat(fd, &dv_player->statbuf)) goto fstatfail;
+  eof = dv_player->statbuf.st_size;
 
-  dv_init(&dv);
-#if 0
-  switch(arg_block_quality) {
-  case 1:
-    dv.quality |= DV_QUALITY_DC;
-    break;
-  case 2:
-    dv.quality |= DV_QUALITY_AC_1;
-    break;
-  case 3:
-    dv.quality |= DV_QUALITY_AC_2;
-    break;
-  }
-  if(!arg_monochrome) 
-    dv.quality |= DV_QUALITY_COLOR;
-#else
-  dv.quality = DV_QUALITY_BEST;
-#endif
+  dv_init(dv_player->decoder);
+
+  dv_player->decoder->quality = dv_player->decoder->video->quality;
 
   /* Read in header of first frame to see how big frames are */
-  mmap_unaligned(fd,0,header_size,&mmap_region);
-  if(MAP_FAILED == mmap_region.map_start) goto map_failed;
+  mmap_unaligned(fd,0,header_size,&dv_player->mmap_region);
+  if(MAP_FAILED == dv_player->mmap_region.map_start) goto map_failed;
 
-  if(dv_parse_header(&dv, mmap_region.data_start)) goto header_parse_error;
-  munmap_unaligned(&mmap_region);
+  if(dv_parse_header(dv_player->decoder, dv_player->mmap_region.data_start)) goto header_parse_error;
+  munmap_unaligned(&dv_player->mmap_region);
 
-  eof -= dv.frame_size; // makes loop condition simpler
+  eof -= dv_player->decoder->frame_size; // makes loop condition simpler
 
-  if(!arg_disable_video) {
-    dv_dpy = dv_display_init (&argc, &argv, 
-			      dv.width, dv.height, dv.sampling, "playdv", "playdv");
-    if(!dv_dpy) goto no_display;
+  if(!dv_player->arg_disable_video) {
+    if(!dv_display_init (dv_player->display, &argc, &argv, 
+			 dv_player->decoder->width, dv_player->decoder->height, 
+			 dv_player->decoder->sampling, "playdv", "playdv")) goto no_display;
   } // if
 
-  if(!arg_disable_audio) {
-    if(!dv_oss_init(&dv.audio, &dv_oss)) {
-      dv.audio.num_channels = 0;
+  if(!dv_player->arg_disable_audio) {
+    if(!dv_oss_init(dv_player->decoder->audio, dv_player->oss)) {
+      dv_player->decoder->audio->num_channels = 0;
     } // if
 
     for(i=0; i < 4; i++) {
@@ -304,59 +261,61 @@ main(int argc,char *argv[])
     } // for
   } // if
 
-  gettimeofday(tv+0,NULL);
+  gettimeofday(dv_player->tv+0,NULL);
 
   for(offset=0;
       offset <= eof;
-      offset += dv.frame_size) {
+      offset += dv_player->decoder->frame_size) {
 
     // Map the frame's data into memory
-    mmap_unaligned(fd, offset, dv.frame_size, &mmap_region);
-    if(MAP_FAILED == mmap_region.map_start) goto map_failed;
+    mmap_unaligned(fd, offset, dv_player->decoder->frame_size, &dv_player->mmap_region);
+    if(MAP_FAILED == dv_player->mmap_region.map_start) goto map_failed;
 
     // Parse and unshuffle audio
-    if(!arg_disable_audio) {
-      audio_present = dv_decode_full_audio(&dv, mmap_region.data_start, audio_buffers);
-      dv_oss_play(&dv.audio, &dv_oss, audio_buffers);
+    if(!dv_player->arg_disable_audio) {
+      dv_decode_full_audio(dv_player->decoder, dv_player->mmap_region.data_start, audio_buffers);
+      dv_oss_play(dv_player->decoder->audio, dv_player->oss, audio_buffers);
     } // if
 
-    if(!arg_disable_video) {
+    if(!dv_player->arg_disable_video) {
       // Parse and decode video
-      dv_decode_full_frame(&dv, mmap_region.data_start, 
-			   dv_dpy->color_space, dv_dpy->pixels, dv_dpy->pitches);
+      dv_decode_full_frame(dv_player->decoder, dv_player->mmap_region.data_start, 
+			   dv_player->display->color_space, 
+			   dv_player->display->pixels, 
+			   dv_player->display->pitches);
 
       // Display
-      dv_display_show(dv_dpy);
+      dv_display_show(dv_player->display);
     } // if 
 
     frame_count++;
-    if((arg_num_frames > 0) && (frame_count >= arg_num_frames)) {
+    if((dv_player->arg_num_frames > 0) && (frame_count >= dv_player->arg_num_frames)) {
       goto end_of_file;
     } // if 
 
     // Release the frame's data
-    munmap_unaligned(&mmap_region); 
+    munmap_unaligned(&dv_player->mmap_region); 
 
   } // while
 
  end_of_file:
-  gettimeofday(tv+1,NULL);
-  timersub(tv+1,tv+0,tv+2);
-  seconds = (double)tv[2].tv_usec / 1000000.0; 
-  seconds += tv[2].tv_sec;
+  gettimeofday(dv_player->tv+1,NULL);
+  timersub(dv_player->tv+1,dv_player->tv+0,dv_player->tv+2);
+  seconds = (double)dv_player->tv[2].tv_usec / 1000000.0; 
+  seconds += dv_player->tv[2].tv_sec;
   fprintf(stderr,"Processed %d frames in %05.2f seconds (%05.2f fps)\n", 
 	  frame_count, seconds, (double)frame_count/seconds);
-  if(!arg_disable_video) {
-    dv_display_exit(dv_dpy);
+  if(!dv_player->arg_disable_video) {
+    dv_display_exit(dv_player->display);
   } // if
-  if(!arg_disable_audio) {
-    dv_oss_close(&dv_oss);
+  if(!dv_player->arg_disable_audio) {
+    dv_oss_close(dv_player->oss);
   } // if 
   exit(0);
 
  display_version:
   fprintf(stderr,"playdv: version %s, http://libdv.sourceforge.net/\n",
-	  "CVS 01/10/2001");
+	  "CVS 01/13/2001");
   exit(0);
 
   /* Error handling section */

@@ -26,6 +26,14 @@
 #ifndef DV_AUDIO_H
 #define DV_AUDIO_H
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif // HAVE_CONFIG_H
+
+#if HAVE_LIBPOPT
+#include <popt.h>
+#endif // HAVE_LIBPOPT
+
 #define DV_AUDIO_MAX_SAMPLES 1920
 
 /* From Section 8.1 of 61834-4: Audio auxiliary data source pack fields pc1-pc4.
@@ -70,19 +78,28 @@ typedef struct dv_auux_as_s {
   dv_aaux_as_pc4_t pc4;
 } dv_aaux_as_t;
 
+#define DV_AUDIO_OPT_FREQUENCY    0
+#define DV_AUDIO_OPT_QUANTIZATION 1
+#define DV_AUDIO_NUM_OPTS         2
+
 typedef struct dv_audio_s {
-  dv_aaux_as_t  aaux_as;           // low-level audio format info direct from the stream
-  gint          samples_this_frame; 
-  gint          max_samples;
-  gint          frequency;
-  gint          num_channels;
+  dv_aaux_as_t      aaux_as;           // low-level audio format info direct from the stream
+  gint              samples_this_frame; 
+  gint              max_samples;
+  gint              frequency;
+  gint              num_channels;
+  gint              arg_audio_frequency;
+  gint              arg_audio_quantization;
+#ifdef HAVE_LIBPOPT
+  struct poptOption option_table[DV_AUDIO_NUM_OPTS+1]; 
+#endif // HAVE_LIBPOPT
 } dv_audio_t;
 
-
 /* Low-level routines */
-extern gboolean dv_parse_audio_header(dv_audio_t *dv_audio, guchar *inbuf);
-extern gboolean dv_update_num_samples(dv_audio_t *dv_audio, guint8 *inbuf);
-extern gint dv_decode_audio_block(dv_audio_t *dv_audio, guint8 *buffer, gint ds, gint audio_dif, gint16 **outbufs);
-extern void dv_dump_aaux_as(void *buffer, int ds, int audio_dif);
+extern dv_audio_t *dv_audio_new(void);
+extern gboolean    dv_parse_audio_header(dv_audio_t *dv_audio, guchar *inbuf);
+extern gboolean    dv_update_num_samples(dv_audio_t *dv_audio, guint8 *inbuf);
+extern gint        dv_decode_audio_block(dv_audio_t *dv_audio, guint8 *buffer, gint ds, gint audio_dif, gint16 **outbufs);
+extern void        dv_dump_aaux_as(void *buffer, int ds, int audio_dif);
 
 #endif // DV_AUDIO_H

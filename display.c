@@ -53,22 +53,6 @@ static int dv_display_SDL_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_nam
 static gboolean dv_display_gdk_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv);
 static gint dv_display_Xv_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name);
 
-static gint arg_display;
-
-#if HAVE_LIBPOPT
-struct poptOption dv_display_option_table[] = {
-  { longName: "display", 
-    shortName: 'd', 
-    argInfo: POPT_ARG_INT, 
-    arg: &arg_display,
-    val: 0, 
-    descrip: "video display method: 0=autoselect [default], 1=gtk, 2=Xv, 3=SDL",
-    argDescrip: "(0|1|2|3)",
-  },
-  { NULL, 0, 0, NULL, 0, 0 },
-}; // dv_display_option_table
-#endif // HAVE_LIBPOPT
-
 #if HAVE_SDL
 static void dv_center_window(SDL_Surface *screen);
 #endif
@@ -76,6 +60,29 @@ static void dv_center_window(SDL_Surface *screen);
 #if HAVE_LIBXV
 static void dv_display_event (dv_display_t *dv_dpy);
 #endif 
+
+dv_display_t *
+dv_display_new(void) 
+{
+  dv_display_t *result;
+
+  result = calloc(1,sizeof(dv_display_t));
+  if(!result) goto no_mem;
+
+#if HAVE_LIBPOPT
+  result->option_table[DV_DISPLAY_OPT_METHOD] = (struct poptOption) {
+    longName:   "display", 
+    shortName:  'd', 
+    argInfo:    POPT_ARG_INT, 
+    arg:        &result->arg_display,
+    descrip:    "video display method: 0=autoselect [default], 1=gtk, 2=Xv, 3=SDL",
+    argDescrip: "(0|1|2|3)",
+  }; // display method
+#endif // HAVE_POPT
+
+ no_mem:
+  return(result);
+} // dv_display_new
 
 /* ----------------------------------------------------------------------------
  */
@@ -163,7 +170,7 @@ dv_display_gdk_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv) {
 
 #if HAVE_GTK
   dv_dpy->pixels[0] = calloc(1,dv_dpy->width * dv_dpy->height * 3);
-  if(!dv_dpy) goto nomem;
+  if(!dv_dpy) goto no_mem;
   gtk_init(argc, argv);
   gdk_rgb_init();
   gtk_widget_set_default_colormap(gdk_rgb_get_cmap());
@@ -186,7 +193,7 @@ dv_display_gdk_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv) {
 	 * Setup converter functions for RGB video
 	 */
   return TRUE;
- nomem:
+ no_mem:
 #endif // HAVE_GTK
   return FALSE;
 } /* dv_display_gdk_init */
@@ -454,12 +461,9 @@ dv_display_SDL_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name) {
 
 /* ----------------------------------------------------------------------------
  */
-dv_display_t *
-dv_display_init(gint *argc, gchar ***argv, gint width, gint height, 
+gboolean
+dv_display_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv, gint width, gint height, 
 		dv_sample_t sampling, gchar *w_name, gchar *i_name) {
-  dv_display_t	*dv_dpy;
-
-  if(!(dv_dpy = calloc(sizeof(dv_display_t), 1))) goto nomem;
 
   dv_dpy->width = width;
   dv_dpy->height = height;
@@ -479,7 +483,7 @@ dv_display_init(gint *argc, gchar ***argv, gint width, gint height,
     break;
   } // switch
 
-  switch(arg_display) {
+  switch(dv_dpy->arg_display) {
   case 0:
     /* Autoselect */
     /* Try to use Xv first, then SDL */
@@ -560,11 +564,9 @@ dv_display_init(gint *argc, gchar ***argv, gint width, gint height,
   fprintf(stderr, " Using gtk for display\n");
 
  ok:
-  return(dv_dpy);
+  return(TRUE);
 
  fail:
-  free(dv_dpy);
- nomem:
   fprintf(stderr, " Unable to establish a display method\n");
-  return(NULL);
+  return(FALSE);
 } /* dv_display_init */

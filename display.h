@@ -58,6 +58,9 @@ extern "C" {
 #define DV_FOURCC_YV12  0x32315659	/* 4:2:0 Planar mode: Y + V + U  (3 planes) */
 #define DV_FOURCC_YUY2  0x32595559	/* 4:2:2 Packed mode: Y0+U0+Y1+V0 (1 plane) */
 
+#define DV_DISPLAY_OPT_METHOD 0
+#define DV_DISPLAY_NUM_OPTS   1
+
 typedef enum dv_dpy_lib_e {
   e_dv_dpy_Xv,
   e_dv_dpy_SDL,
@@ -104,13 +107,16 @@ typedef struct {
   SDL_Rect rect;
 #endif
 
+  gint arg_display;
+#ifdef HAVE_LIBPOPT
+  struct poptOption option_table[DV_DISPLAY_NUM_OPTS+1]; 
+#endif // HAVE_LIBPOPT
 } dv_display_t;
 
-#ifdef HAVE_LIBPOPT
-extern struct poptOption dv_display_option_table[];
-#endif HAVE_LIBPOPT
 
-extern dv_display_t *dv_display_init(int *argc, char ***argv, 
+extern dv_display_t *dv_display_new(void);
+extern gboolean      dv_display_init(dv_display_t *dpy,
+				     int *argc, char ***argv, 
 				     int width, int height, 
 				     dv_sample_t sampling,
 				     char *w_name, char *i_name); // dv_display_init
