@@ -609,26 +609,31 @@ dv_decode_audio_block(dv_audio_t *dv_audio,
 
     } /* for */
     /* -----------------------------------------------------------------------
-     * check if all samples in block failed
+     * check if some or all samples in block failed
      */
-    if (full_failure == 36) {
+    if (full_failure) {
       if (dv_audio -> error_log) {
         if (dv_get_timestamp (dv_audio -> dv_decoder, err_msg1) &&
             dv_get_recording_datetime (dv_audio -> dv_decoder, err_msg2)) {
         fprintf (dv_audio -> error_log,
-                   "abf %s %s %02x %02x %02x 16\n",
+                   "%s %s %s %02x %02x %02x 16 %d/36\n",
+                   (full_failure == 36) ? "abf": "asf",
                    err_msg1, err_msg2,
-                   inbuf [0], inbuf [1], inbuf [2]);
+                   inbuf [0], inbuf [1], inbuf [2],
+                   full_failure);
         } else {
           fprintf (dv_audio -> error_log,
-                   "# complete audio block failure (16bit): "
+                   "# audio %s failure (16bit): "
                    "header = %02x %02x %02x\n",
-                 inbuf [0], inbuf [1], inbuf [2]);
+                   (full_failure == 36) ? "block": "sample",
+                   inbuf [0], inbuf [1], inbuf [2]);
+        }
       }
+      if (full_failure == 36) {
+        dv_audio -> block_failure++;
       }
-      dv_audio -> block_failure++;
-      dv_audio -> sample_failure += 36;
     }
+    dv_audio -> sample_failure += full_failure;
 
   } else if(dv_audio->quantization == 12) {
 
@@ -651,49 +656,47 @@ dv_decode_audio_block(dv_audio_t *dv_audio,
       if(y > 2048) y -= 4096;
       if(z > 2048) z -= 4096;
       /* ---------------------------------------------------------------------
-       * so check if both samples have an error value 0x800
+       * so check if a sample has an error value 0x800 and keep this code
+       * for later correction.
        */
-      if (y == 2048 && z == 2048) {
-        /* -------------------------------------------------------------------
-         * remember full failure and keep error code for later removal
-         */
-        full_failure += 2;
+      if (y == 2048) {
+        full_failure++;
         ysamples[i] = 0x8000;
+      } else {
+        ysamples[i] = dv_upsample(y);
+      }
+      if (z == 2048) {
+        full_failure++;
         zsamples[i] = 0x8000;
       } else {
-        if (y == 2048) {
-          y -= 4095;
-          full_failure++;
-        }
-        if (z == 2048) {
-          z -= 4095;
-          full_failure++;
-        }
-        ysamples[i] = dv_upsample(y);
         zsamples[i] = dv_upsample(z);
       }
     } /* for  */
     /* -----------------------------------------------------------------------
-     * check if all samples in block failed
+     * check if some or all samples in block failed
      */
-    if (full_failure == 48) {
+    if (full_failure) {
       if (dv_audio -> error_log) {
         if (dv_get_timestamp (dv_audio -> dv_decoder, err_msg1) &&
             dv_get_recording_datetime (dv_audio -> dv_decoder, err_msg2)) {
         fprintf (dv_audio -> error_log,
-                   "abf %s %s %02x %02x %02x 12\n",
+                   "%s %s %s %02x %02x %02x 12 %d/48\n",
+                   (full_failure == 48) ? "abf": "asf",
                    err_msg1, err_msg2,
-                   inbuf [0], inbuf [1], inbuf [2]);
+                   inbuf [0], inbuf [1], inbuf [2], full_failure);
         } else {
           fprintf (dv_audio -> error_log,
-                   "# complete audio block failure (12bit): "
+                   "# audio %s failure (12bit): "
                    "header = %02x %02x %02x\n",
-                 inbuf [0], inbuf [1], inbuf [2]);
+                   (full_failure == 48) ? "block": "sample",
+                   inbuf [0], inbuf [1], inbuf [2]);
+        }
       }
+      if (full_failure == 48) {
+        dv_audio -> block_failure++;
       }
-      dv_audio -> block_failure++;
-      dv_audio -> sample_failure += 48;
     }
+    dv_audio -> sample_failure += full_failure;
 
   } else {
     goto unsupported_sampling;

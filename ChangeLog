@@ -1,3 +1,6 @@
+2003-07-05 Stefan Lucke <stefan@lucke.in-berlin.de>
+        * added audio correction for single sample failure (by Jan Schmidt)
+
 2003-06-13  Dan Dennedy <dan@dennedy.org>
 	* added dv_get_ssyb_pack()
 	* encode.c: bugfix default encoding params result in poor quality due to 

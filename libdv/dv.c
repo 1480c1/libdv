@@ -444,7 +444,7 @@ void dv_check_coeff_ranges(dv_macroblock_t *mb) {
 }
 
 void
-dv_decode_full_frame(dv_decoder_t *dv, const uint8_t *buffer, 
+dv_decode_full_frame(dv_decoder_t *dv, const uint8_t *buffer,
 		     dv_color_space_t color_space, uint8_t **pixels, int *pitches) {
 
   static dv_videosegment_t vs;
@@ -455,7 +455,7 @@ dv_decode_full_frame(dv_decoder_t *dv, const uint8_t *buffer,
 
   if(!seg->bs) {
     seg->bs = _dv_bitstream_init();
-    if(!seg->bs) 
+    if(!seg->bs)
       goto no_mem;
   } /* if */
   seg->isPAL = (dv->system == e_dv_system_625_50);
@@ -468,7 +468,7 @@ dv_decode_full_frame(dv_decoder_t *dv, const uint8_t *buffer,
        block contains one compressed macroblock.  DV bit allocation
        for the VLC stage can spill bits between blocks in the same
        video segment.  So parsing needs the whole segment to decode
-       the VLC data 
+       the VLC data
 	*/
     dif += 6;
     audio=0;
@@ -477,12 +477,12 @@ dv_decode_full_frame(dv_decoder_t *dv, const uint8_t *buffer,
       /* skip audio block - interleaved before every 3rd video segment */
       if(!(v % 3)) {
         /*dv_dump_aaux_as(buffer+(dif*80), ds, audio); */
-	dif++; 
+	dif++;
 	audio++;
       } /* if */
       /* stage 1: parse and VLC decode 5 macroblocks that make up a video segment */
       offset = dif * 80;
-      _dv_bitstream_new_buffer(seg->bs, (uint8_t *)buffer + offset, 80*5); 
+      _dv_bitstream_new_buffer(seg->bs, (uint8_t *)buffer + offset, 80*5);
       dv_parse_video_segment(seg, dv->quality);
       /* stage 2: dequant/unweight/iDCT blocks, and place the macroblocks */
       dif+=5;
@@ -555,7 +555,6 @@ dv_decode_full_audio(dv_decoder_t *dv, const uint8_t *buffer, int16_t **outbufs)
   int ch;
 
   dif=0;
-//fprintf (stderr, " ---------- \n");
   if (!dv_parse_audio_header (dv, buffer))
   {
     goto no_audio;
@@ -563,8 +562,6 @@ dv_decode_full_audio(dv_decoder_t *dv, const uint8_t *buffer, int16_t **outbufs)
   dv -> audio -> block_failure = dv -> audio -> sample_failure = 0;
   for (ds = 0; ds < dv -> num_dif_seqs; ds++) {
     dif += 6;
-//    fprintf (stderr, "(%d) ", ds);
-//    dv_dump_audio_header (dv, ds, buffer + (dif * 80));
     for (audio_dif = 0; audio_dif < 9; audio_dif++) {
       if ((result = dv_decode_audio_block (dv -> audio,
                                            buffer + (dif * 80),
@@ -578,22 +575,15 @@ dv_decode_full_audio(dv_decoder_t *dv, const uint8_t *buffer, int16_t **outbufs)
     } /* for  */
   } /* for */
 
-  if (dv -> audio -> block_failure) {
+  if (dv -> audio -> sample_failure) {
     if (dv -> audio -> error_log) {
       fprintf (dv -> audio -> error_log,
-               "# audio block failure for %d blocks = %d samples of %d\n",
+               "# audio block/sample failure for %d blocks, %d samples of %d\n",
                dv -> audio -> block_failure,
                dv -> audio -> sample_failure,
                dv -> audio -> raw_samples_this_frame [0]); /* TODO: second channel */
     }
     dv_audio_correct_errors (dv -> audio, outbufs);
-  }
-  if (!dv->audio->block_failure && dv->audio->sample_failure) {
-    if (dv -> audio -> error_log) {
-      fprintf (dv -> audio -> error_log,
-               "# sample failure without block failure: "
-                 "report this to libdv at SF!!\n");
-    }
   }
 
   if(dv->audio->emphasis) {
@@ -605,13 +595,13 @@ dv_decode_full_audio(dv_decoder_t *dv, const uint8_t *buffer, int16_t **outbufs)
   dv_audio_mix4ch (dv -> audio, outbufs);
 
   return(TRUE);
-  
+
  fail:
 fprintf (stderr, "# decode failure \n");
  no_audio:
 fprintf (stderr, "# no audio\n");
   return(FALSE);
-  
+
 } /* dv_decode_full_audio */
 
 /* ---------------------------------------------------------------------------
