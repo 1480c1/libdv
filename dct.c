@@ -132,8 +132,12 @@ void idct_88(dv_coeff_t *block) {
   gint i;
   
   idct_block_mmx(block);
+#if 1
   emms();
+#endif
 }
+
+#if BRUTE_FORCE_248
 
 void idct_248(double *block) {
   int u,h,z,x,i;
@@ -196,3 +200,4 @@ void idct_248(double *block) {
 }
 
 
+#endif // BRUTE_FORCE_248

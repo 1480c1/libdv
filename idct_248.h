@@ -1,8 +1,8 @@
 /* 
- *  dct.h
+ *  idct_248.h
  *
- *     Copyright (C) Charles 'Buck' Krasic - April 2000
- *     Copyright (C) Erik Walthinsen - April 2000
+ *     Copyright (C) Charles 'Buck' Krasic - May 2000
+ *     Copyright (C) Erik Walthinsen - May 2000
  *
  *  This file is part of libdv, a free DV (IEC 61834/SMPTE 314M)
  *  decoder.
@@ -23,18 +23,13 @@
  *
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
- 
-#ifndef __DCT_H__
-#define __DCT_H__
+
+#ifndef _IDCT_248_H
+#define _IDCT_248_H
 
 #include "dv.h"
 
-void dct_init(void);
-void dct_88(double *block);
-void dct_248(double *block);
-void idct_88(dv_coeff_t *block);
-#if BRUTE_FORCE_248
-void idct_248(double *block);
-#endif
+extern void dv_dct_248_init(void);
+extern void dv_idct_248(dv_248_coeff_t *x248);
 
-#endif // __DCT_H__
+#endif // _IDCT_248_H

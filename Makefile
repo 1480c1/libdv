@@ -9,7 +9,7 @@ asm = idct_block_mmx.S
 CPPFLAGS += -DUSE_MMX_ASM=1
 asm += vlc_x86.S quant_x86.S
 
-sources = playdv.c dct.c weighting.c quant.c vlc.c place.c parse.c bitstream.c ycrcb_to_rgb32.c
+sources = playdv.c dct.c idct_248.c weighting.c quant.c vlc.c place.c parse.c bitstream.c ycrcb_to_rgb32.c
 objects= $(sources:.c=.o) $(asm:.S=.o)
 auxsources=gasmoff.c
 deps=$(sources:.c=.d) $(asm:.S=.d) $(auxsources:.c=.d)

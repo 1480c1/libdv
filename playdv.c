@@ -39,6 +39,7 @@
 
 #include "bitstream.h"
 #include "dct.h"
+#include "idct_248.h"
 #include "quant.h"
 #include "weighting.h"
 #include "vlc.h"
@@ -52,7 +53,7 @@ void convert_coeffs(dv_block_t *bl)
   for(i=0;
       i<64;
       i++) {
-    bl->fcoeffs[i] = bl->coeffs[i];
+    bl->coeffs248[i] = bl->coeffs[i];
   }
 } // convert_coeffs
 
@@ -62,7 +63,7 @@ void convert_coeffs_prime(dv_block_t *bl)
   for(i=0;
       i<64;
       i++) {
-    bl->coeffs[i] = bl->fcoeffs[i];
+    bl->coeffs[i] = bl->coeffs248[i];
   }
 } // convert_coeffs_prime
 
@@ -100,6 +101,7 @@ int main(int argc,char *argv[]) {
 
   weight_init();  
   dct_init();
+  dv_dct_248_init();
   dv_construct_vlc_table();
   dv_parse_init();
   dv_place_init();
@@ -180,7 +182,7 @@ int main(int argc,char *argv[]) {
 	      quant_248_inverse(bl->coeffs,mb->qno,bl->class_no);
 	      weight_248_inverse(bl->coeffs);
 	      convert_coeffs(bl);
-	      idct_248(bl->fcoeffs);
+	      dv_idct_248(bl->coeffs248);
 	      convert_coeffs_prime(bl);
 	    } else {
 	      quant_88_inverse(bl->coeffs,mb->qno,bl->class_no);

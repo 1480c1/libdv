@@ -49,15 +49,16 @@
 
 typedef enum sample_s { 
   e_dv_sample_411,
-    e_dv_sample_420,
-    e_dv_sample_422,
+  e_dv_sample_420,
+  e_dv_sample_422,
 } dv_sample_t;
 
 typedef gint16 dv_coeff_t;
+typedef gint32 dv_248_coeff_t;
 
 typedef struct dv_block_s {
   dv_coeff_t   coeffs[64] __attribute__ ((aligned (8)));
-  double       fcoeffs[64];
+  dv_248_coeff_t coeffs248[64];
   gint         dct_mode; 
   gint         class_no;
   gint8        *reorder;

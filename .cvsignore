@@ -1,7 +1,9 @@
 *.d
+.nfs*
+asmoff.h
+bb.out
+gasmoff
 gmon.out
+gprof.*
 playdv
 testvlc
-.nfs*
-bb.out
-gprof.*
