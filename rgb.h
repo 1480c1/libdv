@@ -24,10 +24,10 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.
  */
 
-#ifndef __DV_RGB_H__
-#define __DV_RGB_H__
+#ifndef DV_RGB_H
+#define DV_RGB_H
 
-#include "dv.h"
+#include "dv_types.h"
 
 /* Convert output of decoder to RGB layout.  
  * 
@@ -66,4 +66,4 @@ extern void dv_mb420_rgb_mmx(dv_macroblock_t *mb, guchar *pixels, gint pitch);
 }
 #endif
 
-#endif /* __DV_RGB_H__ */
+#endif /* DV_RGB_H */

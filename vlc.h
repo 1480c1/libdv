@@ -24,10 +24,10 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#ifndef __VLC_H__
-#define __VLC_H__
+#ifndef DV_VLC_H
+#define DV_VLC_H
 
-#include <glib.h>
+#include "dv_types.h"
 #include "bitstream.h"
 
 #define VLC_NOBITS (-1)
@@ -73,4 +73,4 @@ extern __inline__ void dv_peek_vlc(bitstream_t *bs,gint maxbits, dv_vlc_t *resul
     __dv_decode_vlc(bitstream_show(bs,16),result);
 } // dv_peek_vlc
 
-#endif // __VLC_H__
+#endif // DV_VLC_H

@@ -7,6 +7,7 @@
 
 #include "dv.h"
 #include "dct.h"
+#include "audio.h"
 #include "idct_248.h"
 #include "quant.h"
 #include "weighting.h"
@@ -72,7 +73,7 @@ dv_decoder_new(void) {
     longName: "video system", 
     shortName: 'V', 
     argInfo: POPT_ARG_INT, 
-    descrip: "select video system:" 
+    descrip: "video standard:" 
     "0=autoselect [default]," 
     " 1=525/60 4:1:1 (NTSC),"
     " 2=625/50 4:2:0 (PAL,IEC 61834 DV),"
@@ -407,9 +408,10 @@ gboolean
 dv_decode_full_audio(dv_decoder_t *dv, guchar *buffer, gint16 **outbufs)
 {
   gint ds, dif, audio_dif, result;
+  gint ch;
 
   dif=0;
-  if(!dv_update_num_samples(dv->audio, buffer)) goto no_audio;
+  if(!dv_parse_audio_header(dv, buffer)) goto no_audio;
 
   for (ds=0; ds < dv->num_dif_seqs; ds++) {
     dif += 6;
@@ -418,6 +420,12 @@ dv_decode_full_audio(dv_decoder_t *dv, guchar *buffer, gint16 **outbufs)
       dif+=16;
     } // for 
   } // for
+
+  if(dv->audio->emphasis) {
+    for(ch=0; ch< dv->audio->num_channels; ch++) {
+      dv_audio_deemphasis(dv->audio, outbufs[ch]);
+    } // for 
+  } // if
   
   return(TRUE);
   

@@ -24,10 +24,10 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
  
-#ifndef __DCT_H__
-#define __DCT_H__
+#ifndef DV_DCT_H
+#define DV_DCT_H
 
-#include "dv.h"
+#include "dv_types.h"
 
 #define DCT_YUV_PRECISION 2        /* means fixpoint with YUV_PRECISION bits 
 				      after the point (if you change this,
@@ -42,4 +42,4 @@ void idct_88(dv_coeff_t *block);
 void idct_248(double *block);
 #endif
 
-#endif // __DCT_H__
+#endif // DV_DCT_H

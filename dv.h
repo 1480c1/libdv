@@ -24,173 +24,21 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#ifndef __DV_H__
-#define __DV_H__
+#ifndef DV_H
+#define DV_H
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif // HAVE_CONFIG_H
-
-#if HAVE_LIBPOPT
-#include <popt.h>
-#endif // HAVE_LIBPOPT
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <bitstream.h>
-#include "parse.h"
-#include "audio.h"
+
+#include "dv_types.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define DV_DCT_248	(1)
-#define DV_DCT_88	(0)
-
-#define DV_SCT_HEADER    (0x0)
-#define DV_SCT_SUBCODE   (0x1)
-#define DV_SCT_VAUX      (0x2)
-#define DV_SCT_AUDIO     (0x3)
-#define DV_SCT_VIDEO     (0x4)
-
-#define DV_FSC_0         (0)
-#define DV_FSC_1         (1)
-
-#if ARCH_X86
-#define DV_WEIGHT_BIAS	 6
-#else
-#define DV_WEIGHT_BIAS	 0
-#endif
-
-#define DV_QUALITY_COLOR       1     /* Clear this bit to make monochrome */
-
-#define DV_QUALITY_AC_MASK     (0x3 << 1)
-#define DV_QUALITY_DC          (0x0 << 1)
-#define DV_QUALITY_AC_1        (0x1 << 1)
-#define DV_QUALITY_AC_2        (0x2 << 1)
-
-#define DV_QUALITY_BEST       (DV_QUALITY_COLOR | DV_QUALITY_AC_2)
-#define DV_QUALITY_FASTEST     0     /* Monochrome, DC coeffs only */
-
-#define DV_DECODER_OPT_SYSTEM        0
-#define DV_DECODER_OPT_VIDEO_INCLUDE 1
-#define DV_DECODER_OPT_AUDIO_INCLUDE 2
-#define DV_DECODER_OPT_CALLBACK      3
-#define DV_DECODER_NUM_OPTS          4
-
-typedef enum color_space_e { 
-  e_dv_color_yuv, 
-  e_dv_color_rgb 
-} dv_color_space_t;
-
-typedef enum sample_e { 
-  e_dv_sample_none = 0,
-  e_dv_sample_411,
-  e_dv_sample_420,
-  e_dv_sample_422,
-} dv_sample_t;
-
-typedef enum system_e { 
-  e_dv_system_none = 0,
-  e_dv_system_525_60,    // NTSC
-  e_dv_system_625_50,    // PAL
-} dv_system_t;
-
-typedef enum std_e { 
-  e_dv_std_none = 0,
-  e_dv_std_smpte_314m,    
-  e_dv_std_iec_61834,    
-} dv_std_t;
-
-typedef gint16 dv_coeff_t;
-typedef gint32 dv_248_coeff_t;
-
-typedef struct dv_id_s {
-  gint8 sct;      // Section type (header,subcode,aux,audio,video)
-  gint8 dsn;      // DIF sequence number (0-12)
-  gboolean fsc;   // First (0)/Second channel (1)
-  gint8 dbn;      // DIF block number (0-134)
-} dv_id_t;
-
-typedef struct dv_header_s {
-  gboolean dsf;   // DIF sequence flag: 525/60 (0) or 625,50 (1)
-  gint8 apt;
-  gboolean tf1;
-  gint8 ap1;
-  gboolean tf2;
-  gint8 ap2;
-  gboolean tf3;
-  gint8 ap3;
-} dv_header_t;
-
-typedef struct dv_block_s {
-  dv_coeff_t   coeffs[64] __attribute__ ((aligned (8)));
-  dv_248_coeff_t coeffs248[64];
-  gint         dct_mode; 
-  gint         class_no;
-  gint8        *reorder;
-  gint8        *reorder_sentinel;
-  gint         offset;   // bitstream offset of first unused bit 
-  gint         end;      // bitstream offset of last bit + 1
-  gint         eob;
-  gboolean     mark;     // used during passes 2 & 3 for tracking fragmented vlcs
-} dv_block_t;
-
-typedef struct dv_macroblock_s {
-  gint       i,j;   // superblock row/column, 
-  gint       k;     // macroblock no. within superblock */
-  gint       x, y;  // top-left corner position
-  dv_block_t b[6];
-  gint       qno;
-  gint       sta;
-  gint       vlc_error;
-  gint       eob_count;
-} dv_macroblock_t;
-
-typedef struct dv_videosegment_s {
-  gint            i, k;
-  bitstream_t    *bs;
-  dv_macroblock_t mb[5]; 
-  gboolean        isPAL;
-} dv_videosegment_t;
-
-typedef struct dv_dif_sequence_s {
-  dv_videosegment_t seg[27];
-} dv_dif_sequence_t;
-
-// Frame
-typedef struct dv_frame_s {
-  gboolean           placement_done;
-  dv_dif_sequence_t  ds[12];  
-} dv_frame_t;
-
-typedef struct dv_decoder_s {
-  guint              quality;
-  dv_system_t        system;
-  dv_std_t           std;
-  dv_sample_t        sampling;
-  gint               num_dif_seqs; // DIF sequences per frame
-  gint               height, width;
-  size_t             frame_size;
-  dv_header_t        header;
-  dv_audio_t        *audio;
-  dv_video_t        *video;
-#if ARCH_X86
-  gboolean           use_mmx;
-#endif
-  gint               arg_video_system;
-
-#ifdef HAVE_LIBPOPT
-  struct poptOption option_table[DV_DECODER_NUM_OPTS+1]; 
-#endif // HAVE_LIBPOPT
-} dv_decoder_t;
-
-static const gint header_size = 80 * 52; // upto first audio AAUX AS
-static const gint frame_size_525_60 = 10 * 150 * 80;
-static const gint frame_size_625_50 = 12 * 150 * 80;
-
-#ifdef HAVE_LIBPOPT
+#if HAVE_LIBPOPT
 extern inline void
 dv_opt_usage(poptContext con, struct poptOption *opt, gint num)
 {
@@ -233,4 +81,4 @@ extern void dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg
 }
 #endif
 
-#endif /* __DV_H__ */
+#endif // DV_H 

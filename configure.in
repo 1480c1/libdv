@@ -17,6 +17,8 @@ AM_PROG_LIBTOOL
 use_asm=:
 arch_x86=false
 
+AC_DEFINE(_GNU_SOURCE)
+
 AC_ARG_ENABLE(asm,
 [  --disable-asm           disable use of architecture specific assembly code],
 [	if test "$enableval" = "no"; then

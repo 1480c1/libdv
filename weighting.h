@@ -24,10 +24,10 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#ifndef __WEIGHTING_H__
-#define __WEIGHTING_H__
+#ifndef DV_WEIGHTING_H
+#define DV_WEIGHTING_H
 
-#include "dv.h"
+#include "dv_types.h"
 
 void weight_init(void);
 void weight_88(dv_coeff_t *block);
@@ -35,4 +35,4 @@ void weight_248(dv_coeff_t *block);
 void weight_88_inverse(dv_coeff_t *block);
 void weight_248_inverse(dv_coeff_t *block);
 
-#endif // __WEIGHTING_H__
+#endif // DV_WEIGHTING_H

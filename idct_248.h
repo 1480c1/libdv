@@ -24,12 +24,12 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#ifndef _IDCT_248_H
-#define _IDCT_248_H
+#ifndef IDCT_248_H
+#define IDCT_248_H
 
-#include "dv.h"
+#include "dv_types.h"
 
 extern void dv_dct_248_init(void);
 extern void dv_idct_248(dv_248_coeff_t *x248);
 
-#endif // _IDCT_248_H
+#endif // IDCT_248_H

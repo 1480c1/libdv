@@ -33,12 +33,12 @@ gasmoff_SOURCES=
 
 endif # HOST_X86
 
-pkginclude_HEADERS= dv.h rgb.h display.h bitstream.h audio.h
+pkginclude_HEADERS= dv.h dv_types.h bitstream.h display.h bitstream.h oss.h
 libdv_la_SOURCES= dv.c dct.c idct_248.c weighting.c quant.c vlc.c place.c \
 	parse.c bitstream.c YUY2.c YV12.c rgb.c audio.c oss.c \
 	YUY2.h    bitstream.h  dv.h        parse.h  rgb.h \
 	YV12.h    dct.h        idct_248.h  place.h  vlc.h \
-	quant.h  weighting.h audio.h oss.h $(ASMS)
+	quant.h  weighting.h audio.h rgb.h audio.h $(ASMS)
 libdv_la_LDFLAGS = -version-info 0:0:0
 
 playdv_SOURCES= playdv.c display.c display.h

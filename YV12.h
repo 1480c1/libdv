@@ -24,10 +24,10 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#ifndef __YV12_H__
-#define __YV12_H__
+#ifndef DV_YV12_H
+#define DV_YV12_H
 
-#include "dv.h"
+#include "dv_types.h"
 
 /* Convert output of decoder to YV12 conforming layout.  YV12 is a
  * format supported directly by many display adaptors.  See
@@ -52,4 +52,4 @@ extern void dv_mb420_YV12(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches
 extern void dv_mb420_YV12_mmx(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches); 
 #endif // ARCH_X86
 
-#endif /* __YV12_H__ */
+#endif /* DV_YV12_H */

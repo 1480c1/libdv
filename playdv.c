@@ -74,7 +74,7 @@ typedef struct {
   gint             arg_disable_audio;
   gint             arg_disable_video;
   gint             arg_num_frames;
-#ifdef HAVE_LIBPOPT
+#if HAVE_LIBPOPT
   struct poptOption option_table[DV_PLAYER_NUM_OPTS+1]; 
 #endif // HAVE_LIBPOPT
 } dv_player_t;
@@ -187,7 +187,7 @@ munmap_unaligned(dv_mmap_region_t *mmap_region) {
 int 
 main(int argc,char *argv[]) 
 {
-  dv_player_t *dv_player;
+  dv_player_t *dv_player = NULL;
   const char *filename;     /* name of input file */
   int fd;
   off_t offset = 0, eof;
@@ -198,9 +198,11 @@ main(int argc,char *argv[])
 #if HAVE_LIBPOPT
   int rc;             /* return code from popt */
   poptContext optCon; /* context for parsing command-line options */
+#endif // HAVE_LIBPOPT
 
   if(!(dv_player = dv_player_new())) goto no_mem;
 
+#if HAVE_LIBPOPT
   /* Parse options using popt */
   optCon = poptGetContext(NULL, argc, (const char **)argv, dv_player->option_table, 0);
   poptSetOtherOptionHelp(optCon, "<filename>");
@@ -241,6 +243,13 @@ main(int argc,char *argv[])
   if(MAP_FAILED == dv_player->mmap_region.map_start) goto map_failed;
 
   if(dv_parse_header(dv_player->decoder, dv_player->mmap_region.data_start)) goto header_parse_error;
+
+  printf("Audio is %.1f kHz, %d bits quantization, %d channels, emphasis %s\n",
+	 (float)dv_player->decoder->audio->frequency / 1000.0,
+	 dv_player->decoder->audio->quantization,
+	 dv_player->decoder->audio->num_channels,
+	 (dv_player->decoder->audio->emphasis ? "on" : "off"));
+
   munmap_unaligned(&dv_player->mmap_region);
 
   eof -= dv_player->decoder->frame_size; // makes loop condition simpler
@@ -273,8 +282,9 @@ main(int argc,char *argv[])
 
     // Parse and unshuffle audio
     if(!dv_player->arg_disable_audio) {
-      dv_decode_full_audio(dv_player->decoder, dv_player->mmap_region.data_start, audio_buffers);
-      dv_oss_play(dv_player->decoder->audio, dv_player->oss, audio_buffers);
+      if(dv_decode_full_audio(dv_player->decoder, dv_player->mmap_region.data_start, audio_buffers)) {
+	dv_oss_play(dv_player->decoder->audio, dv_player->oss, audio_buffers);
+      } // if
     } // if
 
     if(!dv_player->arg_disable_video) {
@@ -313,13 +323,13 @@ main(int argc,char *argv[])
   } // if 
   exit(0);
 
- display_version:
-  fprintf(stderr,"playdv: version %s, http://libdv.sourceforge.net/\n",
-	  "CVS 01/13/2001");
-  exit(0);
-
   /* Error handling section */
 #if HAVE_LIBPOPT
+ display_version:
+  fprintf(stderr,"playdv: version %s, http://libdv.sourceforge.net/\n",
+	  "CVS 01/14/2001");
+  exit(0);
+
  bad_arg:
   /* an error occurred during option processing */
   fprintf(stderr, "%s: %s\n",

@@ -1,3 +1,6 @@
+#ifndef DV_ACCONFIG_H
+#define DV_ACCONFIG_H
+
 /* 
    This file must contain an entry for every symbol which is
    AC_DEFINE'd in configure.in.   
@@ -29,4 +32,7 @@
 /* Define as 1 if host is an IA32 */
 #define ARCH_X86 0
 
+/* See glibc documentation.  This gives us large file support (LFS) */
+#define _GNU_SOURCE 0
 
+#endif // DV_ACCONFIG_H

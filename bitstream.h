@@ -28,8 +28,8 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  * */
 
-#ifndef __BITSTREAM_H__
-#define __BITSTREAM_H__
+#ifndef DV_BITSTREAM_H
+#define DV_BITSTREAM_H
 
 #include <glib.h>
 
@@ -216,4 +216,4 @@ static inline void bitstream_seek_set(bitstream_t *bs, guint32 offset) {
 }
 #endif
 
-#endif /* __BITSTREAM_H__ */
+#endif /* DV_BITSTREAM_H */

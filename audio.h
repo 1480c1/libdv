@@ -26,81 +26,22 @@
 #ifndef DV_AUDIO_H
 #define DV_AUDIO_H
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif // HAVE_CONFIG_H
+#include "dv_types.h"
 
-#if HAVE_LIBPOPT
-#include <popt.h>
-#endif // HAVE_LIBPOPT
-
-#define DV_AUDIO_MAX_SAMPLES 1920
-
-/* From Section 8.1 of 61834-4: Audio auxiliary data source pack fields pc1-pc4.
- * Need this data to figure out what format audio is in the stream. */
-
-typedef struct dv_aaux_as_pc1_s {
-  guint8 af_size : 6; /* Samples per frame: 
-		       * 32 kHz: 1053-1080
-		       * 44.1: 1452-1489
-		       * 48: 1580-1620
-		       */
-  guint8 res0    : 1; // Should be 1
-  guint8 lf      : 1; // Locked mode flag (1 = unlocked)
-} dv_aaux_as_pc1_t;
-
-typedef struct dv_aaux_as_pc2_s {
-  guint8 audio_mode: 4; // See 8.1...
-  guint8 pa        : 1; // pair bit: 0 = one pair of channels, 1 = independent channel (for sm = 1, pa shall be 1) 
-  guint8 chn       : 2; // number of audio channels per block: 0 = 1 channel, 1 = 2 channels, others reserved
-  guint8 sm        : 1; // stereo mode: 0 = Multi-stereo, 1 = Lumped
-} dv_aaux_as_pc2_t;
-
-typedef struct dv_aaux_as_pc3_s {
-  guint8 stype     :5; // 0x0 = SD (525/625), 0x2 = HD (1125,1250), others reserved
-  guint8 system    :1; // 0 = 60 fields, 1 = 50 field
-  guint8 ml        :1; // Multi-languag flag
-  guint8 res0      :1;
-} dv_aaux_as_pc3_t;
-
-typedef struct dv_aaux_as_pc4_s {
-  guint8 qu        :3; // quantization: 0=16bits linear, 1=12bits non-linear, 2=20bits linear, others reserved
-  guint8 smp       :3; // sampling frequency: 0=48kHz, 1=44,1 kHz, 2=32 kHz
-  guint8 tc        :1; // time constant of emphasis: 1=50/15us, 0=reserved
-  guint8 ef        :1; // emphasis: 0=on, 1=off
-} dv_aaux_as_pc4_t;
-
-typedef struct dv_auux_as_s {
-  guint8 pc0; // value is 0x50;
-  dv_aaux_as_pc1_t pc1;
-  dv_aaux_as_pc2_t pc2;
-  dv_aaux_as_pc3_t pc3;
-  dv_aaux_as_pc4_t pc4;
-} dv_aaux_as_t;
-
-#define DV_AUDIO_OPT_FREQUENCY    0
-#define DV_AUDIO_OPT_QUANTIZATION 1
-#define DV_AUDIO_OPT_CALLBACK     2
-#define DV_AUDIO_NUM_OPTS         3
-
-typedef struct dv_audio_s {
-  dv_aaux_as_t      aaux_as;           // low-level audio format info direct from the stream
-  gint              samples_this_frame; 
-  gint              max_samples;
-  gint              frequency;
-  gint              num_channels;
-  gint              arg_audio_frequency;
-  gint              arg_audio_quantization;
-#ifdef HAVE_LIBPOPT
-  struct poptOption option_table[DV_AUDIO_NUM_OPTS+1]; 
-#endif // HAVE_LIBPOPT
-} dv_audio_t;
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* Low-level routines */
 extern dv_audio_t *dv_audio_new(void);
-extern gboolean    dv_parse_audio_header(dv_audio_t *dv_audio, guchar *inbuf);
+extern gboolean    dv_parse_audio_header(dv_decoder_t *decoder, guchar *inbuf);
 extern gboolean    dv_update_num_samples(dv_audio_t *dv_audio, guint8 *inbuf);
 extern gint        dv_decode_audio_block(dv_audio_t *dv_audio, guint8 *buffer, gint ds, gint audio_dif, gint16 **outbufs);
+extern void        dv_audio_deemphasis(dv_audio_t *dv_audio, gint16 *outbuf);
 extern void        dv_dump_aaux_as(void *buffer, int ds, int audio_dif);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // DV_AUDIO_H

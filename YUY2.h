@@ -24,10 +24,10 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#ifndef __YUY2_H__
-#define __YUY2_H__
+#ifndef DV_YUY2_H
+#define DV_YUY2_H
 
-#include "dv.h"
+#include "dv_types.h"
 
 /* Convert output of decoder to YUY2 conforming layout.  YUY2 is a
  * format supported directly by many display adaptors.  See
@@ -55,4 +55,4 @@ extern void dv_mb411_YUY2_mmx(dv_macroblock_t *mb, guchar *pixels, gint pitch);
 extern void dv_mb411_right_YUY2_mmx(dv_macroblock_t *mb, guchar *pixels, gint pitch);
 #endif // ARCH_X86
 
-#endif // __YUY2_H__
+#endif // DV_YUY2_H

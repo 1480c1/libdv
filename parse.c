@@ -127,7 +127,7 @@ dv_video_new(void)
     argInfo:    POPT_ARG_INT, 
     arg:        &result->arg_block_quality,
     argDescrip: "(1|2|3)",
-    descrip:    "set video quality level (coeff. parsing):"
+    descrip:    "video quality level (coeff. parsing):"
     "  1=DC and no ACs,"
     " 2=DC and single-pass for ACs ,"
     " 3=DC and multi-pass for ACs [default]",
@@ -146,7 +146,7 @@ dv_video_new(void)
     descrip: (char *)result, // data passed to callback
   }; // callback
 #else
-  video->quality = DV_QUALITY_BEST;
+  result->quality = DV_QUALITY_BEST;
 #endif // HAVE_LIBPOPT
 
  noopt:
@@ -623,8 +623,28 @@ dv_parse_header(dv_decoder_t *dv, guchar *buffer) {
   header->ap3 = bitstream_get(bs,3);
   bitstream_flush_large(bs,576);		// skip rest of DIF block
 
-  dv->system = ((header->dsf) ? e_dv_system_625_50 : e_dv_system_525_60);
-  dv->std = ((header->apt) ? e_dv_std_smpte_314m : e_dv_std_iec_61834);
+  switch(dv->arg_video_system) {
+  case 0:
+    dv->system = ((header->dsf) ? e_dv_system_625_50 : e_dv_system_525_60);
+    dv->std = ((header->apt) ? e_dv_std_smpte_314m : e_dv_std_iec_61834);
+    break;
+  case 1:
+    // NTSC
+    dv->system = e_dv_system_525_60;
+    dv->std = e_dv_std_smpte_314m;  // arbitrary
+    break;
+  case 2:
+    // PAL/IEC 68134
+    dv->system = e_dv_system_625_50;
+    dv->system = e_dv_std_iec_61834;
+    break;
+  case 3:
+    // PAL/SMPTE 314M
+    dv->system = e_dv_system_625_50;
+    dv->std = e_dv_std_smpte_314m;  
+    break;
+  } // switch 
+
   dv->width = 720;
   dv->sampling = ((dv->system == e_dv_system_625_50) && (dv->std == e_dv_std_iec_61834)) ? e_dv_sample_420 : e_dv_sample_411;
   if(dv->system == e_dv_system_625_50) {
@@ -649,7 +669,8 @@ dv_parse_header(dv_decoder_t *dv, guchar *buffer) {
   dv_parse_id(bs,&id);				// should be VA3
   bitstream_flush_large(bs,616);
 
-  dv_parse_audio_header(dv->audio, buffer);
+  dv_parse_audio_header(dv, buffer);
+
   return(0);
 
  parse_error:

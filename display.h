@@ -24,8 +24,10 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#ifndef __DISPLAY_H__
-#define __DISPLAY_H__
+#ifndef DV_DISPLAY_H
+#define DV_DISPLAY_H
+
+#include "dv_types.h"
 
 #if HAVE_LIBXV
 #include <X11/Xlib.h>
@@ -43,17 +45,6 @@
 #if HAVE_GTK
 #include <gtk/gtk.h>
 #endif // HAVE_GTK
- 
-#if HAVE_LIBPOPT
-#include <popt.h>
-#endif // HAVE_LIBPOPT
-
-#include <glib.h>
-#include "dv.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #define DV_FOURCC_YV12  0x32315659	/* 4:2:0 Planar mode: Y + V + U  (3 planes) */
 #define DV_FOURCC_YUY2  0x32595559	/* 4:2:2 Packed mode: Y0+U0+Y1+V0 (1 plane) */
@@ -109,11 +100,14 @@ typedef struct {
 #endif
 
   gint arg_display;
-#ifdef HAVE_LIBPOPT
+#if HAVE_LIBPOPT
   struct poptOption option_table[DV_DISPLAY_NUM_OPTS+1]; 
 #endif // HAVE_LIBPOPT
 } dv_display_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 extern dv_display_t *dv_display_new(void);
 extern gboolean      dv_display_init(dv_display_t *dpy,
@@ -130,5 +124,5 @@ extern void dv_display_exit(dv_display_t *dv_dpy);
 }
 #endif
 
-#endif // __DISPLAY_H__
+#endif // DV_DISPLAY_H
 
