@@ -25,11 +25,15 @@
  */
 
 #include <glib.h>
+#include <math.h>
 #include "dv.h"
 
 #define DVC_IMAGE_WIDTH 720
 #define DVC_IMAGE_CHANS 3
 #define DVC_IMAGE_ROWOFFSET (DVC_IMAGE_WIDTH * DVC_IMAGE_CHANS)
+
+#define COLOR_FRACTION_BITS 10
+#define COLOR_FRACTION_MUL  (1 << COLOR_FRACTION_BITS)
 
 gint32 table_2_018[256];
 gint32 table_0_813[256];
@@ -46,10 +50,10 @@ void dv_ycrcb_init()
   for(i=0;
       i<256;
       ++i) {
-    table_2_018[i] = (gint32)(2.018 * 256 * (gint8)i);
-    table_0_813[i] = (gint32)(0.813 * 256 * (gint8)i);
-    table_0_391[i] = (gint32)(0.391 * 256 * (gint8)i);
-    table_1_596[i] = (gint32)(1.596 * 256 * (gint8)i);
+    table_2_018[i] = (gint32)rint(2.018 * COLOR_FRACTION_MUL * (gint8)i);
+    table_0_813[i] = (gint32)rint(0.813 * COLOR_FRACTION_MUL * (gint8)i);
+    table_0_391[i] = (gint32)rint(0.391 * COLOR_FRACTION_MUL * (gint8)i);
+    table_1_596[i] = (gint32)rint(1.596 * COLOR_FRACTION_MUL * (gint8)i);
   }
   for(i=0; i < 512; i++) {
     gint clamped_offset;
@@ -60,7 +64,7 @@ void dv_ycrcb_init()
     else if (clamped_offset > 255)
       clamped_offset = 255;
 
-    real_ylut[i] = (gint32)(1.164 * 256 * clamped_offset);
+    real_ylut[i] = (gint32)rint(1.164 * COLOR_FRACTION_MUL * clamped_offset);
   } // for 
   ylut = real_ylut + 128;
 
@@ -93,9 +97,9 @@ void dv_ycrcb_411_block(guint8 *base, dv_block_t *bl)
  
         for (k = 0; k < 4; ++k) { // 4-pixel span
           gint32 y = ylut[*Ytmp++];
-          gint32 r = (y + ro) >> 8;
-          gint32 g = (y - go) >> 8;
-          gint32 b = (y + bo) >> 8;
+          gint32 r = (y + ro) >> COLOR_FRACTION_BITS;
+          gint32 g = (y - go) >> COLOR_FRACTION_BITS;
+          gint32 b = (y + bo) >> COLOR_FRACTION_BITS;
           *rgbp++ = clamptab[r];
           *rgbp++ = clamptab[g];
           *rgbp++ = clamptab[b];
@@ -138,9 +142,9 @@ void dv_ycrcb_420_block(guint8 *base, dv_block_t *bl)
 	
           for (k = 0; k < 2; ++k) { // 2x2 pixel
             gint32 y = ylut[*Ytmp0++];
-            gint32 r = (y + ro) >> 8;
-            gint32 g = (y - go) >> 8;
-            gint32 b = (y + bo) >> 8;
+            gint32 r = (y + ro) >> COLOR_FRACTION_BITS;
+            gint32 g = (y - go) >> COLOR_FRACTION_BITS;
+            gint32 b = (y + bo) >> COLOR_FRACTION_BITS;
 	    *rgbp0++ = clamptab[r];
 	    *rgbp0++ = clamptab[g];
 	    *rgbp0++ = clamptab[b];
@@ -149,9 +153,9 @@ void dv_ycrcb_420_block(guint8 *base, dv_block_t *bl)
 #endif
 
             y = ylut[*Ytmp1++];
-            r = (y + ro) >> 8;
-            g = (y - go) >> 8;
-            b = (y + bo) >> 8;
+            r = (y + ro) >> COLOR_FRACTION_BITS;
+            g = (y - go) >> COLOR_FRACTION_BITS;
+            b = (y + bo) >> COLOR_FRACTION_BITS;
 	    *rgbp1++ = clamptab[r];
 	    *rgbp1++ = clamptab[g];
 	    *rgbp1++ = clamptab[b];
