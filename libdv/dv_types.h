@@ -77,7 +77,7 @@
 #define __FUNCTION__ __FILE__ // Less specific info, but it's a string.
 #endif
 
-#define DV_AUDIO_MAX_SAMPLES 1920
+#define DV_AUDIO_MAX_SAMPLES 1944
 
 #define DV_AUDIO_OPT_FREQUENCY    0
 #define DV_AUDIO_OPT_QUANTIZATION 1
