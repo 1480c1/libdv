@@ -438,7 +438,7 @@ typedef struct {
   int                  fd;
   int16_t             *buffer;
   uint8_t             *arg_audio_file;
-  uint8_t             *arg_audio_device;
+  char                *arg_audio_device;
 #if HAVE_LIBPOPT
   struct poptOption option_table[DV_OSS_NUM_OPTS+1];
 #endif // HAVE_LIBPOPT

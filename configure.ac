@@ -39,6 +39,9 @@ AH_TEMPLATE([DEBUG],
 AH_TEMPLATE([HAVE_SDL], 
 	    [Define as 1 if you have libsdl])
 
+AH_TEMPLATE([HAVE_LIBXV],
+            [Define if you have the `Xv' library (-lXv).])
+
 AC_DEFINE(_GNU_SOURCE)
 
 AC_PROG_INSTALL
@@ -137,15 +140,15 @@ AM_CONDITIONAL(HOST_X86, $arch_x86)
 dnl Checks for libraries.
 
 REQUIRES='glib >= 1.2.4 gtk+ >= 1.2.4'
-PKG_CHECK_MODULES(LIBDV,$REQUIRES)
+PKG_CHECK_MODULES(GTK,$REQUIRES)
 
 dnl pass-thru to .pc files
 AC_SUBST(REQUIRES)
 dnl used in Makefile.am
-AC_SUBST(LIBDV_CFLAGS)
-AC_SUBST(LIBDV_LIBS)
-CPPFLAGS="$CPPFLAGS $LIBDV_CFLAGS"
-LDFLAGS="$LDFLAGS $LIBDV_LIBS"
+AC_SUBST(GTK_CFLAGS)
+AC_SUBST(GTK_LIBS)
+dnl CPPFLAGS="$CPPFLAGS $GTK_CFLAGS"
+dnl LDFLAGS="$LDFLAGS $GTK_LIBS"
 
 if $use_sdl; then
 	AM_PATH_SDL(1.1.6,
@@ -157,7 +160,12 @@ if $use_sdl; then
 fi
 
 if $use_xv; then
-      AC_CHECK_LIB(Xv,XvQueryAdaptors,)
+      AC_CHECK_LIB(Xv,XvQueryAdaptors,
+	  [AC_DEFINE(HAVE_LIBXV)
+	  AC_SUBST(XV_LIB)
+	  XV_LIB='-lXv'],
+	  AC_MSG_ERROR(Could not find Xv Lib),
+	  $GTK_LIBS)
 fi
 
 AC_CHECK_LIB(m, sqrt)

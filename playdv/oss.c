@@ -36,7 +36,7 @@
 
 #include "oss.h"
 
-static const gchar *default_device = "/dev/audio";
+static const char *default_device = "/dev/dsp";
 
 dv_oss_t *
 dv_oss_new(void)

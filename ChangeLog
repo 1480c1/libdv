@@ -1,3 +1,10 @@
+2002-04-04  Dan Dennedy <dan@dennedy.org>
+	* Fix type mismatch in dv_oss_t.arg_audio_device
+	
+	* Set default playdv audio device to /dev/dsp
+	
+	* Fix build system to include gtk+ cflags and libs only for playdv
+
 2002-30-03  Dan Dennedy <dan@dennedy.org>
 	* Apply bugfix from Peter Schlaile to ppm_copy_ntsc_c block.
 	
@@ -50,7 +57,7 @@
 	* Applied patch from Peter Schlaile to repair encode during
 	  build on non x86 architectures
 
-2002-07-02  Peter Schlaile <udbz@rz.uni-karlsruhe.
+2002-07-02  Peter Schlaile <udbz@rz.uni-karlsruhe.de>
 	* New dvconnect version featuring 
 	  - multi-threading and buffer control
 	  - new video1394 interface support
