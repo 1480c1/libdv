@@ -35,43 +35,52 @@
 #define COLOR_FRACTION_BITS 10
 #define COLOR_FRACTION_MUL  (1 << COLOR_FRACTION_BITS)
 
-gint32 table_2_018[256];
-gint32 table_0_813[256];
-gint32 table_0_391[256];
-gint32 table_1_596[256];
+gint32 real_table_2_018[256];
+gint32 real_table_0_813[256];
+gint32 real_table_0_391[256];
+gint32 real_table_1_596[256];
+
+gint32 *table_2_018;
+gint32 *table_0_813;
+gint32 *table_0_391;
+gint32 *table_1_596;
 
 gint32 real_ylut[512], *ylut;
 
-guint8 real_clamptab[512], *clamptab;
+guint8 real_clamptab[768], *clamptab;
 
 void dv_ycrcb_init()
 {
   gint i;
-  for(i=0;
-      i<256;
+  gint clamped_offset;
+  table_2_018 = real_table_2_018 + 128;
+  table_0_813 = real_table_0_813 + 128;
+  table_0_391 = real_table_0_391 + 128;
+  table_1_596 = real_table_1_596 + 128;
+  ylut = real_ylut + 256;
+  clamptab = real_clamptab + 256;
+
+  for(i=-128;
+      i<128;
       ++i) {
-    table_2_018[i] = (gint32)rint(2.018 * COLOR_FRACTION_MUL * (gint8)i);
-    table_0_813[i] = (gint32)rint(0.813 * COLOR_FRACTION_MUL * (gint8)i);
-    table_0_391[i] = (gint32)rint(0.391 * COLOR_FRACTION_MUL * (gint8)i);
-    table_1_596[i] = (gint32)rint(1.596 * COLOR_FRACTION_MUL * (gint8)i);
+    if(i < (16-128)) clamped_offset = (16-128);
+    else if(i > (240-128)) clamped_offset = (240-128);
+    else clamped_offset = i;
+    table_2_018[i] = (gint32)rint(2.018 * COLOR_FRACTION_MUL * clamped_offset);
+    table_0_813[i] = (gint32)rint(0.813 * COLOR_FRACTION_MUL * clamped_offset);
+    table_0_391[i] = (gint32)rint(0.391 * COLOR_FRACTION_MUL * clamped_offset);
+    table_1_596[i] = (gint32)rint(1.596 * COLOR_FRACTION_MUL * clamped_offset);
   }
-  for(i=0; i < 512; i++) {
-    gint clamped_offset;
-
-    clamped_offset = (i - 128) + (128 - 16);
-    if (clamped_offset < 0)
-      clamped_offset = 0;
-    else if (clamped_offset > 255)
-      clamped_offset = 255;
-
-    real_ylut[i] = (gint32)rint(1.164 * COLOR_FRACTION_MUL * clamped_offset);
-  } // for 
-  ylut = real_ylut + 128;
-
-  for(i=0; i < 512; i++) {
-    real_clamptab[i] = CLAMP(i - 128, 0, 255);
+  for(i=-256; i < 256; i++) {
+    if(i < (16-128)) clamped_offset = (16-128);
+    else if(i > (235-128)) clamped_offset = (235-128);
+    else clamped_offset = i;
+    ylut[i] = (gint32)rint(1.164 * COLOR_FRACTION_MUL * (clamped_offset+128-16));
   }
-  clamptab = real_clamptab + 128;
+
+  for(i=-256; i < 512; i++) {
+    clamptab[i] = CLAMP(i, 0, 255);
+  }
 }
 
 void dv_ycrcb_411_block(guint8 *base, dv_block_t *bl)
@@ -89,8 +98,8 @@ void dv_ycrcb_411_block(guint8 *base, dv_block_t *bl)
     for (i = 0; i < 4; ++i) {     // Four Y blocks
       dv_coeff_t *Ytmp = Y[i]; // less indexing in inner loop speedup?
       for (j = 0; j < 2; ++j) {   // two 4-pixel spans per Y block
-        guint8 cb = *cb_frame++;  /* -128,-1  => 0x80,0xff */
-        guint8 cr = *cr_frame++;
+        gint8 cb = *cb_frame++;  /* -128,-1  => 0x80,0xff */
+        gint8 cr = *cr_frame++;
         int ro = table_1_596[cr];
         int go = table_0_813[cr] + table_0_391[cb];
         int bo =                   table_2_018[cb];
@@ -134,8 +143,8 @@ void dv_ycrcb_420_block(guint8 *base, dv_block_t *bl)
         dv_coeff_t *Ytmp0 = Y[yindex];
         dv_coeff_t *Ytmp1 = Y[yindex] + 8;
         for (col = 0; col < 4; ++col) {  // 4 spans of 2x2 pixels
-          guint8 cb = *cb_frame++; // +128;
-          guint8 cr = *cr_frame++; // +128
+          gint8 cb = *cb_frame++; // +128;
+          gint8 cr = *cr_frame++; // +128
 	  int ro = table_1_596[cr];
 	  int go = table_0_813[cr] + table_0_391[cb];
 	  int bo =                   table_2_018[cb];
