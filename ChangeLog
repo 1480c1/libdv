@@ -1,3 +1,7 @@
+2002-06-27  Dan Dennedy <dan@dennedy.org>
+	* YUY2.c:dv_YUY2_init(): clamp y lut to 0..255 when clamp_luma is false.
+	* playdv/oss.c: init audio format in native instead of little endian.
+
 2002-06-19  Dan Dennedy <dan@dennedy.org>
 	* YUY2.c, bitstream.h, dv_types.h:
 		big-endian fixes by Daniel Kobras

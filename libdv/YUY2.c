@@ -83,8 +83,10 @@ dv_YUY2_init(int clamp_luma, int clamp_chroma) {
       ++i) {
 	value = i + 128;
 	if (clamp_luma == TRUE) value = CLAMP(value, 16, 235);
+	else value = CLAMP(value, 0, 255);
 	ylut[i] = value;
-	ylut_setup[i] = value + 16;
+	value += 16;
+	ylut_setup[i] = CLAMP(value, 0, 255);
   } /* for */
 } /* dv_YUY2_init */
 
