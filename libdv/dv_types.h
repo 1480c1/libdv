@@ -135,10 +135,6 @@
 #define DV_QUALITY_BEST       (DV_QUALITY_COLOR | DV_QUALITY_AC_2)
 #define DV_QUALITY_FASTEST     0     /* Monochrome, DC coeffs only */
 
-static const int header_size = 80 * 52; // upto first audio AAUX AS
-static const int frame_size_525_60 = 10 * 150 * 80;
-static const int frame_size_625_50 = 12 * 150 * 80;
-
 typedef enum color_space_e { 
   e_dv_color_yuv, 
   e_dv_color_rgb, 
