@@ -435,7 +435,7 @@ dv_mb420_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
 
     for (row = 0; row < 4; row++) { // 4 pairs of two rows
       pwrgb0 = prgb;
-      pwrgb1 = prgb + pitches[0];
+      pwrgb1 = prgb + pitches[0] * 2;
 
       for (i = 0; i < 2; ++i) { // Two columns of blocks
         int yindex = j + i;
