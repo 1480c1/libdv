@@ -32,7 +32,7 @@
 int main(int argc, char **argv)
 {
   int c, bit, bits_left, count, coeff_count;
-  gint run,amp,used;
+  dv_vlc_t vlc;
   unsigned char *p;
   static unsigned char buffer[256];
   bitstream_t *bs;
@@ -54,20 +54,20 @@ int main(int argc, char **argv)
   }
   bitstream_new_buffer(bs,buffer,256);
   while(count >0) {
-    used =dv_peek_vlc(bs,count,&run,&amp);
-    if(used > 0) {
-      printf("(%d,%d,%d)",run,amp,used);
-      bitstream_flush(bs,used);
-      count-=used;
-      coeff_count+=(run+1);
-    } else if(used == VLC_ERROR) {
+    dv_peek_vlc(bs,count,&vlc);
+    if(vlc.len > 0) {
+      printf("(%d,%d,%d)",vlc.run,vlc.amp,vlc.len);
+      bitstream_flush(bs,vlc.len);
+      count-=vlc.len;
+      coeff_count+=(vlc.run+1);
+    } else if(vlc.len == VLC_ERROR) {
       printf("X (%d tossed)\n", count);
       exit(-1);
-    } else if(used == VLC_NOBITS) {
+    } else if(vlc.len == VLC_NOBITS) {
       printf("* (%d tossed)\n", count);
       printf("*coeff_count=%d \n",coeff_count);
       exit(0);
-    } else if(used == 0) {
+    } else if(vlc.len == 0) {
       printf("#");
       bitstream_flush(bs,4);
       count-=4;
