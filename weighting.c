@@ -41,6 +41,8 @@ dv_coeff_t preSC[64] __attribute__ ((aligned (32))) = {
 static double W[8];
 static dv_coeff_t dv_weight_inverse_88_matrix[64];
 
+double dv_weight_inverse_248_matrix[64];
+
 static inline double CS(int m) {
   return cos(((double)m) * M_PI / 16.0);
 }
@@ -49,7 +51,7 @@ void weight_88_inverse_float(double *block);
 
 void weight_init(void) {
   double temp[64];
-  int i;
+  int i, z, x;
   double dv_weight_bias_factor = (double)(1UL << DV_WEIGHT_BIAS);
 
   W[0] = 1.0;
@@ -73,6 +75,15 @@ void weight_init(void) {
     preSC[i] *= temp[i] * (16.0 / dv_weight_bias_factor);
 #endif
   }
+
+  for (z=0;z<4;z++) {
+    for (x=0;x<8;x++) {
+      dv_weight_inverse_248_matrix[z*8+x] = 1.0 / (W[x] * W[2*z] / 2);
+      dv_weight_inverse_248_matrix[(z+4)*8+x] = 1.0 / (W[x] * W[2*z] / 2);
+      
+    }
+  }
+  dv_weight_inverse_248_matrix[0] = 4.0;
 }
 
 void weight_88(dv_coeff_t *block) {
@@ -118,7 +129,7 @@ void weight_88_inverse_float(double *block) {
 void weight_88_inverse(dv_coeff_t *block) {
   /* When we're using MMX assembler, weights are applied in the 8x8
      iDCT prescale */
-#if !USE_MMX_ASM
+#if 0 // !USE_MMX_ASM
   int i;
   for (i=0;i<64;i++) {
     block[i] *= dv_weight_inverse_88_matrix[i];
@@ -127,6 +138,9 @@ void weight_88_inverse(dv_coeff_t *block) {
 }
 
 void weight_248_inverse(dv_coeff_t *block) {
+  /* These weights are now folded into the idct prescalers - so this
+     function doesn't do anything. */
+#if 0
   int x,z;
   dv_coeff_t dc;
 
@@ -138,4 +152,5 @@ void weight_248_inverse(dv_coeff_t *block) {
     }
   }
   block[0] = dc * 4;
+#endif
 }

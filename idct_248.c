@@ -102,6 +102,7 @@ static inline gint32 fixed_multiply(gint32 a, gint32 b) {
  * (verify against  matlab result for kron(inv(D2),D))
  */
 void dv_dct_248_init() {
+  extern double dv_weight_inverse_248_matrix[];
   gint k, l;
   gdouble d;
   gdouble diag[2][8];
@@ -130,6 +131,7 @@ void dv_dct_248_init() {
     for(l= 0; l<8 ; l++) {
       // Note the 2^16 shift is for fixed point precision.
       dv_idct_248_prescale[k*8+l] = 1.0/diag[0][k] * diag[1][l] * pow(2.0,14.0);
+      dv_idct_248_prescale[k*8+l] *= dv_weight_inverse_248_matrix[k*8+l];
     } // for
   } // for
 } // dv_dct_248_init
