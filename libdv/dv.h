@@ -57,7 +57,7 @@ extern void         dv_decode_full_frame(dv_decoder_t *dv,
 					  uint8_t *buffer, dv_color_space_t color_space, 
 					  uint8_t **pixels, int *pitches);
 extern int          dv_decode_full_audio(dv_decoder_t *dv, 
-					  uint8_t *buffer, int16_t **outbufs);
+					  const uint8_t *buffer, int16_t **outbufs);
 extern int          dv_set_audio_correction (dv_decoder_t *dv, int method);            
 extern FILE         *dv_set_error_log (dv_decoder_t *dv, FILE *errfile);            
 	

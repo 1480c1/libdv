@@ -34,9 +34,9 @@ extern "C" {
 
 /* Low-level routines */
 extern dv_audio_t *dv_audio_new(void);
-extern int    dv_parse_audio_header(dv_decoder_t *decoder, uint8_t *inbuf);
-extern int    dv_update_num_samples(dv_audio_t *dv_audio, uint8_t *inbuf);
-extern int        dv_decode_audio_block(dv_audio_t *dv_audio, uint8_t *buffer, int ds, int audio_dif, int16_t **outbufs);
+extern int    dv_parse_audio_header(dv_decoder_t *decoder, const uint8_t *inbuf);
+extern int    dv_update_num_samples(dv_audio_t *dv_audio, const uint8_t *inbuf);
+extern int        dv_decode_audio_block(dv_audio_t *dv_audio, const uint8_t *buffer, int ds, int audio_dif, int16_t **outbufs);
 extern void        dv_audio_deemphasis(dv_audio_t *dv_audio, int16_t *outbuf);
 extern void        dv_dump_aaux_as(void *buffer, int ds, int audio_dif);
 extern void        dv_audio_correct_errors (dv_audio_t *dv_audio, int16_t **outbufs);

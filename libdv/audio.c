@@ -304,7 +304,7 @@ dv_dump_aaux_as(void *buffer, int ds, int audio_dif)
 } /* dv_dump_aaux_as */
 
 int
-dv_parse_audio_header(dv_decoder_t *decoder, uint8_t *inbuf)
+dv_parse_audio_header(dv_decoder_t *decoder, const uint8_t *inbuf)
 {
   dv_audio_t *audio = decoder->audio;
   dv_aaux_as_t *dv_aaux_as   = (dv_aaux_as_t *) (inbuf + 80*6+80*16*3 + 3);
@@ -395,7 +395,7 @@ dv_parse_audio_header(dv_decoder_t *decoder, uint8_t *inbuf)
 } /* dv_parse_audio_header */
 
 int
-dv_update_num_samples(dv_audio_t *dv_audio, uint8_t *inbuf) {
+dv_update_num_samples(dv_audio_t *dv_audio, const uint8_t *inbuf) {
 
   dv_aaux_as_t *dv_aaux_as = (dv_aaux_as_t *)(inbuf + 80*6+80*16*3 + 3);
 
@@ -446,7 +446,7 @@ dv_audio_deemphasis(dv_audio_t *audio, int16_t *outbuf)
 
 
 int 
-dv_decode_audio_block(dv_audio_t *dv_audio, uint8_t *inbuf, int ds, int audio_dif, int16_t **outbufs) 
+dv_decode_audio_block(dv_audio_t *dv_audio, const uint8_t *inbuf, int ds, int audio_dif, int16_t **outbufs) 
 {
   int channel, bp, i_base, i, stride;
   int16_t *samples, *ysamples, *zsamples;

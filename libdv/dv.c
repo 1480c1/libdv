@@ -543,7 +543,7 @@ dv_frame_has_audio_errors (dv_decoder_t *dv)
 /* ---------------------------------------------------------------------------
  */
 int 
-dv_decode_full_audio(dv_decoder_t *dv, uint8_t *buffer, int16_t **outbufs)
+dv_decode_full_audio(dv_decoder_t *dv, const uint8_t *buffer, int16_t **outbufs)
 {
   int ds, dif, audio_dif, result;
   int ch;

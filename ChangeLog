@@ -1,6 +1,11 @@
 2002-05-17  Dan Dennedy <dan@dennedy.org>
 	* apply patch from Daniel Kobras (bug 544185) to fix compile on
 	  non-x86 architecture.
+	  
+	* add const qualifier to input buffer parameter on
+	  dv_decode_full_audio, dv_parse_audio_header, dv_update_num_samples,
+	  and dv_decode_audio_block. This makes Kino's Frame::ExtractAudio
+	  happy.
 
 2002-05-01  Stefan Lucke <Stefan.Lucke1@epost.de>
 	* audio error correction:
