@@ -36,6 +36,7 @@
 #include "dv.h"
 #include "vlc.h"
 #include "parse.h"
+#include "audio.h"
 
 #define STRICT_SYNTAX 0
 #define VLC_BOUNDS_CHECK 0
@@ -573,6 +574,8 @@ dv_parse_header(dv_decoder_t *dv, guchar *buffer) {
   bitstream_flush_large(bs,616);
   dv_parse_id(bs,&id);				// should be VA3
   bitstream_flush_large(bs,616);
+
+  dv_parse_audio_header(&dv->audio, buffer);
   return(0);
 
  parse_error:

@@ -3,6 +3,7 @@
 #endif
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "dv.h"
 #include "dct.h"
@@ -239,6 +240,21 @@ dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, guchar **p
 
 #endif // ! ARCH_X86
 
+static gint32 ranges[6][2];
+
+void dv_check_coeff_ranges(dv_macroblock_t *mb) {
+  dv_block_t *bl;
+  gint b, i;
+  for (b=0,bl = mb->b;
+       b<6;
+       b++,bl++) {
+    for(i=0;i<64;i++) {
+      ranges[b][0] = MIN(ranges[b][0],bl->coeffs[i]);
+      ranges[b][1] = MAX(ranges[b][1],bl->coeffs[i]);
+    }
+  }
+}
+
 void
 dv_decode_full_frame(dv_decoder_t *dv, guchar *buffer, 
 		     dv_color_space_t color_space, guchar **pixels, guint16 *pitches) {
@@ -247,7 +263,7 @@ dv_decode_full_frame(dv_decoder_t *dv, guchar *buffer,
   dv_videosegment_t *seg = &vs;
   dv_macroblock_t *mb;
   gint ds, v, m;
-  guint offset = 0, dif = 0;
+  guint offset = 0, dif = 0, audio=0;
 
   if(!seg->bs) {
     seg->bs = bitstream_init();
@@ -265,10 +281,15 @@ dv_decode_full_frame(dv_decoder_t *dv, guchar *buffer,
        video segment.  So parsing needs the whole segment to decode
        the VLC data */
     dif += 6;
+    audio=0;
     // Loop through video segments 
     for (v=0;v<27;v++) {
       // skip audio block - interleaved before every 3rd video segment
-      if(!(v % 3)) dif++; 
+      if(!(v % 3)) {
+	//dv_dump_aaux_as(buffer+(dif*80), ds, audio);
+	dif++; 
+	audio++;
+      } // if
       // stage 1: parse and VLC decode 5 macroblocks that make up a video segment
       offset = dif * 80;
       bitstream_new_buffer(seg->bs, buffer + offset, 80*5); 
@@ -291,14 +312,48 @@ dv_decode_full_frame(dv_decoder_t *dv, guchar *buffer,
 	     m++,mb++) {
 	  dv_decode_macroblock(dv, mb, dv->quality);
 	  dv_place_macroblock(dv, seg, mb, m);
+#if RANGE_CHECKING
+	  dv_check_coeff_ranges(mb);
+#endif
 	  dv_render_macroblock_rgb(dv, mb, pixels[0], pitches[0]);
 	} // for m
       } // else color_space
     } // for v
   } // ds
+#if RANGE_CHECKING
+  for(i=0;i<6;i++) {
+    fprintf(stderr, "range[%d] min %d max %d\n", i, ranges[i][0], ranges[i][1]);
+  }
+#endif
   return;
  nomem:
   fprintf(stderr,"no memory for bitstream!\n");
   exit(-1);
 } // dv_decode_full_frame 
+
+gboolean 
+dv_decode_full_audio(dv_decoder_t *dv, guchar *buffer, gint16 **outbufs)
+{
+  gint ds, dif, audio_dif, result;
+
+  dif=0;
+  if(!dv_update_num_samples(&dv->audio, buffer)) goto no_audio;
+
+  for (ds=0; ds < dv->num_dif_seqs; ds++) {
+    dif += 6;
+    for(audio_dif=0; audio_dif<9; audio_dif++) {
+      if((result = dv_decode_audio_block(&dv->audio, buffer+(dif *80), ds, audio_dif, outbufs))) goto fail;
+      dif+=16;
+    } // for 
+  } // for
+  
+  return(TRUE);
+  
+ fail:
+ no_audio:
+  return(FALSE);
+  
+} // dv_decode_full_audio
+
+
 

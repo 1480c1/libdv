@@ -40,9 +40,9 @@
 
 #include "dv.h"
 #include "display.h"
+#include "oss.h"
 #include "bitstream.h"
 #include "place.h"
-
 
 /* Book-keeping for mmap */
 
@@ -87,11 +87,14 @@ static struct timeval tv[3];
 int main(int argc,char *argv[]) {
 
   dv_display_t *dv_dpy = NULL;
+  dv_oss_t      dv_oss;
   int fd;
   off_t offset = 0, eof;
   guint frame_count = 0;
+  gint i;
   gdouble seconds;
-  gboolean benchmark_mode = FALSE;
+  gboolean benchmark_mode = FALSE, audio_present;
+  gint16 *audio_buffers[4];
 
   /* Open the input file, do fstat to get it's total size */
   if (argc != 2) goto usage;
@@ -113,6 +116,14 @@ int main(int argc,char *argv[]) {
 
   dv_dpy = dv_display_init (&argc, &argv, dv.width, dv.height, dv.sampling, "playdv", "playdv");
   if(!dv_dpy) goto no_display;
+
+  if(!dv_oss_init(&dv.audio, &dv_oss)) 
+    dv.audio.num_channels = 0;
+
+  for(i=0; i < dv.audio.num_channels; i++) {
+    if(!(audio_buffers[i] = malloc(DV_AUDIO_MAX_SAMPLES*sizeof(gint16)))) goto no_mem;
+  }
+
   gettimeofday(tv+0,NULL);
 
   for(offset=0;
@@ -123,11 +134,20 @@ int main(int argc,char *argv[]) {
     mmap_unaligned(fd, offset, dv.frame_size, &mmap_region);
     if(MAP_FAILED == mmap_region.map_start) goto map_failed;
 
-    // Parse and decode 
+    // Parse and unshuffle audio
+    if(dv.audio.num_channels) {
+      audio_present = dv_decode_full_audio(&dv, mmap_region.data_start, audio_buffers);
+      dv_oss_play(&dv.audio, &dv_oss, audio_buffers);
+    } // if
+
+#if 0
+    // Parse and decode video
     dv_decode_full_frame(&dv, mmap_region.data_start, dv_dpy->color_space, dv_dpy->pixels, dv_dpy->pitches);
 
     // Display
+
     dv_display_show(dv_dpy);
+#endif
 
     frame_count++;
     if(benchmark_mode && (frame_count >= 150)) break;
@@ -143,6 +163,7 @@ int main(int argc,char *argv[]) {
   seconds += tv[2].tv_sec;
   fprintf(stderr,"Displayed %d frames in %05.2f seconds (%05.2f fps)\n", frame_count, seconds, (double)frame_count/seconds);
   dv_display_exit(dv_dpy);
+  dv_oss_close(&dv_oss);
   exit(0);
 
   /* Error handling section */
@@ -163,5 +184,8 @@ int main(int argc,char *argv[]) {
   exit(-1);
  header_parse_error:
   fprintf(stderr,"Parser error reading first header\n");
+  exit(-1);
+ no_mem:
+  fprintf(stderr,"Out of memory\n");
   exit(-1);
 } // main

@@ -1,3 +1,9 @@
+2001-01-08  Charles 'Buck' Krasic  <krasic@acm.org>
+
+	* Add preliminary support for audio.  New files are audio.[ch]
+	  which does the unshuffling, and oss.[ch] which is provides an
+	  example of playout via the OSS sound API.
+ 
 2000-12-27  Peter Schlaile <udbz@rz.uni-karlsruhe.de>
 	* Integrated MMX/ASM-optimizations into the encoder. 
 	  (YUV, DCT88, quant)

@@ -29,6 +29,7 @@
 
 #include <stdio.h>
 #include <bitstream.h>
+#include "audio.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -157,12 +158,13 @@ typedef struct dv_decoder_s {
   gint        height, width;
   size_t      frame_size;
   dv_header_t header;
+  dv_audio_t  audio;
 #if ARCH_X86
   gboolean    use_mmx;
 #endif
 } dv_decoder_t;
 
-static const gint header_size = 80 * 6;
+static const gint header_size = 80 * 52; // upto first audio AAUX AS
 static const gint frame_size_525_60 = 10 * 150 * 80;
 static const gint frame_size_625_50 = 12 * 150 * 80;
 
@@ -171,6 +173,8 @@ extern void dv_init(dv_decoder_t *dv);
 extern gint dv_parse_header(dv_decoder_t *dv, guchar *buffer);
 extern void dv_decode_full_frame(dv_decoder_t *dv, guchar *buffer, 
 				 dv_color_space_t color_space, guchar **pixels, guint16 *pitches);
+
+extern gint dv_decode_full_audio(dv_decoder_t *dv, guchar *buffer, gint16 **outbufs);
 
 /* Low level API */
 extern gint dv_parse_video_segment(dv_videosegment_t *seg, guint quality);
