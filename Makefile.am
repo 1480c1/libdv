@@ -7,8 +7,10 @@ AUX_DIST                  = $(ac_aux_dir)/config.guess \
                                    $(ac_aux_dir)/mkinstalldirs
 EXTRA_DIST                = bootstrap
 
-MAINTAINERCLEANFILES      = Makefile.in aclocal.m4 configure config-h.in \
+MAINTAINERCLEANFILES      = Makefile.in aclocal.m4 configure config.h.in \
                             stamp-h.in $(AUX_DIST)
+
+CLEANFILES                = asmoff.h $(EXTRA_PROGRAMS)
 
 lib_LTLIBRARIES= libdv.la
 bin_PROGRAMS= playdv
