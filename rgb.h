@@ -44,6 +44,10 @@
  * rendering process.
  * */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern void dv_rgb_init(void);
 
 /* scalar versions */
@@ -57,5 +61,9 @@ extern void dv_mb411_rgb_mmx(dv_macroblock_t *mb, guchar *pixels, gint pitch);
 extern void dv_mb411_right_rgb_mmx(dv_macroblock_t *mb, guchar *pixels, gint pitch); 
 extern void dv_mb420_rgb_mmx(dv_macroblock_t *mb, guchar *pixels, gint pitch); 
 #endif // ARCH_X86
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __DV_RGB_H__ */

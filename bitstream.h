@@ -33,6 +33,10 @@
 
 #include <glib.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //My new and improved vego-matic endian swapping routine
 //(stolen from the kernel)
 #    define swab32(x)\
@@ -207,5 +211,9 @@ static inline void bitstream_seek_set(bitstream_t *bs, guint32 offset) {
   bs->bitsread = offset;
 } 
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __BITSTREAM_H__ */

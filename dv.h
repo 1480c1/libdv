@@ -30,6 +30,10 @@
 #include <stdio.h>
 #include <bitstream.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define DV_DCT_248	(1)
 #define DV_DCT_88	(0)
 
@@ -177,5 +181,8 @@ extern void dv_render_video_segment_rgb(dv_decoder_t *dv, dv_videosegment_t *seg
 
 extern void dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, 
 					guchar **pixels, guint16 *pitches);
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __DV_H__ */

@@ -47,6 +47,10 @@
 #include <glib.h>
 #include "dv.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define DV_FOURCC_YV12  0x32315659	/* 4:2:0 Planar mode: Y + V + U  (3 planes) */
 #define DV_FOURCC_YUY2  0x32595559	/* 4:2:2 Packed mode: Y0+U0+Y1+V0 (1 plane) */
 
@@ -106,6 +110,10 @@ extern dv_display_t *dv_display_init(int *argc, char ***argv,
 extern void dv_display_show(dv_display_t *dv_dpy);
 
 extern void dv_display_exit(dv_display_t *dv_dpy);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // __DISPLAY_H__
 
