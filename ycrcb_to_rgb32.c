@@ -27,10 +27,6 @@
 #include <glib.h>
 
 gint32 ylut[256];
-gint32 impactcbr[256];
-gint32 impactcbg[256];
-gint32 impactcrg[256];
-gint32 impactcrb[256];
 
 static int initted = 0;
 static void dv_ycrcb_init()
@@ -40,10 +36,6 @@ static void dv_ycrcb_init()
       i<256;
       ++i) {
     ylut[i] = 298 * ((signed char)(i) + 128 - 16);
-    impactcbr[i] = 409 * (signed char)(i);
-    impactcbg[i] = 100 * (signed char)(i);
-    impactcrg[i] = 208 * (signed char)(i);
-    impactcrb[i] = 516 * (signed char)(i);
   }
 }
 
@@ -56,12 +48,11 @@ void dv_ycrcb_411_to_rgb32(unsigned char *y_frame, unsigned char *cr_frame, unsi
   for(i=0;
       i<height*180;
       i++) {
-    int cr = *cr_frame++; // +128 
-    int cb = *cb_frame++; // +128;
-    int cbr = impactcbr[cb];
-    int cbg = impactcbg[cb];
-    int crg = impactcrg[cr];
-    int crb = impactcrb[cr];
+    signed char cr = (signed char)*cr_frame++; // +128
+    signed char cb = (signed char)*cb_frame++; // +128;
+    int cbr = 409 * cb;
+    int cbcrg = 208 * cb + 100 * cr;
+    int crb = 516 * cr;
     int j;
     
     for(j=0;
@@ -69,7 +60,7 @@ void dv_ycrcb_411_to_rgb32(unsigned char *y_frame, unsigned char *cr_frame, unsi
 	j++) {
       gint32 y = ylut[*y_frame++];
       gint32 r = (y       + cbr) >> 8;
-      gint32 g = (y - cbg - crg) >> 8;
+      gint32 g = (y - cbcrg) >> 8;
       gint32 b = (y + crb      ) >> 8;
       *rgb_frame++ = CLAMP(r,0,255);
       *rgb_frame++ = CLAMP(g,0,255);
