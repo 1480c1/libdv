@@ -48,7 +48,6 @@
 
 static int      dv_display_SDL_init(dv_display_t *dv_dpy, gchar *w_name, gchar   *i_name           );
 static gboolean dv_display_gdk_init(dv_display_t *dv_dpy, gint  *argc,   gchar ***argv             );
-static gint     dv_display_Xv_init (dv_display_t *dv_dpy, gchar *w_name, gchar   *i_name, int flags);
 
 #if HAVE_SDL
 static void dv_center_window(SDL_Surface *screen);
@@ -71,6 +70,7 @@ static void dv_center_window(SDL_Surface *screen);
 #define DV_FORMAT_WIDE		1
 
 static void dv_display_event (dv_display_t *dv_dpy);
+static gint dv_display_Xv_init (dv_display_t *dv_dpy, gchar *w_name, gchar   *i_name, int flags);
 #endif 
 
 
@@ -255,13 +255,15 @@ dv_display_event (dv_display_t *dv_dpy) {
 void
 dv_display_set_norm (dv_display_t *dv_dpy, dv_system_t norm)
 {
-
+#if HAVE_LIBXV
   dv_dpy->sheight = (norm == e_dv_system_625_50) ? 576: 480;
+#endif /* HAVE_LIBXV */
 } /* dv_display_set_norm */
 
 void
 dv_display_check_format(dv_display_t *dv_dpy, int pic_format)
 {
+#if HAVE_LIBXV
   /*  return immediate if ther is no format change or no format
    * specific flag was set upon initialisation 
    */
@@ -318,12 +320,12 @@ dv_display_check_format(dv_display_t *dv_dpy, int pic_format)
     dv_dpy->dwidth /= 2;
     dv_dpy->dheight /= 2;
   } /* if */
+#endif /* HAVE_LIBXV */
 } /* dv_display_check_format */
 
+#if HAVE_LIBXV
 static gint
 dv_display_Xv_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name, int flags) {
-  gint		ret = 0;
-#if HAVE_LIBXV
   int		scn_id,
                 ad_cnt, fmt_cnt,
                 got_port, got_fmt,
@@ -501,12 +503,9 @@ dv_display_Xv_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name, int flags
   XShmAttach(dv_dpy->dpy, &dv_dpy->shminfo);
   XSync(dv_dpy->dpy, False);
 
-  ret = 1;
-#else
-  fprintf(stderr, "libdv was compiled without Xv support\n");
-#endif /* HAVE_LIBXV */
-  return ret;
+  return 1;
 } /* dv_display_Xv_init */
+#endif /* HAVE_LIBXV */
 
 
 #if HAVE_SDL
@@ -637,10 +636,13 @@ dv_display_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv, gint width, gin
   switch(dv_dpy->arg_display) {
   case 0:
     /* Autoselect */
+#if HAVE_LIBXV
     /* Try to use Xv first, then SDL */
     if(dv_display_Xv_init(dv_dpy, w_name, i_name, XV_FORMAT_NORMAL)) {
       goto Xv_ok;
-    } else if(dv_display_SDL_init(dv_dpy, w_name, i_name)) {
+    } else 
+#endif /* HAVE_LIBXV */
+    if(dv_display_SDL_init(dv_dpy, w_name, i_name)) {
       goto SDL_ok;
     } else {
       goto use_gtk;
@@ -651,6 +653,7 @@ dv_display_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv, gint width, gin
     goto use_gtk;
     break;
   case 2:
+#if HAVE_LIBXV
     /* Xv */
     if(dv_display_Xv_init(dv_dpy, w_name, i_name, XV_FORMAT_WIDE | XV_SIZE_QUARTER)) {
       goto Xv_ok;
@@ -658,6 +661,10 @@ dv_display_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv, gint width, gin
       fprintf(stderr, "Attempt to display via Xv failed\n");
       goto fail;
     }
+#else /* HAVE_LIBXV */
+    fprintf(stderr, "Attempt to display via Xv failed\n");
+    goto fail;
+#endif /* HAVE_LIBXV */
     break;
   case 3:
     /* SDL */
@@ -672,10 +679,12 @@ dv_display_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv, gint width, gin
     break;
   } /* switch */
 
+#if HAVE_LIBXV
  Xv_ok:
   fprintf(stderr, " Using Xv for display\n");
   dv_dpy->lib = e_dv_dpy_Xv;
   goto yuv_ok;
+#endif /* HAVE_LIBXV */
 
  SDL_ok:
   fprintf(stderr, " Using SDL for display\n");

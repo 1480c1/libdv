@@ -1,3 +1,13 @@
+2001-03-19  Charles 'Buck' Krasic  <krasic@acm.org>
+
+	* Version 0.7
+
+	* Compilation fixups for building without Xv.
+
+2001-03-17  Charles 'Buck' Krasic  <krasic@acm.org>
+
+	* Typo fix:  swab32 for big endian.
+
 2001-03-09  Peter Schlaile <udbz@rz.uni-karlsruhe.de>
 	* VLC encoder improvements: Now we do 3 passes and we do it even
 	  better than my Sony Camcorder ;-)

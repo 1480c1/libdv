@@ -25,6 +25,7 @@
 
 #include "headers.h"
 #include <stdlib.h>
+#include <string.h>
 
 static void write_header_block(unsigned char* target, int ds, int isPAL)
 {
