@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "dv_types.h"
 #include "dv.h"
@@ -478,4 +479,98 @@ dv_decode_full_audio(dv_decoder_t *dv, guchar *buffer, gint16 **outbufs)
 } // dv_decode_full_audio
 
 
+/* ---------------------------------------------------------------------------
+ * query functions based upon vaux data
+ */
 
+/* ---------------------------------------------------------------------------
+ */
+int
+dv_get_vaux_pack (dv_decoder_t *dv, guint8 pack_id, guint8 *data)
+{
+  guint8  id;
+  if ((id = dv -> vaux_pack [pack_id]) == 0xff) 
+    return -1;
+  memcpy (data, dv -> vaux_data [id], 4);
+  return 0;
+} // dv_get_vaux_pack
+
+/* ---------------------------------------------------------------------------
+ */
+int
+dv_frame_is_color (dv_decoder_t *dv)
+{
+  guint8  id;
+
+  if ((id = dv -> vaux_pack [0x60]) != 0xff) {
+    if (dv -> vaux_data [id] [1] & 0x80) {
+      return 1;
+    }
+    return 0;
+  }
+  return -1;
+}
+
+/* ---------------------------------------------------------------------------
+ */
+int
+dv_system_50_fields (dv_decoder_t *dv)
+{
+  guint8  id;
+
+  if ((id = dv -> vaux_pack [0x60]) != 0xff) {
+    if (dv -> vaux_data [id] [2] & 0x20) {
+      return 1;
+    }
+    return 0;
+  }
+  return -1;
+}
+
+/* ---------------------------------------------------------------------------
+ */
+int
+dv_format_normal (dv_decoder_t *dv)
+{
+  guint8  id;
+
+  if ((id = dv -> vaux_pack [0x61]) != 0xff) {
+    if (!(dv -> vaux_data [id] [1] & 0x07)) {
+      return 1;
+    }
+    return 0;
+  }
+  return -1;
+}
+
+/* ---------------------------------------------------------------------------
+ */
+int
+dv_format_wide (dv_decoder_t *dv)
+{
+  guint8  id;
+
+  if ((id = dv -> vaux_pack [0x61]) != 0xff) {
+    if (dv -> vaux_data [id] [1] & 0x07) {
+      return 1;
+    }
+    return 0;
+  }
+  return -1;
+}
+
+/* ---------------------------------------------------------------------------
+ */
+int
+dv_frame_changed (dv_decoder_t *dv)
+{
+  guint8  id;
+
+  if ((id = dv -> vaux_pack [0x61]) != 0xff) {
+    if (dv -> vaux_data [id] [2] & 0x20) {
+      return 1;
+    }
+    return 0;
+  }
+  return -1;
+}

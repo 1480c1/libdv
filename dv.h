@@ -57,6 +57,18 @@ extern void dv_render_video_segment_rgb(dv_decoder_t *dv, dv_videosegment_t *seg
 
 extern void dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, 
 					guchar **pixels, guint16 *pitches);
+
+/* ---------------------------------------------------------------------------
+ * functions based on vaux data
+ * return value: <0 unknown, 0 no, >0 yes
+ */
+extern int dv_frame_changed (dv_decoder_t *dv),
+	   dv_frame_is_color (dv_decoder_t *dv),
+	   dv_system_50_fields (dv_decoder_t *dv),
+	   dv_format_normal (dv_decoder_t *dv),
+	   dv_format_wide (dv_decoder_t *dv),
+	   dv_get_vaux_pack (dv_decoder_t *dv, guint8 pack_id, guint8 *pack_data);
+
 #ifdef __cplusplus
 }
 #endif

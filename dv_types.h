@@ -303,6 +303,15 @@ typedef struct {
 #endif
   gint               arg_video_system;
 
+  gboolean           prev_frame_decoded;
+  /* -------------------------------------------------------------------------
+   * per dif sequence! there are 45 vaux data packs
+   * 1 byte header 4 byte data.
+   */
+  guint8             vaux_next;
+  guint8             vaux_pack [256];
+  guint8             vaux_data [45][4];
+
 #if HAVE_LIBPOPT
   struct poptOption option_table[DV_DECODER_NUM_OPTS+1]; 
 #endif // HAVE_LIBPOPT

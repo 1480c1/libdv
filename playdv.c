@@ -236,6 +236,11 @@ main(int argc,char *argv[])
 
   if(dv_parse_header(dv_player->decoder, dv_player->mmap_region.data_start)) goto header_parse_error;
 
+  if (dv_format_wide (dv_player->decoder))
+    fprintf (stderr, "format 16:9\n");
+  if (dv_format_normal (dv_player->decoder))
+    fprintf (stderr, "format 4:3\n");
+
   printf("Audio is %.1f kHz, %d bits quantization, %d channels, emphasis %s\n",
 	 (float)dv_player->decoder->audio->frequency / 1000.0,
 	 dv_player->decoder->audio->quantization,
@@ -261,6 +266,7 @@ main(int argc,char *argv[])
 
   gettimeofday(dv_player->tv+0,NULL);
 
+  dv_player->decoder->prev_frame_decoded = 0;
   for(offset=0;
       offset <= eof;
       offset += dv_player->decoder->frame_size) {
@@ -268,7 +274,7 @@ main(int argc,char *argv[])
     // Map the frame's data into memory
     mmap_unaligned(fd, offset, dv_player->decoder->frame_size, &dv_player->mmap_region);
     if(MAP_FAILED == dv_player->mmap_region.map_start) goto map_failed;
-
+    dv_parse_header(dv_player->decoder, dv_player->mmap_region.data_start);
     // Parse and unshuffle audio
     if(!dv_player->arg_disable_audio) {
       if(dv_decode_full_audio(dv_player->decoder, dv_player->mmap_region.data_start, audio_buffers)) {
@@ -277,11 +283,25 @@ main(int argc,char *argv[])
     } // if
 
     if(!dv_player->arg_disable_video) {
-      // Parse and decode video
-      dv_decode_full_frame(dv_player->decoder, dv_player->mmap_region.data_start, 
-			   dv_player->display->color_space, 
-			   dv_player->display->pixels, 
-			   dv_player->display->pitches);
+#if 0
+      if (dv_format_wide (dv_player->decoder))
+        fprintf (stderr, "format 16:9\n");
+      if (dv_format_normal (dv_player->decoder))
+        fprintf (stderr, "format 4:3\n");
+#endif
+
+      if (!dv_player->decoder->prev_frame_decoded ||
+          dv_frame_changed (dv_player->decoder)) {
+
+	// Parse and decode video
+	dv_decode_full_frame(dv_player->decoder, dv_player->mmap_region.data_start, 
+			     dv_player->display->color_space, 
+			     dv_player->display->pixels, 
+			     dv_player->display->pitches);
+	dv_player->decoder->prev_frame_decoded = 1;
+      } else {
+	fprintf (stderr, "same_frame\n");
+      }
 
       // Display
       dv_display_show(dv_player->display);

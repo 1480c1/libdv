@@ -1,4 +1,4 @@
-/* 
+/*
  *  parse.c
  *
  *     Copyright (C) Charles 'Buck' Krasic - April 2000
@@ -27,8 +27,10 @@
 #include <dv_types.h>
 
 #include <stdio.h>
+#include <string.h>
 
 #include "util.h"
+#include "dv.h"
 #include "bitstream.h"
 #include "vlc.h"
 #include "parse.h"
@@ -580,7 +582,46 @@ gint dv_parse_video_segment(dv_videosegment_t *seg, guint quality) {
 } // dv_parse_video_segment 
 #endif
 
-gint 
+/* ---------------------------------------------------------------------------
+ */
+static void
+dv_parse_vaux (dv_decoder_t *dv, guchar *buffer) {
+  gint	i, j;
+
+  /* -------------------------------------------------------------------------
+   * reset vaux structure first
+   */
+  dv -> vaux_next = 0;
+  memset (dv -> vaux_pack, 0xff, sizeof (dv -> vaux_pack));
+  /* -------------------------------------------------------------------------
+   * so search thru all 3 vaux packs
+   */
+  for (i = 0, buffer += 240; i < 3; ++i, buffer += 80) {
+    /* -----------------------------------------------------------------------
+     * each pack may contain up to 15 packets
+     */
+    for (j = 0; j < 15; j++) {
+      if (buffer [3 + (j * 5)] != 0xff && dv -> vaux_next < 45) {
+	dv -> vaux_pack [buffer [3 + (j * 5)]] = dv -> vaux_next;
+	memcpy (dv -> vaux_data [dv -> vaux_next], &buffer [3 + 1 + (j * 5)], 4);
+	dv -> vaux_next++;
+#if 0
+	fprintf (stderr,
+		 " pack (%02x) (%02x,%02x,%02x,%02x)\n",
+		 buffer [3 + 0 + (j * 5)],
+		 buffer [3 + 1 + (j * 5)],
+		 buffer [3 + 2 + (j * 5)],
+		 buffer [3 + 3 + (j * 5)],
+		 buffer [3 + 4 + (j * 5)]);
+#endif
+      }
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ */
+gint
 dv_parse_id(bitstream_t *bs,dv_id_t *id) {
   id->sct = bitstream_get(bs,3);
   bitstream_flush(bs,5);
@@ -591,6 +632,8 @@ dv_parse_id(bitstream_t *bs,dv_id_t *id) {
   return 0;
 } // dv_parse_id
 
+/* ---------------------------------------------------------------------------
+ */
 gint
 dv_parse_header(dv_decoder_t *dv, guchar *buffer) {
   dv_header_t *header = &dv->header;
@@ -615,9 +658,15 @@ dv_parse_header(dv_decoder_t *dv, guchar *buffer) {
   header->ap3 = bitstream_get(bs,3);
   bitstream_flush_large(bs,576);		// skip rest of DIF block
 
+  /* -------------------------------------------------------------------------
+   * parse vaux data now to check if there is a inconsistanciy between
+   * header->dsf and vaux data for auto mode
+   */
+  dv_parse_vaux (dv, buffer);
   switch(dv->arg_video_system) {
   case 0:
-    dv->system = ((header->dsf) ? e_dv_system_625_50 : e_dv_system_525_60);
+    dv->system = (header->dsf || (dv_system_50_fields (dv) == 1)) ?
+		  e_dv_system_625_50 : e_dv_system_525_60;
     dv->std = ((header->apt) ? e_dv_std_smpte_314m : e_dv_std_iec_61834);
     break;
   case 1:
