@@ -40,7 +40,7 @@ static inline guint8 dv_clamp_y(gint d) {
 #define Y_POS(ROW,COL) ((ROW * 180 * 4 * 8) + (COL * 4 * 8))
 #define C_POS(ROW,COL) ((ROW * 180 * 8) + (COL * 8))
 
-static guint32 dv_411_sb_y_offset[10][5] = {
+static guint32 dv_411_sb_y_offset[12][5] = {
   { Y_POS(0, 0), Y_POS(0, 4), Y_POS(0, 9), Y_POS(0, 13), Y_POS(0, 18) },
   { Y_POS(6, 0), Y_POS(6, 4), Y_POS(6, 9), Y_POS(6, 13), Y_POS(6, 18) },
   { Y_POS(12,0), Y_POS(12,4), Y_POS(12,9), Y_POS(12,13), Y_POS(12,18) },
@@ -51,6 +51,8 @@ static guint32 dv_411_sb_y_offset[10][5] = {
   { Y_POS(42,0), Y_POS(42,4), Y_POS(42,9), Y_POS(42,13), Y_POS(42,18) },
   { Y_POS(48,0), Y_POS(48,4), Y_POS(48,9), Y_POS(48,13), Y_POS(48,18) },
   { Y_POS(54,0), Y_POS(54,4), Y_POS(54,9), Y_POS(54,13), Y_POS(54,18) },
+  { Y_POS(60,0), Y_POS(60,4), Y_POS(60,9), Y_POS(60,13), Y_POS(60,18) },
+  { Y_POS(66,0), Y_POS(66,4), Y_POS(66,9), Y_POS(66,13), Y_POS(66,18) },
 }; // dv_411_sb_y_offset
 
 static guint16 dv_411_mb_y_offset[3][27] = {
@@ -80,7 +82,7 @@ static guint16 dv_411_mb_y_offset[3][27] = {
   }
 }; // dv_411_mb_y_offset
 
-static guint32 dv_411_sb_c_offset[10][5] = {
+static guint32 dv_411_sb_c_offset[12][5] = {
   { C_POS(0, 0), C_POS(0, 4), C_POS(0, 9), C_POS(0, 13), C_POS(0, 18) },
   { C_POS(6, 0), C_POS(6, 4), C_POS(6, 9), C_POS(6, 13), C_POS(6, 18) },
   { C_POS(12,0), C_POS(12,4), C_POS(12,9), C_POS(12,13), C_POS(12,18) },
@@ -91,6 +93,8 @@ static guint32 dv_411_sb_c_offset[10][5] = {
   { C_POS(42,0), C_POS(42,4), C_POS(42,9), C_POS(42,13), C_POS(42,18) },
   { C_POS(48,0), C_POS(48,4), C_POS(48,9), C_POS(48,13), C_POS(48,18) },
   { C_POS(54,0), C_POS(54,4), C_POS(54,9), C_POS(54,13), C_POS(54,18) },
+  { C_POS(60,0), C_POS(60,4), C_POS(60,9), C_POS(60,13), C_POS(60,18) },
+  { C_POS(66,0), C_POS(66,4), C_POS(66,9), C_POS(66,13), C_POS(66,18) },
 }; // dv_411_sb_c_offset
 
 static guint16 dv_411_mb_c_offset[3][27] = {
@@ -124,7 +128,7 @@ void dv_place_init(void) {
   return;
 } // dv_place_init
 
-void dv_place_macroblock(dv_macroblock_t *mb,guint8 *y_frame,guint8 *cr_frame,guint8 *cb_frame) {
+void dv_place_macroblock(dv_macroblock_t *mb,guint8 *y_frame,guint8 *cr_frame,guint8 *cb_frame,gboolean isPAL) {
   dv_block_t *bl;
   gint b, row, col, sb_shape;
   dv_coeff_t *coeff;

@@ -70,6 +70,7 @@ typedef struct dv_videosegment_s {
   gint            i, k;
   bitstream_t    *bs;
   dv_macroblock_t mb[5]; 
+  gboolean isPAL;
 } dv_videosegment_t;
 
 #endif /* __DV_H__ */

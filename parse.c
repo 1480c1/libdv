@@ -436,7 +436,7 @@ gint dv_parse_video_segment(dv_videosegment_t *seg) {
     mb->qno = bitstream_get(bs,4);
     mb->vlc_error = 0;
     mb->eob_count = 0;
-    mb->i = (seg->i + dv_super_map_vertical[m]) % 10;  // 525/60 only
+    mb->i = (seg->i + dv_super_map_vertical[m]) % (seg->isPAL?12:10);
     mb->j = dv_super_map_horizontal[m];
     mb->k = seg->k;
     for(b=0,bl=mb->b;

@@ -68,11 +68,15 @@ void convert_coeffs_prime(dv_block_t *bl)
 
 int main(int argc,char *argv[]) {
   static guint8 vsbuffer[80*5]      __attribute__ ((aligned (64))); 
-  static gint8 y_frame[720*480]     __attribute__ ((aligned (64)));
-  static gint8 cr_frame[180*480]    __attribute__ ((aligned (64)));
-  static gint8 cb_frame[180*480]    __attribute__ ((aligned (64)));
+  static gint8 y_frame[720*576]     __attribute__ ((aligned (64)));
+  static gint8 cr_frame[180*576]    __attribute__ ((aligned (64)));
+  static gint8 cb_frame[180*576]    __attribute__ ((aligned (64)));
   static dv_videosegment_t videoseg __attribute__ ((aligned (64)));
   FILE *f;
+  gboolean isPAL = 0;
+  gboolean is61834 = 0;
+  gboolean displayinit = FALSE;
+  gint numDIFseq;
   dv_macroblock_t *mb;
   dv_block_t *bl;
   gint ds;
@@ -84,7 +88,7 @@ int main(int argc,char *argv[]) {
 #if GTKDISPLAY
   GtkWidget *window,*image;
 #if ! Y_ONLY
-  guint8 rgb_frame[720*480*4];
+  guint8 rgb_frame[720*576*4];
 #endif
 #endif
 
@@ -92,23 +96,6 @@ int main(int argc,char *argv[]) {
     f = fopen(argv[1],"r");
   else
     f = stdin;
-#if GTKDISPLAY
-  gtk_init(&argc,&argv);  
-  gdk_rgb_init();
-  gtk_widget_set_default_colormap(gdk_rgb_get_cmap());
-  gtk_widget_set_default_visual(gdk_rgb_get_visual());
-  window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-  image = gtk_drawing_area_new();
-  gtk_container_add(GTK_CONTAINER(window),image);
-  gtk_drawing_area_size(GTK_DRAWING_AREA(image),720,480);
-  gtk_widget_set_usize(GTK_WIDGET(image),720,480);
-  gtk_widget_show(image);
-  gtk_widget_show(window);
-  gdk_flush();
-  while (gtk_events_pending())
-    gtk_main_iteration();
-  gdk_flush();
-#endif
 
   weight_init();  
   dct_init();
@@ -122,9 +109,40 @@ int main(int argc,char *argv[]) {
   while (!feof(f)) {
     /* Rather read a whole frame at a time, as this gives the
        data-cache a lot longer time to stay warm during decode */
+    // start by reading header block, to determine stream parameters
+    offset = dif * 80;
+    if (fseek(f,offset,SEEK_SET)) break;
+    if (fread(vsbuffer,sizeof(vsbuffer),1,f)<1) break;
+    isPAL = vsbuffer[3] & 0x80;
+    is61834 = vsbuffer[3] & 0x01;
+//    printf("video is %s-compliant %s\n",
+//           is61834?"IEC61834":"SMPTE314M",isPAL?"PAL":"NTSC");
+    numDIFseq = isPAL ? 12 : 10;
+
+#if GTKDISPLAY
+    if (!displayinit) {
+      gtk_init(&argc,&argv);  
+      gdk_rgb_init();
+      gtk_widget_set_default_colormap(gdk_rgb_get_cmap());
+      gtk_widget_set_default_visual(gdk_rgb_get_visual());
+      window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+      image = gtk_drawing_area_new();
+      gtk_container_add(GTK_CONTAINER(window),image);
+      gtk_drawing_area_size(GTK_DRAWING_AREA(image),720,isPAL?576:480);
+      gtk_widget_set_usize(GTK_WIDGET(image),720,isPAL?576:480);
+      gtk_widget_show(image);
+      gtk_widget_show(window);
+      gdk_flush();
+      while (gtk_events_pending())
+        gtk_main_iteration();
+      gdk_flush();
+      displayinit = TRUE;
+    }
+#endif
+
     // each DV frame consists of a sequence of DIF segments 
     for (ds=0;
-	 ds<10;
+	 ds<numDIFseq;
 	 ds++) { 
       // Each DIF segment conists of 150 dif blocks, 135 of which are video blocks
       dif += 6; // skip the first 6 dif blocks in a dif sequence 
@@ -144,6 +162,7 @@ int main(int argc,char *argv[]) {
 	bitstream_new_buffer(videoseg.bs, vsbuffer, 80*5); 
 	videoseg.i = ds;
 	videoseg.k = v;
+        videoseg.isPAL = isPAL;
         lost_coeffs += dv_parse_video_segment(&videoseg);
         // stage 2: dequant/unweight/iDCT blocks, and place the macroblocks
         for (m=0,mb = videoseg.mb;
@@ -164,7 +183,7 @@ int main(int argc,char *argv[]) {
 	      idct_88(bl->coeffs);
 	    } // else
 	  } // for b
-	  dv_place_macroblock(mb,y_frame,cr_frame,cb_frame);
+	  dv_place_macroblock(mb,y_frame,cr_frame,cb_frame,isPAL);
         } // for mb
 	dif+=5;
       } // for s
@@ -177,13 +196,13 @@ int main(int argc,char *argv[]) {
 #if GTKDISPLAY
 	
 #if Y_ONLY
-    for(m=0;m<720*480;m++) y_frame[m] += 128;
+    for(m=0;m<720*(isPAL?576:480);m++) y_frame[m] += 128;
     gdk_draw_gray_image(image->window,image->style->fg_gc[image->state],
-                        0,0,720,480,GDK_RGB_DITHER_NORMAL,y_frame,720);
+                        0,0,720,isPAL?576:480,GDK_RGB_DITHER_NORMAL,y_frame,720);
 #else
-    dv_ycrcb_to_rgb32(y_frame,cr_frame,cb_frame,rgb_frame);
+    dv_ycrcb_to_rgb32(y_frame,cr_frame,cb_frame,rgb_frame,isPAL?576:480);
     gdk_draw_rgb_32_image(image->window,image->style->fg_gc[image->state],
-                        0,0,720,480,GDK_RGB_DITHER_NORMAL,rgb_frame,720*4);
+                        0,0,720,isPAL?576:480,GDK_RGB_DITHER_NORMAL,rgb_frame,720*4);
 #endif
     gdk_flush();
     while (gtk_events_pending())

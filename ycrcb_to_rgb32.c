@@ -26,13 +26,13 @@
 
 #include <glib.h>
 
-void dv_ycrcb_to_rgb32(gint8 *y_frame, gint8 *cr_frame, gint8 *cb_frame, guint8 *rgb_frame) {
+void dv_ycrcb_to_rgb32(gint8 *y_frame, gint8 *cr_frame, gint8 *cb_frame, guint8 *rgb_frame,gint height) {
   int i,j;
   gint32 y, cr, cb;
   gint32 r, g, b;
   gint32 impact[4];
   for(i=0;
-      i<480*180;
+      i<height*180;
       i++,cr_frame++,cb_frame++) {
     cr = *cr_frame; // +128 
     cb = *cb_frame; // +128;
