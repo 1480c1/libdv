@@ -1,3 +1,11 @@
+2000-12-27  Peter Schlaile <udbz@rz.uni-karlsruhe.de>
+	* Integrated MMX/ASM-optimizations into the encoder. 
+	  (YUV, DCT88, quant)
+	  The YUV conversion is 2 bits more accurate than before, the DCT
+	  is somewhat less accurate (approximately 1 or 2 bits) so it
+	  should be more or less the same as the old C code. Best thing:
+	  it is 8 times faster now!
+	
 2000-12-21  Charles 'Buck' Krasic  <krasic@acm.org>
 
 	* Applied outstanding patch submissions.  The major parts included

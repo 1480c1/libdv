@@ -23,7 +23,7 @@ EXTRA_PROGRAMS= dovlc testvlc testbitstream encode gasmoff
 #
 if HOST_X86
 
-ASMS= vlc_x86.S quant_x86.S idct_block_mmx.S asmoff.h  mmx.h 
+ASMS= vlc_x86.S quant_x86.S idct_block_mmx.S dct_block_mmx.S rgbtoyuv.S asmoff.h  mmx.h 
 gasmoff_SOURCES= gasmoff.c bitstream.c bitstream.h 
 
 else # HOST_X86

@@ -124,17 +124,22 @@ guint8 dv_quant_shifts[22][4] = {
 
 guint8 dv_quant_offset[4] = { 6,3,0,1 };
 
-void quant_88(dv_coeff_t *block,int qno,int class) {
-  int i;
-  dv_coeff_t dc;
+void quant_88(dv_coeff_t *block,int qno,int class) 
+{
+	int i;
+	guint8 *pq;			/* pointer to the four quantization
+					   factors that we'll use */
+	dv_coeff_t dc;
 
-  dc = block[0];
-  for (i=0;i<64;i++) {
-    block[i] >>=
-      dv_quant_shifts[qno+dv_quant_offset[class]][dv_88_areas[i]];
-  }
-  if(class==3) { for (i=0;i<64;i++) block[i] /= 2; }
-  block[0] = dc;
+	dc = block[0];
+	pq = dv_quant_shifts[qno+dv_quant_offset[class]];
+	for (i = 0; i < 64; i++) {
+		block[i] >>= pq[dv_88_areas[i]];
+	}
+	if(class == 3) { 
+		for (i=1;i<64;i++) block[i] /= 2; 
+	}
+	block[0] = dc;
 }
 
 void quant_248(dv_coeff_t *block,int qno,int class) {

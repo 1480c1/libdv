@@ -29,9 +29,14 @@
 
 #include "dv.h"
 
+#define DCT_YUV_PRECISION 2        /* means fixpoint with YUV_PRECISION bits 
+				      after the point (if you change this,
+				      change rgbtoyuv.S accordingly) */
+
 void dct_init(void);
-void dct_88(double *block);
-void dct_248(double *block);
+/* Input is transposed ! */
+void dct_88(dv_coeff_t *block, dv_coeff_t * block_out);
+void dct_248(dv_coeff_t *block);
 void idct_88(dv_coeff_t *block);
 #if BRUTE_FORCE_248
 void idct_248(double *block);
