@@ -22,15 +22,19 @@ struct frame_t {
 static void* t(void* arg)
 {
 	int i = (int)arg;
+	struct frame_t* f;
+	unsigned char* rgb;
+	dv_encoder_t* enc;
+
 	fprintf(stderr, "thread %p: start frame %d\n", (void*) pthread_self(), i);
-	dv_encoder_t* enc = dv_encoder_new(0, 0, 0);
+	enc = dv_encoder_new(0, 0, 0);
 	enc->isPAL = 0;
 	enc->vlc_encode_passes = 3;
 	enc->static_qno = 0;
 	enc->force_dct = DV_DCT_AUTO;
 
-	struct frame_t* f = &frame[i];
-	unsigned char* rgb = f->rgb;
+	f = &frame[i];
+	rgb = f->rgb;
 	dv_encode_full_frame(enc, &rgb, e_dv_color_rgb, f->dv);
 
 	dv_encoder_free(enc);

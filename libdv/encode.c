@@ -1707,9 +1707,9 @@ int dv_encode_full_frame(dv_encoder_t *dv_enc, uint8_t **in,
 	unsigned int offset = 0;
 	uint8_t *target = out;
 	time_t now;
-	now = time(NULL);
 	static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 	
+	now = time(NULL);
 	if (dv_enc->vlc_encode_passes < 1 || dv_enc->vlc_encode_passes > 3)
 		dv_enc->vlc_encode_passes = 3;
 	if (dv_enc->static_qno < 1 || dv_enc->static_qno > 2)

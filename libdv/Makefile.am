@@ -65,9 +65,6 @@ recode_LDADD=libdv.la
 reppm_SOURCES=reppm.c
 reppm_LDADD=libdv.la
 
-reppm_SOURCES=reppm.c
-reppm_LDADD=libdv.la
-
 enctest_SOURCES=enctest.c
 enctest_LDADD=libdv.la $(PTHREAD_LIBS) 
 
