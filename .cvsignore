@@ -17,7 +17,6 @@ config.log
 config.status
 config.sub
 configure.scan
-depcomp
 dovlc
 dv_config.h
 encode
@@ -26,7 +25,6 @@ gasmoff
 gmon.out
 gprof.*
 insert_audio
-install-sh
 libdv*tar.gz
 libdv.la
 libdv.pc
@@ -34,7 +32,6 @@ libdv.spec
 libtool
 ltconfig
 ltmain.sh
-missing
 mkinstalldirs
 ppmqscale
 scan_packet_headers
