@@ -52,7 +52,7 @@ VR0GRX: .word   20218,-16941,0,20218
 VBG0BX: .word   -3277,0,-16941,-3277
 VR0GR:  .long   0,0
 VBG0B:  .long   0,0
-#else
+
 YR0GRX: .word   8420,16529,0,8420
 YBG0BX: .word   3203,0,16529,3203
 YR0GR:  .long   0,0
@@ -65,6 +65,21 @@ VR0GRX: .word   -4857,-9534,0,-4857
 VBG0BX: .word   14391,0,-9534,14391
 VR0GR:  .long   0,0
 VBG0B:  .long   0,0
+	
+#else
+YR0GRX: .word   8414,16519,0,8414
+YBG0BX: .word   3208,0,16519,3208
+YR0GR:  .long   0,0
+YBG0B:  .long   0,0
+UR0GRX: .word   14392,-12061,0,14392
+UBG0BX: .word   -2332,0,-12061,-2332
+UR0GR:  .long   0,0
+UBG0B:  .long   0,0
+VR0GRX: .word   -4864,-9528,0,-4864
+VBG0BX: .word   14392,0,-9528,14392
+VR0GR:  .long   0,0
+VBG0B:  .long   0,0
+	
 #endif	
 	
 .text

@@ -1,7 +1,8 @@
 /* 
  *  encode.c
  *
- *     Copyright (C) James Bowman - July 2000
+ *     Copyright (C) James Bowman  - July 2000
+ *                   Peter Schlaile - Jan 2001
  *
  *  This file is part of libdv, a free DV (IEC 61834/SMPTE 314M)
  *  decoder.
@@ -25,6 +26,7 @@
 
 #include <dv_types.h>
 
+#include <time.h>
 #include <math.h>
 #include <assert.h>
 #include <stdio.h>
@@ -43,8 +45,13 @@
 #define DV_WIDTH      720
 #define DV_PAL_HEIGHT 576
 
-#define MODE_STATISTICS 1
+#define MODE_STATISTICS 0
 #define YUV_TESTING     0
+#define DO_BLUR         0
+
+#if DO_BLUR
+#warning pictures will be blurred...
+#endif
 
 /* #include "ycrcb_to_rgb32.h" */
 
@@ -167,6 +174,7 @@ inline gint f2sb(float f)
 	return b;
 }
 
+#if 0
 static void dump_block(  char *tag, dv_block_t *bl)
 {
 	int i, j;
@@ -179,6 +187,7 @@ static void dump_block(  char *tag, dv_block_t *bl)
 		printf(" },\n");
 	}
 }
+#endif
 
 typedef struct {
 	gint8 run;
@@ -527,6 +536,33 @@ void read_ppm(const char* filename, unsigned char* readbuf, int * isPAL,
 	*isPAL = (height == DV_PAL_HEIGHT);
 }
 
+static inline void do_blur(unsigned char* src, unsigned char* dst, 
+			   int x, int y, int width)
+{
+	int r =   src[x - 3 + y*width] 
+		+ src[x + 3 + y*width]
+		+ src[x + (y-1)*width]
+		+ src[x + (y+1)*width];
+	r /= 8;
+	r += src[x + y * width] / 2;
+	dst[x + y*width] = r;
+}
+
+void blur(unsigned char * readbuf, unsigned char * writebuf,
+	  int width, int height)
+{
+	int x = 0;
+	int y = 0;
+
+	for (x = 1; x < width - 1; x++) {
+		for (y = 1; y < height - 1; y++) {
+			do_blur(readbuf, writebuf, x*3 + 0, y, width * 3);
+			do_blur(readbuf, writebuf, x*3 + 1, y, width * 3);
+			do_blur(readbuf, writebuf, x*3 + 2, y, width * 3);
+		}
+	}
+}
+
 extern void rgbtoyuv_mmx(unsigned char* inPtr, int rows, int columns,
 			 short* outyPtr, short* outuPtr, short* outvPtr);
 
@@ -559,15 +595,51 @@ static void convert_to_yuv(unsigned char* img_rgb, int height,
 #if !ARCH_X86
 	int x,y;
 	/* This is the RGB -> YUV color matrix */
-	static const float cm[3][3] = {
+#if 0
+	static const double cm[3][3] = {
 		{ 0.256951160416, 0.504420728197,  0.0977346405969    },
 		{ 0.439165945662, -0.367885794249, -0.0712801514127   },
 		{ -0.148211670329, -0.290954275333,  0.439165945662  }
+	};
+	static const double cm[3][3] = {
+		{ .8709346012, -2.081971942, 1.631416352 },
+		{ -2.290125167, 5.474551516, -1.660311207},
+		{ .3826427476, 6.172463509, -4.836692416}};
+
+	static const double cm[3][3] = {
+		{.299,.587,.114},
+		{-.169,-.331,.5},
+		{.5,-.419,-.081}
+	};
+	static const double cm[3][3] = {
+		{.6529939999, .3326341616,-.1265216323},
+		{.4762437443, -.3839685689, -.9227517543e-1},
+		{.3766526342, .1918662855,-.5685189197}};
+	static const double cm[3][3] = {
+		{ 0.299 , 0.587, 0.114 },
+		{ 0.617,  -0.517, -0.100 },
+		{ -0.146, -0.288, 0.434 }};
+#endif
+	static const double cm[3][3] = {
+		{.299 * 219.0/255.0,.587* 219.0/255.0,.114* 219.0/255.0},
+		{.5* 224.0/255.0,-.419* 224.0/255.0,-.081* 224.0/255.0},
+		{-.169 * 224.0/255.0,-.331* 224.0/255.0,.5* 224.0/255.0}
 	};
 
 	double tmp_cr[DV_PAL_HEIGHT][DV_WIDTH];
 	double tmp_cb[DV_PAL_HEIGHT][DV_WIDTH];
 	double fac = pow(2, DCT_YUV_PRECISION);
+	int i,j;
+
+#if 0
+	for (i = 0; i < 3; i++) {
+		for (j = 0; j < 3; j++) {
+			fprintf(stderr, "%g\t", cm[i][j] * 32768);
+		}
+		fprintf(stderr, "\n");
+	}
+#endif
+
 	for (y = 0; y < height; y++) {
 		for (x = 0; x < DV_WIDTH; x++) {
 			register double cy, cr, cb;
@@ -647,24 +719,30 @@ static void build_coeff(short* img_y, short* img_cr, short* img_cb,
 	int i,j;
 	int y = mb->y;
 	int x = mb->x;
-		
+
+	for (j = 0; j < 8; j++)
+		for (i = 0; i < 8; i++) {
+			mb->b[0].coeffs[8 * i + j] = 
+				img_y[(y + j) * DV_WIDTH +  x + i];
+			mb->b[1].coeffs[8 * i + j] = 
+				img_y[(y + j) * DV_WIDTH +  x + 8 + i];
+			mb->b[2].coeffs[8 * i + j] = 
+				img_y[(y + 8 + j) * DV_WIDTH + x + i];
+			mb->b[3].coeffs[8 * i + j] = 
+				img_y[(y + 8 + j) * DV_WIDTH 
+				     + x + 8 + i];
+			mb->b[4].coeffs[8 * i + j] = 
+				img_cr[(y + 2*j) * DV_WIDTH/4 
+				      + x / 4 + i / 2];
+			mb->b[5].coeffs[8 * i + j] = 
+				img_cb[(y + 2*j) * DV_WIDTH/4 
+				      + x / 4 + i / 2];
+		}
+#if 0		
 	if((mb->j == 4) && (mb->k > 23)) {
-		for (j = 0; j < 8; j++)
-			for (i = 0; i < 8; i++) {
-				mb->b[0].coeffs[8 * i + j] = 
-					img_y[(y + j) * DV_WIDTH +  x + i];
-				mb->b[1].coeffs[8 * i + j] = 
-					img_y[(y + j) * DV_WIDTH +  x + 8 + i];
-				mb->b[2].coeffs[8 * i + j] = 
-					img_y[(y + 8 + j) * DV_WIDTH + x + i];
-				mb->b[3].coeffs[8 * i + j] = 
-					img_y[(y + 8 + j) * DV_WIDTH + x + 8 + i];
-				mb->b[4].coeffs[8 * i + j] = 
-					img_cr[(y + 2 * j) * DV_WIDTH/4 + x / 4 + i / 2];
-				mb->b[5].coeffs[8 * i + j] = 
-					img_cb[(y + 2 * j) * DV_WIDTH/4 + x / 4 + i / 2];
-			}
+		fprintf(stderr, "1\n");
 	} else {
+		fprintf(stderr, "2\n");
 		for (j = 0; j < 8; j++)
 			for (i = 0; i < 8; i++) {
 				mb->b[0].coeffs[8 * i + j] = 
@@ -676,11 +754,12 @@ static void build_coeff(short* img_y, short* img_cr, short* img_cb,
 				mb->b[3].coeffs[8 * i + j] = 
 					img_y[(y + 8 + j) * DV_WIDTH + x + 8 + i];
 				mb->b[4].coeffs[8 * i + j] = 
-					img_cr[(y + j) * DV_WIDTH/4 + x / 4 + i];
+					img_cr[(y + 2*j) * DV_WIDTH/4 + x / 4 + i / 2];
 				mb->b[5].coeffs[8 * i + j] = 
-					img_cb[(y + j) * DV_WIDTH/4 + x / 4 + i];
+					img_cb[(y + 2*j) * DV_WIDTH/4 + x / 4 + i / 2];
 			}
 	}
+#endif
 }
 
 static void do_dct(dv_macroblock_t *mb)
@@ -692,7 +771,6 @@ static void do_dct(dv_macroblock_t *mb)
 		static short tblock[64] __attribute__ ((aligned (64)));
 		
 		memcpy(tblock, &bl->coeffs, 64*sizeof(short));
-		
 		bl->dct_mode = DV_DCT_88;
 		if (bl->dct_mode == DV_DCT_88) {
 			dct_88(tblock, bl->coeffs);
@@ -711,7 +789,6 @@ long modes_used[50];
 static void do_quant(dv_macroblock_t * mb)
 {
 	guint b;
-	gint i, j;
 	gint class;
 
 	struct {
@@ -754,7 +831,6 @@ static void do_quant(dv_macroblock_t * mb)
 	};
 	int num_modes = sizeof(modes) / sizeof(modes[0]);
 	int highest_mode = 0;
-	
 	for (b = 0; b < 6; b++) {
 		dv_block_t *bl = &mb->b[b], bb;
 		int mode;
@@ -813,8 +889,6 @@ static void process_videosegment(
 	   and place the macroblocks */
 	for (m = 0, mb = videoseg->mb; m < 5; m++, mb++) {
 		guint b;
-		gint i, j;
-		gint class;
 		
 		mb->vlc_error = 0;
 		mb->eob_count = 0;
@@ -896,14 +970,243 @@ static void encode(short* img_y, short* img_cr, short* img_cb,
 	} 
 }
 
+void write_header_block(unsigned char* target, int ds, int isPAL)
+{
+	target[0] = 0x1f; /* header magic */
+	target[1] = 0x07 | (ds << 4);
+	target[2] = 0x00;
+
+	target[3] = ( isPAL ? 0x80 : 0); /* FIXME: 0x3f */
+	target[4] = 0x68; /* FIXME ? */
+	target[5] = 0x78; /* FIXME ? */
+	target[6] = 0x78; /* FIXME ? */
+	target[7] = 0x78; /* FIXME ? */
+
+	memset(target + 8, 0xff, 80 - 8);
+}
+
+inline void write_bcd(unsigned char* target, int val)
+{
+	*target = ((val / 10) << 4) + (val % 10);
+}
+
+void write_timecode_13(unsigned char* target, struct tm * now, int frame,
+		       int isPAL)
+{
+	target[0] = 0x13;
+	write_bcd(target+1, frame % (isPAL ? 25 : 30));
+	write_bcd(target+2, now->tm_sec);
+	write_bcd(target+3, now->tm_min);
+	write_bcd(target+4, now->tm_hour);
+}
+
+/*
+  60 ff ff 20 ff 61 33 c8 fd ff 62 ff d0 e1 01 63 ff b8 c6 c9
+*/
+
+void write_timecode_60(unsigned char* target, struct tm * now)
+{
+	target[0] = 0x60;
+	target[1] = 0xff;
+	target[2] = 0xff;
+	write_bcd(target + 3, (now->tm_year + 1900) / 100); 
+                              /* FIXME: Is this true? 
+				 I've doubts since newyears day ;-) */
+	target[4] = 0xff;
+}
+
+void write_timecode_61(unsigned char* target, struct tm * now)
+{
+	target[0] = 0x61; /* FIXME: What's this? */
+
+	target[1] = 0x33;
+	target[2] = 0xc8;
+	target[3] = 0xfd;
+
+	target[4] = 0xff;
+}
+
+void write_timecode_62(unsigned char* target, struct tm * now)
+{
+	target[0] = 0x62;
+	target[1] = 0xff;
+	write_bcd(target + 2, now->tm_mday);
+	write_bcd(target + 3, now->tm_mon);
+	write_bcd(target + 4, now->tm_year % 100);
+}
+void write_timecode_63(unsigned char* target, struct tm * now)
+{
+	target[0] = 0x63;
+	target[1] = 0xff;
+	write_bcd(target + 2, now->tm_sec);
+	write_bcd(target + 3, now->tm_min);
+	write_bcd(target + 4, now->tm_hour);
+}
+
+void write_subcode_blocks(unsigned char* target, int ds, int frame, 
+			  struct tm * now, int isPAL)
+{
+	static int block_count = 0;
+
+	memset(target, 0xff, 2*80);
+
+	target[0] = 0x3f; /* subcode magic */
+	target[1] = 0x07 | (ds << 4);
+	target[2] = 0x00;
+
+	target[80 + 0] = 0x3f; /* subcode magic */
+	target[80 + 1] = 0x07 | (ds << 4);
+	target[80 + 2] = 0x01;
+	
+	target[5] = target[80 + 5] = 0xff;
+
+	if (ds >= 6) {
+		target[3] = 0x80 | (block_count >> 8);
+		target[4] = block_count;
+
+		target[80 + 3] = 0x80 | (block_count >> 8);
+		target[80 + 4] = block_count + 6;
+
+		write_timecode_13(target + 6, now, frame, isPAL);
+		write_timecode_13(target + 80 + 6, now, frame, isPAL);
+
+		write_timecode_62(target + 6 + 8, now);
+		write_timecode_62(target + 80 + 6 + 8, now);
+
+		write_timecode_63(target + 6 + 2*8, now);
+		write_timecode_63(target + 80 + 6 + 2*8, now);
+
+		write_timecode_13(target + 6 + 3*8, now, frame, isPAL);
+		write_timecode_13(target + 80 + 6 + 3*8, now, frame, isPAL);
+
+		write_timecode_62(target + 6 + 4*8, now);
+		write_timecode_62(target + 80 + 6 + 4*8, now);
+
+		write_timecode_63(target + 6 + 5*8, now);
+		write_timecode_63(target + 80 + 6 + 5*8, now);
+	} else {
+		target[3] = (block_count >> 8);
+		target[4] = block_count;
+
+		target[80 + 3] = (block_count >> 8);
+		target[80 + 4] = block_count + 6;
+		
+	}
+	block_count += 0x20;
+	block_count &= 0xfff;
+}
+
+void write_vaux_blocks(unsigned char* target, int ds, struct tm* now)
+{
+	memset(target, 0xff, 3*80);
+
+	target[0] = 0x5f; /* vaux magic */
+	target[1] = 0x07 | (ds << 4);
+	target[2] = 0x00;
+
+	target[0 + 80] = 0x5f; /* vaux magic */
+	target[1 + 80] = 0x07 | (ds << 4);
+	target[2 + 80] = 0x01;
+
+	target[0 + 2*80] = 0x5f; /* vaux magic */
+	target[1 + 2*80] = 0x07 | (ds << 4);
+	target[2 + 2*80] = 0x02;
 
 
+	if ((ds & 1) == 0) {
+		if (ds == 0) {
+			target[3] = 0x70; /* FIXME: What's this? */
+			target[4] = 0xc5;
+			target[5] = 0x41; /* 42 ? */
+			target[6] = 0x20;
+			target[7] = 0xff;
+			target[8] = 0x71;
+			target[9] = 0xff;
+			target[10] = 0x7f;
+			target[11] = 0xff;
+			target[12] = 0xff;
+			target[13] = 0x7f;
+			target[14] = 0xff;
+			target[15] = 0xff;
+			target[16] = 0x38;
+			target[17] = 0x81;
+		}
+	} else {
+		write_timecode_60(target + 3, now);
+		write_timecode_61(target + 3 + 5, now);
+		write_timecode_62(target + 3 + 2*5, now);
+		write_timecode_63(target + 3 + 3*5, now);
+	}
+	write_timecode_60(target + 2*80+ 48, now);
+	write_timecode_61(target + 2*80+ 48 + 5, now);
+	write_timecode_62(target + 2*80+ 48 + 2*5, now);
+	write_timecode_63(target + 2*80+ 48 + 3*5, now);
+}
+
+void write_video_headers(unsigned char* target, int frame, int ds)
+{
+	int i,j, z;
+	z = 0;
+	for(i = 0; i < 9; i++) {
+		target += 80;
+		for (j = 1; j < 16; j++) { /* j = 0: audio blocks */
+			target[0] = 0x90 | ((frame + 0xb) % 12);
+			target[1] = 0x07 | (ds << 4);
+			target[2] = z++;
+			target += 80;
+		}
+	}
+}
+
+void write_audio_headers(unsigned char* target, int frame, int ds)
+{
+	int i, z;
+	z = 0;
+	for(i = 0; i < 9; i++) {
+		memset(target, 0xff, 80);
+
+		target[0] = 0x70 | ((frame + 0xb) % 12);
+		target[1] = 0x07 | (ds << 4);
+		target[2] = z++;
+
+		target += 16 * 80;
+	}
+}
+
+
+void write_info_blocks(unsigned char* target, int frame, int isPAL,
+		       time_t * now)
+{
+	gint numDIFseq;
+	gint ds;
+	struct tm * now_t = NULL;
+
+	numDIFseq = isPAL ? 12 : 10;
+
+	if (frame % (isPAL ? 25 : 30) == 0) {
+		(*now)++;
+	}
+
+	now_t = localtime(now);
+
+	for (ds = 0; ds < numDIFseq; ds++) { 
+		write_header_block(target, ds, isPAL);
+		target +=   1 * 80;
+		write_subcode_blocks(target, ds, frame, now_t, isPAL);
+		target +=   2 * 80;
+		write_vaux_blocks(target, ds, now_t);
+		target +=   3 * 80;
+		write_video_headers(target, frame, ds);
+		write_audio_headers(target, frame, ds);
+		target += 144 * 80;
+	}
+}
 
 int main(int argc, char *argv[])
 {
-	int i;
 	gint arg_index;
-	
+	time_t now;
+
 	weight_init();  
 	dct_init();
 	dv_dct_248_init();
@@ -915,9 +1218,12 @@ int main(int argc, char *argv[])
 #if MODE_STATISTICS
 	memset(modes_used,0,sizeof(modes_used));
 #endif
-	
+	now = time(NULL);
 	for (arg_index = 1; arg_index < argc; arg_index++) {
 		unsigned char readbuf[DV_PAL_HEIGHT * DV_WIDTH * 3];
+#if DO_BLUR
+		unsigned char blurred[DV_PAL_HEIGHT * DV_WIDTH * 3];
+#endif
 		unsigned char target[144000];
 		int height;
 		int isPAL;
@@ -927,9 +1233,16 @@ int main(int argc, char *argv[])
 		short img_cb[DV_PAL_HEIGHT * DV_WIDTH / 4];
 
 		read_ppm(argv[arg_index], readbuf, &isPAL, &height);
+#if DO_BLUR
+		blur(readbuf, blurred, DV_WIDTH, height);
+		convert_to_yuv(blurred, height, img_y, img_cr, img_cb);
+#else
 		convert_to_yuv(readbuf, height, img_y, img_cr, img_cb);
+#endif
 		encode(img_y, img_cr, img_cb, isPAL, target);
+		write_info_blocks(target, arg_index, isPAL, &now);
 		fwrite(target, 1, isPAL ? 144000 : 120000, stdout);
+		fprintf(stderr, "[%d] ", arg_index);
 	}
   
 #if MODE_STATISTICS

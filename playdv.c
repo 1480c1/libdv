@@ -47,7 +47,8 @@
 #define DV_PLAYER_OPT_DISPLAY_INCLUDE 5
 #define DV_PLAYER_OPT_DECODER_INCLUDE 6
 #define DV_PLAYER_OPT_AUTOHELP        7
-#define DV_PLAYER_NUM_OPTS            8
+#define DV_PLAYER_OPT_DUMP_FRAMES     8
+#define DV_PLAYER_NUM_OPTS            9
 
 /* Book-keeping for mmap */
 typedef struct dv_mmap_region_s {
@@ -66,6 +67,7 @@ typedef struct {
   gint             arg_disable_audio;
   gint             arg_disable_video;
   gint             arg_num_frames;
+  gint             arg_dump_frames;
 #if HAVE_LIBPOPT
   struct poptOption option_table[DV_PLAYER_NUM_OPTS+1]; 
 #endif // HAVE_LIBPOPT
@@ -109,6 +111,12 @@ dv_player_new(void)
     argDescrip: "count",
     descrip:    "stop after <count> frames",
   }; // number of frames
+
+  result->option_table[DV_PLAYER_OPT_DUMP_FRAMES] = (struct poptOption) {
+    longName:   "dump-frames", 
+    arg:        &result->arg_dump_frames,
+    descrip:    "dump all frames to capture0000?.ppm"
+  }; // dump all frames
 
   result->option_table[DV_PLAYER_OPT_OSS_INCLUDE] = (struct poptOption) {
     argInfo: POPT_ARG_INCLUDE_TABLE,
@@ -298,6 +306,18 @@ main(int argc,char *argv[])
 			     dv_player->display->color_space, 
 			     dv_player->display->pixels, 
 			     dv_player->display->pitches);
+	if(dv_player->arg_dump_frames) {
+		FILE* fp;
+		char fname[255];
+		sprintf(fname, "capture%05d.ppm", frame_count);
+		fp = fopen(fname, "w");
+		fprintf(fp, "P6\n# CREATOR: playdv\n%d %d\n255\n", 
+			dv_player->display->width, dv_player->display->height);
+		fwrite(dv_player->display->pixels[0], 
+		       3, dv_player->display->width 
+		       * dv_player->display->height, fp);
+		fclose(fp);
+	}
 	dv_player->decoder->prev_frame_decoded = 1;
       } else {
 	fprintf (stderr, "same_frame\n");

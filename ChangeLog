@@ -1,3 +1,23 @@
+2001-01-20  Peter Schlaile <udbz@rz.uni-karlsruhe.de>
+	
+	* Made encoder finally work correctly for DCT 88
+	  Inserted META information
+	
+	* Added playdv option: dump frames
+	
+	* added new programs: 
+	  - insert_audio        Audio dub an existing video stream
+	                        or just copy audio data to DV using 
+	                        insert_audio [wav_file] <<EOF |dvsend
+	                        EOF
+	  - fix_headers         Fix old encoded dv files without 
+	                        meta information
+	  - scan_packet_headers Dump dv files in a nice way. 
+	                        (Take a look how badly encode 
+	                        still performs... )
+	  - steal_headers       Copy meta headers from a captured stream for
+	                        testing.
+	
 2001-01-18  Charles 'Buck' Krasic  <krasic@acm.org>
 
 	* Create a rpm .spec.in file.  configure generates the .spec.

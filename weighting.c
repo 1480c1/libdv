@@ -52,7 +52,7 @@ static dv_coeff_t dv_weight_inverse_88_matrix[64];
 #endif
 
 #if BRUTE_FORCE_DCT_88
-static dv_coeff_t dv_weight_88_matrix[64];
+static double dv_weight_88_matrix[64];
 #endif
 
 double dv_weight_inverse_248_matrix[64];
@@ -76,16 +76,16 @@ static void postscale_init(double* post_sc)
 
 	for( i = 0; i < 8; i++ ) {
 		ci = i==0 ? 1/(8.*sqrt(2.)) : 1.0/16.0;
-		// di = i==0 ? 1.5/(sqrt(2.)) : 0.5;
-		// ps3[i] = 2.0*2.0*ci/cos(i*M_PI/16); 
-		// israelh. this is table1 from AAN paper. 
-		// Note the trick if 8 or 16 deivision
-		//
+		/* di = i==0 ? 1.5/(sqrt(2.)) : 0.5;
+		   ps3[i] = 2.0*2.0*ci/cos(i*M_PI/16); 
+		   israelh. this is table1 from AAN paper. 
+		   Note the trick if 8 or 16 deivision
+		*/
 		for( j = 0; j < 8; j++) {
 			cj = j==0 ? 1/(8*sqrt(2.)) : 1.0/16.0;
 			post_sc[i * 8 + j] = 4.0*4.0 * ci * cj / 
 				(cos(i*M_PI/16)*cos(j*M_PI/16));
-			//israelh. patch the first 4.0?
+			/* israelh. patch the first 4.0? */
 		}
 	}
 	post_sc[63] = 1.0;    
@@ -96,9 +96,6 @@ void weight_init(void)
 	double temp[64];
 	double temp_postsc[64];
 	int i, z, x;
-#if 0	
-	int y;
-#endif
 #if ARCH_X86
 	const double dv_weight_bias_factor = (double)(1UL << DV_WEIGHT_BIAS);
 #endif
@@ -132,19 +129,10 @@ void weight_init(void)
 		temp[i] = 1.0;
 	}
 	weight_88_float(temp);
-#if 0
-	for (y = 0; y < 8; y++) {
-		for (x = 0; x < 8; x++) {
-			fprintf(stderr, "%d\t", postSC[y*8 + x]);
-		}
-		fprintf(stderr, "\n");
-	}
-	fprintf(stderr, "\n");
-#endif
 
 	for (i=0;i<64;i++) {
 #if BRUTE_FORCE_DCT_88
-		dv_weight_88_matrix[i] = (dv_coeff_t)rint(temp[i]);
+		dv_weight_88_matrix[i] = temp[i];
 #else
 		/* If we're not using brute force(tm), 
 		   fold weights into the DCT
@@ -153,15 +141,6 @@ void weight_init(void)
 #endif
 	}
 	postSC[63] = temp[63] * 32768 * 2.0;    
-
-#if 0
-	for (y = 0; y < 8; y++) {
-		for (x = 0; x < 8; x++) {
-			fprintf(stderr, "%d\t", postSC[y*8 + x]);
-		}
-		fprintf(stderr, "\n");
-	}
-#endif
 
 	for (z=0;z<4;z++) {
 		for (x=0;x<8;x++) {
@@ -179,7 +158,7 @@ void weight_88(dv_coeff_t *block)
 {
 	/* These weights are now folded into the dct postscaler - so this
 	   function doesn't do anything. */
-#if 0
+#if BRUTE_FORCE_DCT_88
 	int i;
 
 	for (i=0;i<64;i++) {
