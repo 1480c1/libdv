@@ -52,7 +52,8 @@ extern "C" {
 extern dv_decoder_t *dv_decoder_new     (int add_ntsc_setup, int clamp_luma,
 	                  int clamp_chroma);
 extern void         dv_decoder_free     (dv_decoder_t*);
-extern void         dv_init             (int clamp_luma, int clamp_chroma); 
+extern void         dv_init             (int clamp_luma, int clamp_chroma);
+extern void         dv_cleanup          (void);
 extern void         dv_reconfigure      (int clamp_luma, int clamp_chroma); 
 extern int          dv_parse_header     (dv_decoder_t *dv, const uint8_t *buffer);
 extern void         dv_parse_packs      (dv_decoder_t *dv, const uint8_t *buffer);

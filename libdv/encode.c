@@ -1530,6 +1530,16 @@ dv_encoder_free( dv_encoder_t *encoder)
     if (encoder->img_cb != NULL) free(encoder->img_cb);
     free(encoder);
   }
+} /* dv_encoder_free */
+
+
+/** @brief Free the dynamically allocated global memory.
+ *
+ * This function deallocates the memory allocated by dv_init().
+ *
+ */
+void dv_cleanup(void) {
+  /* the encoder allocates mem on the heap and must be free-ed */
   if (vlc_encode_lookup != NULL) {
     free(vlc_encode_lookup);
     vlc_encode_lookup = NULL;
@@ -1538,7 +1548,7 @@ dv_encoder_free( dv_encoder_t *encoder)
     free(vlc_num_bits_lookup);
     vlc_num_bits_lookup = NULL;
   }
-} /* dv_encoder_free */
+} /* dv_cleanup */
 
 
 int dv_encode_videosegment( dv_encoder_t *dv_enc,
