@@ -8,12 +8,12 @@ LDFLAGS += $(shell glib-config --libs) $(shell gtk-config --libs) $(shell sdl-co
 CPPFLAGS += -DUSE_MMX_ASM=1 -DHAVE_XV40x=1 -DHAVE_GTK=1 -DHAVE_SDL=1
 asm = vlc_x86.S quant_x86.S idct_block_mmx.S 
 
-gensources=dv.c dct.c idct_248.c weighting.c quant.c vlc.c place.c parse.c bitstream.c YUY2.c YV12.c rgb.c gasmoff.c 
+gensources=dv.c dct.c idct_248.c weighting.c quant.c vlc.c place.c parse.c bitstream.c YUY2.c YV12.c rgb.c 
 genobjects=$(gensources:.c=.o) $(asm:.S=.o)
 
 sources = $(gensources)
 objects= $(genobjects)
-auxsources=display.c
+auxsources=display.c gasmoff.c 
 deps=$(sources:.c=.d) $(asm:.S=.d) $(auxsources:.c=.d)
 
 %.d: %.c
