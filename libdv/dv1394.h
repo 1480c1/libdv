@@ -26,6 +26,9 @@
 #ifndef _DV_1394_H
 #define _DV_1394_H
 
+#include <sys/types.h>
+#include <sys/ioctl.h>
+
 /* This is the public user-space interface. Try not to break it. */
 
 #define DV1394_API_VERSION 0x20011127
@@ -138,57 +141,10 @@
 #define DV1394_PAL_FRAME_SIZE  (480 * DV1394_PAL_PACKETS_PER_FRAME)
 
 
-/* ioctl() commands */
-
-enum {
-	/* I don't like using 0 as a valid ioctl() */
-	DV1394_INVALID = 0,
-
-
-	/* get the driver ready to transmit video.
-	   pass a struct dv1394_init* as the parameter (see below),
-	   or NULL to get default parameters */
-	DV1394_INIT,
-
-
-	/* stop transmitting video and free the ringbuffer */
-	DV1394_SHUTDOWN,
-
-
-	/* submit N new frames to be transmitted, where
-	   the index of the first new frame is first_clear_buffer,
-	   and the index of the last new frame is
-	   (first_clear_buffer + N) % n_frames */
-	DV1394_SUBMIT_FRAMES,
-
-
-	/* block until N buffers are clear (pass N as the parameter)
-	   Because we re-transmit the last frame on underrun, there
-	   will at most be n_frames - 1 clear frames at any time */
-	DV1394_WAIT_FRAMES,
-
-	/* capture new frames that have been received, where
-	   the index of the first new frame is first_clear_buffer,
-	   and the index of the last new frame is
-	   (first_clear_buffer + N) % n_frames */
-	DV1394_RECEIVE_FRAMES,
-
-
-	DV1394_START_RECEIVE,
-
-
-	/* pass a struct dv1394_status* as the parameter (see below) */
-	DV1394_GET_STATUS,
-};
-
-
-
 enum pal_or_ntsc {
 	DV1394_NTSC = 0,
 	DV1394_PAL
 };
-
-
 
 
 /* this is the argument to DV1394_INIT */
@@ -243,8 +199,6 @@ struct dv1394_init {
   
  */
 
-
-
 struct dv1394_status {
 	/* this embedded init struct returns the current dv1394
 	   parameters in use */
@@ -273,5 +227,32 @@ struct dv1394_status {
 	*/
 };
 
+/* Get the driver ready to transmit video.  pass a struct dv1394_init* as
+ * the parameter (see below), or NULL to get default parameters */
+#define DV1394_INIT			_IOW('#', 0x06, struct dv1394_init)
+
+/* Stop transmitting video and free the ringbuffer */
+#define DV1394_SHUTDOWN		_IO ('#', 0x07)
+
+/* Submit N new frames to be transmitted, where the index of the first new
+ * frame is first_clear_buffer, and the index of the last new frame is
+ * (first_clear_buffer + N) % n_frames */
+#define DV1394_SUBMIT_FRAMES	_IO ('#', 0x08)
+
+/* Block until N buffers are clear (pass N as the parameter) Because we
+ * re-transmit the last frame on underrun, there will at most be n_frames
+ * - 1 clear frames at any time */
+#define DV1394_WAIT_FRAMES		_IO ('#', 0x09)
+
+/* Capture new frames that have been received, where the index of the
+ * first new frame is first_clear_buffer, and the index of the last new
+ * frame is (first_clear_buffer + N) % n_frames */
+#define DV1394_RECEIVE_FRAMES	_IO ('#', 0x0a)
+
+/* Tell card to start receiving DMA */
+#define DV1394_START_RECEIVE	_IO ('#', 0x0b)
+
+/* Pass a struct dv1394_status* as the parameter */
+#define DV1394_GET_STATUS		_IOR('#', 0x0c, struct dv1394_status)
 
 #endif /* _DV_1394_H */

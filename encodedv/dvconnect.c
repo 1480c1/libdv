@@ -38,7 +38,6 @@
 #include <sched.h>
 #include <sys/resource.h>
 #include <string.h>
-
 #include <pthread.h>
 #include <signal.h>
 
@@ -53,7 +52,6 @@ static long cip_d_ntsc = 38400;
 static long cip_n_pal = 1;
 static long cip_d_pal = 16;
 static long syt_offset = 11000;
-static int video1394_version = 2;
 
 #define TARGETBUFSIZE   320
 #define MAX_PACKET_SIZE 512
@@ -67,36 +65,13 @@ enum {
 	VIDEO1394_BUFFER_READY
 };
 
-enum {
-	VIDEO1394_LISTEN_CHANNEL = 0,
-	VIDEO1394_UNLISTEN_CHANNEL,
-	VIDEO1394_LISTEN_QUEUE_BUFFER,
-	VIDEO1394_LISTEN_WAIT_BUFFER,
-	VIDEO1394_TALK_CHANNEL,
-	VIDEO1394_UNTALK_CHANNEL,
-	VIDEO1394_TALK_QUEUE_BUFFER,
-	VIDEO1394_TALK_WAIT_BUFFER
-};
-
 #define VIDEO1394_SYNC_FRAMES          0x00000001
 #define VIDEO1394_INCLUDE_ISO_HEADERS  0x00000002
 #define VIDEO1394_VARIABLE_PACKET_SIZE 0x00000004
 
 struct video1394_mmap
 {
-	unsigned int channel;
-	unsigned int sync_tag;
-	unsigned int nb_buffers;
-	unsigned int buf_size;
-        /* For VARIABLE_PACKET_SIZE: Maximum packet size */
-	unsigned int packet_size; 
-	unsigned int fps;
-	unsigned int flags;
-};
-
-struct video1394_mmap_v2
-{
-	unsigned int channel;
+	int channel;
 	unsigned int sync_tag;
 	unsigned int nb_buffers;
 	unsigned int buf_size;
@@ -120,8 +95,28 @@ struct video1394_wait
 {
 	unsigned int channel;
 	unsigned int buffer;
-        struct timeval filltime;        /* time of buffer full */
+	struct timeval filltime;        /* time of buffer full */
 };
+
+#define VIDEO1394_LISTEN_CHANNEL		\
+	_IOWR('#', 0x10, struct video1394_mmap)
+#define VIDEO1394_UNLISTEN_CHANNEL		\
+	_IOW ('#', 0x11, int)
+#define VIDEO1394_LISTEN_QUEUE_BUFFER	\
+	_IOW ('#', 0x12, struct video1394_wait)
+#define VIDEO1394_LISTEN_WAIT_BUFFER	\
+	_IOWR('#', 0x13, struct video1394_wait)
+#define VIDEO1394_TALK_CHANNEL		\
+	_IOWR('#', 0x14, struct video1394_mmap)
+#define VIDEO1394_UNTALK_CHANNEL		\
+	_IOW ('#', 0x15, int)
+#define VIDEO1394_TALK_QUEUE_BUFFER 	\
+	_IOW ('#', 0x16, sizeof (struct video1394_wait) + \
+		sizeof (struct video1394_queue_variable))
+#define VIDEO1394_TALK_WAIT_BUFFER		\
+	_IOW ('#', 0x17, struct video1394_wait)
+#define VIDEO1394_LISTEN_POLL_BUFFER	\
+	_IOWR('#', 0x18, struct video1394_wait)
 
 static int cap_start_frame = 0;
 static int cap_num_frames = 0xfffffff;
@@ -342,7 +337,6 @@ int capture_raw(const char* filename, int channel, int nbuffers,
 	int viddev;
 	unsigned char *recv_buf;
 	struct video1394_mmap v;
-	struct video1394_mmap_v2 v2;
 	struct video1394_wait w;
 	int unused_buffers;
 	unsigned char outbuf[2*65536];
@@ -372,32 +366,13 @@ int capture_raw(const char* filename, int channel, int nbuffers,
 	v.nb_buffers = nbuffers;
 	v.buf_size = VBUF_SIZE; 
 	v.packet_size = MAX_PACKET_SIZE;
+	v.syt_offset = syt_offset;
 	v.flags = VIDEO1394_INCLUDE_ISO_HEADERS;
 	w.channel = v.channel;
                       
-	switch (video1394_version) {
-	case 1:
-		if (ioctl(viddev, VIDEO1394_LISTEN_CHANNEL, &v) < 0) {
-			perror("VIDEO1394_LISTEN_CHANNEL");
-			return -1;
-		}
-
-		break;
-	case 2:
-		v2.channel = v.channel;
-		v2.sync_tag = v.sync_tag;
-		v2.nb_buffers = v.nb_buffers;
-		v2.buf_size = v.buf_size;
-		v2.packet_size = v.packet_size;
-		v2.syt_offset = syt_offset;
-		v2.flags = v.flags;
-
-		if (ioctl(viddev, VIDEO1394_LISTEN_CHANNEL, &v2) < 0) {
-			perror("VIDEO1394_LISTEN_CHANNEL");
-			return -1;
-		}
-
-		break;
+	if (ioctl(viddev, VIDEO1394_LISTEN_CHANNEL, &v) < 0) {
+		perror("VIDEO1394_LISTEN_CHANNEL");
+		return -1;
 	}
 
 	if ((recv_buf = (unsigned char *) mmap(
@@ -708,7 +683,6 @@ int send_raw(const char*const* filenames, int channel, int nbuffers,
 	int viddev;
 	unsigned char *send_buf;
 	struct video1394_mmap v;
-	struct video1394_mmap_v2 v2;
 	struct video1394_queue_variable w;
 	int unused_buffers;
 	int got_frame;
@@ -772,39 +746,16 @@ int send_raw(const char*const* filenames, int channel, int nbuffers,
 	v.buf_size = TARGETBUFSIZE * MAX_PACKET_SIZE; 
 	v.packet_size = MAX_PACKET_SIZE;
 	v.flags = VIDEO1394_VARIABLE_PACKET_SIZE;
+	v.syt_offset = syt_offset;
 	w.channel = v.channel;
 
-	switch (video1394_version) {
-	case 1:
-		if (ioctl(viddev, VIDEO1394_TALK_CHANNEL, &v) < 0) {
-			perror("VIDEO1394_TALK_CHANNEL");
-			close (viddev);
-			if (src_fp && src_fp != stdin)
-				fclose (src_fp);
-			return -1;
-		}
-
-		break;
-	case 2:
-		v2.channel = v.channel;
-		v2.sync_tag = v.sync_tag;
-		v2.nb_buffers = v.nb_buffers;
-		v2.buf_size = v.buf_size;
-		v2.packet_size = v.packet_size;
-		v2.syt_offset = syt_offset;
-		v2.flags = v.flags;
-
-		if (ioctl(viddev, VIDEO1394_TALK_CHANNEL, &v2) < 0) {
-			perror("VIDEO1394_TALK_CHANNEL");
-			close (viddev);
-			if (src_fp && src_fp != stdin)
-				fclose (src_fp);
-			return -1;
-		}
-
-		break;
+	if (ioctl(viddev, VIDEO1394_TALK_CHANNEL, &v) < 0) {
+		perror("VIDEO1394_TALK_CHANNEL");
+		close (viddev);
+		if (src_fp && src_fp != stdin)
+			fclose (src_fp);
+		return -1;
 	}
-
 
 	if ((send_buf = (unsigned char *) mmap(
 			0, v.nb_buffers * v.buf_size, PROT_READ|PROT_WRITE,
@@ -929,12 +880,11 @@ int rt_raisepri (int pri)
 #define DV_CONNECT_OPT_CIP_N_NTSC       7
 #define DV_CONNECT_OPT_CIP_D_NTSC       8
 #define DV_CONNECT_OPT_SYT_OFFSET       9
-#define DV_CONNECT_OPT_VIDEO1394_VERSION 10
-#define DV_CONNECT_OPT_MAX_BUFFERS      11
-#define DV_CONNECT_OPT_UNDERRUN_DATA    12
-#define DV_CONNECT_OPT_AUTOHELP         13
-#define DV_CONNECT_OPT_DEVICE           14
-#define DV_CONNECT_NUM_OPTS             15
+#define DV_CONNECT_OPT_MAX_BUFFERS      10
+#define DV_CONNECT_OPT_UNDERRUN_DATA    11
+#define DV_CONNECT_OPT_AUTOHELP         12
+#define DV_CONNECT_OPT_DEVICE           13
+#define DV_CONNECT_NUM_OPTS             14
 
 
 int main(int argc, const char** argv)
@@ -1029,14 +979,6 @@ int main(int argc, const char** argv)
                 arg:        &syt_offset,
                 descrip:    "syt offset (default: 10000 range: 10000-26000)"
         }; /* syt offset */
-
-        option_table[DV_CONNECT_OPT_VIDEO1394_VERSION] = (struct poptOption) {
-                longName:   "video-1394-version", 
-                argInfo:    POPT_ARG_INT, 
-                arg:        &video1394_version,
-                descrip:    "video 1394 version to use 1 "
-		"(older kernels or CVS versions), 2 (current kernels >2.4.9?)"
-        }; /* video 1394 version */
 
         option_table[DV_CONNECT_OPT_MAX_BUFFERS] = (struct poptOption) {
                 longName:   "buffers", 

@@ -1,3 +1,12 @@
+2004-01-04  Dan Dennedy <dan@dennedy.org>
+	* encodedv/dvconnect.c, libdv/dv1394.h: fix for kernel 2.6 compatibility,
+	  only backwards compatible to kernel 2.4.21.
+
+2003-12-15  Dan Dennedy <dan@dennedy.org>
+	* encode.c, dv.h: freeing the global mem in dv_encoder_free() is not safe
+	  when working with multiple encoders and free-ing them at will.
+	  Added dv_cleanup() to free memory allocated in dv_init().
+
 2003-11-23  Stefan Lucke <stefan@lucke.in-berlin.de>
   * PAL fix for decode color rendering now in head
   * additional API functions:
