@@ -102,6 +102,8 @@ dv_mb411_YUY2(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
         cb = uvlut[*cb_frame++];
         cr = uvlut[*cr_frame++];
 
+
+	/* TODO: endianess stuff like 420 code below */
 	*pwyuv++ = ylut[*Ytmp++];
 	*pwyuv++ = cb;
 	*pwyuv++ = ylut[*Ytmp++];
@@ -150,7 +152,8 @@ dv_mb411_right_YUY2(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
 
           cb = uvlut[*cb_frame++]; 
           cr = uvlut[*cr_frame++]; 
-
+	  
+	  /* TODO: endianess stuff like 420 code below */
 	  *pwyuv++ = ylut[*Ytmp++];
 	  *pwyuv++ = cb;
 	  *pwyuv++ = ylut[*Ytmp++];
@@ -204,6 +207,7 @@ dv_mb420_YUY2 (dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
           cb = uvlut [*cb_frame++]; // +128;
           cr = uvlut [*cr_frame++]; // +128
 
+#ifndef WORDS_BIGENDIAN
             *pwyuv0++ = ylut [*Ytmp0++];
 	    *pwyuv0++ = cb;
             *pwyuv0++ = ylut [*Ytmp0++];
@@ -213,6 +217,18 @@ dv_mb420_YUY2 (dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
 	    *pwyuv1++ = cb;
             *pwyuv1++ = ylut [*(Ytmp0 + 7)];
 	    *pwyuv1++ = cr;
+#else
+            *pwyuv0++ = cr;
+            *pwyuv0++ = ylut [*(Ytmp0 + 1)];
+            *pwyuv0++ = cb;
+            *pwyuv0++ = ylut [*(Ytmp0 + 0)];
+
+            *pwyuv1++ = cr;
+            *pwyuv1++ = ylut [*(Ytmp0 + 9)];
+            *pwyuv1++ = cb;
+            *pwyuv1++ = ylut [*(Ytmp0 + 8)];
+            Ytmp0 += 2;
+#endif
         }
         Y[j + i] = Ytmp0 + 8;
       }
