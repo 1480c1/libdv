@@ -71,7 +71,7 @@ typedef struct {
   char*            arg_dump_frames;
 #if HAVE_LIBPOPT
   struct poptOption option_table[DV_PLAYER_NUM_OPTS+1]; 
-#endif // HAVE_LIBPOPT
+#endif /* HAVE_LIBPOPT */
 } dv_player_t;
 
 dv_player_t *
@@ -90,19 +90,19 @@ dv_player_new(void)
     shortName: 'v', 
     val: 'v', 
     descrip: "show playdv version number",
-  }; // version
+  }; /* version */
 
   result->option_table[DV_PLAYER_OPT_DISABLE_AUDIO] = (struct poptOption) {
     longName: "disable-audio", 
     arg:      &result->arg_disable_audio,
     descrip:  "skip audio decoding",
-  }; // disable audio
+  }; /* disable audio */
 
   result->option_table[DV_PLAYER_OPT_DISABLE_VIDEO] = (struct poptOption) {
     longName: "disable-video", 
     descrip:  "skip video decoding",
     arg:      &result->arg_disable_video, 
-  }; // disable video
+  }; /* disable video */
 
   result->option_table[DV_PLAYER_OPT_NUM_FRAMES] = (struct poptOption) {
     longName:   "num-frames", 
@@ -111,7 +111,7 @@ dv_player_new(void)
     arg:        &result->arg_num_frames,
     argDescrip: "count",
     descrip:    "stop after <count> frames",
-  }; // number of frames
+  }; /* number of frames */
 
   result->option_table[DV_PLAYER_OPT_DUMP_FRAMES] = (struct poptOption) {
     longName:   "dump-frames", 
@@ -120,31 +120,31 @@ dv_player_new(void)
     argDescrip: "pattern",
     descrip:    "dump all frames to file pattern like capture%05d.ppm "
     "(or - for stdout)"
-  }; // dump all frames
+  }; /* dump all frames */
 
   result->option_table[DV_PLAYER_OPT_OSS_INCLUDE] = (struct poptOption) {
     argInfo: POPT_ARG_INCLUDE_TABLE,
     arg:     result->oss->option_table,
     descrip: "Audio output options",
-  }; // oss
+  }; /* oss */
 
   result->option_table[DV_PLAYER_OPT_DISPLAY_INCLUDE] = (struct poptOption) {
     argInfo: POPT_ARG_INCLUDE_TABLE,
     arg:     result->display->option_table,
     descrip: "Video output options",
-  }; // display
+  }; /* display */
 
   result->option_table[DV_PLAYER_OPT_DECODER_INCLUDE] = (struct poptOption) {
     argInfo: POPT_ARG_INCLUDE_TABLE,
     arg:     result->decoder->option_table,
     descrip: "Decoder options",
-  }; // decoder
+  }; /* decoder */
 
   result->option_table[DV_PLAYER_OPT_AUTOHELP] = (struct poptOption) {
     argInfo: POPT_ARG_INCLUDE_TABLE,
     arg:     poptHelpOptions,
     descrip: "Help options",
-  }; // autohelp
+  }; /* autohelp */
 
 #endif // HAVE_LIBPOPT
 
@@ -159,7 +159,7 @@ dv_player_new(void)
   result = NULL;
  no_mem:
   return(result);
-} // dv_player_new
+} /* dv_player_new */
 
 
 /* I decided to try to use mmap for reading the input.  I got a slight
@@ -181,12 +181,12 @@ mmap_unaligned(int fd, off_t offset, size_t length, dv_mmap_region_t *mmap_regio
   mmap_region->map_start = real_start;
   mmap_region->map_length = real_length;
   mmap_region->data_start = real_start + start_padding;
-} // mmap_unaligned
+} /* mmap_unaligned */
 
 int
 munmap_unaligned(dv_mmap_region_t *mmap_region) {
   return(munmap(mmap_region->map_start,mmap_region->map_length));
-} // munmap_unaligned
+} /* munmap_unaligned */
 
 int 
 main(int argc,char *argv[]) 
@@ -202,7 +202,7 @@ main(int argc,char *argv[])
 #if HAVE_LIBPOPT
   int rc;             /* return code from popt */
   poptContext optCon; /* context for parsing command-line options */
-#endif // HAVE_LIBPOPT
+#endif /* HAVE_LIBPOPT */
 
   if(!(dv_player = dv_player_new())) goto no_mem;
 
@@ -231,7 +231,7 @@ main(int argc,char *argv[])
    * have it yet, it's at: ftp://ftp.redhat.com/pub/redhat/code/popt 
    */
   filename = argv[1];
-#endif // HAVE_LIBOPT
+#endif /* HAVE_LIBOPT */
 
   /* Open the input file, do fstat to get it's total size */
   if(-1 == (fd = open(filename,O_RDONLY))) goto openfail;
@@ -246,7 +246,8 @@ main(int argc,char *argv[])
   mmap_unaligned(fd,0,header_size,&dv_player->mmap_region);
   if(MAP_FAILED == dv_player->mmap_region.map_start) goto map_failed;
 
-  if(dv_parse_header(dv_player->decoder, dv_player->mmap_region.data_start)) goto header_parse_error;
+  if(dv_parse_header(dv_player->decoder, dv_player->mmap_region.data_start)< 0)
+    goto header_parse_error;
 
   if (dv_format_wide (dv_player->decoder))
     fprintf (stderr, "format 16:9\n");
@@ -262,20 +263,20 @@ main(int argc,char *argv[])
 
   munmap_unaligned(&dv_player->mmap_region);
 
-  eof -= dv_player->decoder->frame_size; // makes loop condition simpler
+  eof -= dv_player->decoder->frame_size; /* makes loop condition simpler */
 
   if(!dv_player->arg_disable_video) {
     if(!dv_display_init (dv_player->display, &argc, &argv, 
 			 dv_player->decoder->width, dv_player->decoder->height, 
 			 dv_player->decoder->sampling, "playdv", "playdv")) goto no_display;
-  } // if
+  } /* if */
 
   dv_player->arg_disable_audio = 
     dv_player->arg_disable_audio || (!dv_oss_init(dv_player->decoder->audio, dv_player->oss));
 
   for(i=0; i < 4; i++) {
     if(!(audio_buffers[i] = malloc(DV_AUDIO_MAX_SAMPLES*sizeof(gint16)))) goto no_mem;
-  } // if
+  } /* if */
 
   gettimeofday(dv_player->tv+0,NULL);
 
@@ -284,16 +285,35 @@ main(int argc,char *argv[])
       offset <= eof; 
       offset += dv_player->decoder->frame_size) {
 
-    // Map the frame's data into memory
-    mmap_unaligned(fd, offset, dv_player->decoder->frame_size, &dv_player->mmap_region);
-    if(MAP_FAILED == dv_player->mmap_region.map_start) goto map_failed;
-    dv_parse_header(dv_player->decoder, dv_player->mmap_region.data_start);
-    // Parse and unshuffle audio
+    /*
+     * Map the frame's data into memory
+     */
+    mmap_unaligned (fd, offset, dv_player->decoder->frame_size, &dv_player->mmap_region);
+    if (MAP_FAILED == dv_player->mmap_region.map_start) goto map_failed;
+    if (dv_parse_header (dv_player->decoder,
+        		 dv_player->mmap_region.data_start) > 0) {
+      /*
+       * video norm has changed so remap region for current frame
+       */
+      munmap_unaligned (&dv_player->mmap_region);
+      mmap_unaligned (fd, offset,
+		      dv_player->decoder->frame_size, &dv_player->mmap_region);
+      if (MAP_FAILED == dv_player->mmap_region.map_start) goto map_failed;
+      dv_display_set_norm (dv_player->display, dv_player->decoder->system);
+    } /* if */
+
+    /*
+     * keep track of any possible format changes of dv source material
+     */
+    dv_display_check_format (dv_player->display,
+			     dv_format_wide (dv_player->decoder));
+
+    /* Parse and unshuffle audio */
     if(!dv_player->arg_disable_audio) {
       if(dv_decode_full_audio(dv_player->decoder, dv_player->mmap_region.data_start, audio_buffers)) {
 	dv_oss_play(dv_player->decoder->audio, dv_player->oss, audio_buffers);
-      } // if
-    } // if
+      } /* if */
+    } /* if */
 
     if(!dv_player->arg_disable_video) {
 #if 0
@@ -306,7 +326,7 @@ main(int argc,char *argv[])
       if (!dv_player->decoder->prev_frame_decoded ||
           dv_frame_changed (dv_player->decoder)) {
 
-	// Parse and decode video
+	/* Parse and decode video */
 	dv_decode_full_frame(dv_player->decoder, dv_player->mmap_region.data_start, 
 			     dv_player->display->color_space, 
 			     dv_player->display->pixels, 
@@ -335,19 +355,19 @@ main(int argc,char *argv[])
 	fprintf (stderr, "same_frame\n");
       }
 
-      // Display
+      /* Display */
       dv_display_show(dv_player->display);
-    } // if 
+    } /* if  */
 
     frame_count++;
     if((dv_player->arg_num_frames > 0) && (frame_count >= dv_player->arg_num_frames)) {
       goto end_of_file;
-    } // if 
+    } /* if  */
 
-    // Release the frame's data
+    /* Release the frame's data */
     munmap_unaligned(&dv_player->mmap_region); 
 
-  } // while
+  } /* while */
 
  end_of_file:
   gettimeofday(dv_player->tv+1,NULL);
@@ -358,17 +378,17 @@ main(int argc,char *argv[])
 	  frame_count, seconds, (double)frame_count/seconds);
   if(!dv_player->arg_disable_video) {
     dv_display_exit(dv_player->display);
-  } // if
+  } /* if */
   if(!dv_player->arg_disable_audio) {
     dv_oss_close(dv_player->oss);
-  } // if 
+  } /* if  */
   exit(0);
 
   /* Error handling section */
 #if HAVE_LIBPOPT
  display_version:
   fprintf(stderr,"playdv: version %s, http://libdv.sourceforge.net/\n",
-	  "CVS 01/14/2001");
+	  VERSION);
   exit(0);
 
  bad_arg:
@@ -399,4 +419,4 @@ main(int argc,char *argv[])
  no_mem:
   fprintf(stderr,"Out of memory\n");
   exit(-1);
-} // main
+} /* main */

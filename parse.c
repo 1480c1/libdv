@@ -580,22 +580,20 @@ gint dv_parse_video_segment(dv_videosegment_t *seg, guint quality) {
 } // dv_parse_video_segment 
 #endif
 
-/* ---------------------------------------------------------------------------
- */
 static void
 dv_parse_vaux (dv_decoder_t *dv, guchar *buffer) {
   gint	i, j;
 
-  /* -------------------------------------------------------------------------
+  /* 
    * reset vaux structure first
    */
   dv -> vaux_next = 0;
   memset (dv -> vaux_pack, 0xff, sizeof (dv -> vaux_pack));
-  /* -------------------------------------------------------------------------
+  /* 
    * so search thru all 3 vaux packs
    */
   for (i = 0, buffer += 240; i < 3; ++i, buffer += 80) {
-    /* -----------------------------------------------------------------------
+    /*
      * each pack may contain up to 15 packets
      */
     for (j = 0; j < 15; j++) {
@@ -617,8 +615,6 @@ dv_parse_vaux (dv_decoder_t *dv, guchar *buffer) {
   }
 }
 
-/* ---------------------------------------------------------------------------
- */
 gint
 dv_parse_id(bitstream_t *bs,dv_id_t *id) {
   id->sct = bitstream_get(bs,3);
@@ -630,13 +626,13 @@ dv_parse_id(bitstream_t *bs,dv_id_t *id) {
   return 0;
 } // dv_parse_id
 
-/* ---------------------------------------------------------------------------
- */
 gint
 dv_parse_header(dv_decoder_t *dv, guchar *buffer) {
   dv_header_t *header = &dv->header;
   bitstream_t *bs;
-  dv_id_t id;
+  dv_id_t      id;
+  gint         prev_system, result = 0;
+
   if(!(bs = bitstream_init())) goto no_bitstream;
   bitstream_new_buffer(bs,buffer,6*80);
   dv_parse_id(bs,&id);
@@ -656,15 +652,22 @@ dv_parse_header(dv_decoder_t *dv, guchar *buffer) {
   header->ap3 = bitstream_get(bs,3);
   bitstream_flush_large(bs,576);		// skip rest of DIF block
 
-  /* -------------------------------------------------------------------------
+  /* 
    * parse vaux data now to check if there is a inconsistanciy between
    * header->dsf and vaux data for auto mode
    */
   dv_parse_vaux (dv, buffer);
   switch(dv->arg_video_system) {
   case 0:
+    prev_system = dv->system;
     dv->system = (header->dsf || (dv_system_50_fields (dv) == 1)) ?
-		  e_dv_system_625_50 : e_dv_system_525_60;
+      e_dv_system_625_50 : e_dv_system_525_60;
+    if (prev_system != dv->system) {
+      if (dv->system == e_dv_system_625_50)
+	result = 1;
+      else
+	result = 2;
+    } /* if */
     dv->std = ((header->apt) ? e_dv_std_smpte_314m : e_dv_std_iec_61834);
     break;
   case 1:
@@ -710,7 +713,7 @@ dv_parse_header(dv_decoder_t *dv, guchar *buffer) {
 
   dv_parse_audio_header(dv, buffer);
 
-  return(0);
+  return(result);
 
  parse_error:
  no_bitstream:

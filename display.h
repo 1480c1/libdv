@@ -78,7 +78,12 @@ typedef struct {
   Display          *dpy;
   Screen           *scn;
   Window            rwin, win;
-  gint		    rwidth, rheight;
+  gint		    dwidth, dheight,
+		    swidth, sheight,
+		    lwidth, lheight,
+		    lxoff, lyoff,
+		    flags,
+		    pic_format;
   GC                gc;
   XEvent            event;
   XvPortID	    port;
@@ -117,8 +122,9 @@ extern gboolean      dv_display_init(dv_display_t *dpy,
 				     char *w_name, char *i_name); // dv_display_init
 
 extern void dv_display_show(dv_display_t *dv_dpy);
-
 extern void dv_display_exit(dv_display_t *dv_dpy);
+extern void dv_display_set_norm (dv_display_t *dv_dpy, dv_system_t norm);
+extern void dv_display_check_format(dv_display_t *dv_dpy, int pic_format);
 
 #ifdef __cplusplus
 }

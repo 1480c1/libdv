@@ -1,3 +1,8 @@
+2001-02-07  Charles 'Buck' Krasic  <krasic@acm.org>
+
+	* Integrate patch from Stefan Lucke for aspect-ratio handling
+	  with Xv based display.
+
 2001-02-06  Charles 'Buck' Krasic  <krasic@acm.org>
 
 	* Integrate patch from Stefan Lucke for various speedups:
