@@ -72,7 +72,7 @@ dv_oss_new(void)
 gboolean
 dv_oss_init(dv_audio_t *audio, dv_oss_t *oss)
 {
-  gint format = AFMT_S16_NE, rate_request, channels_request; 
+  gint format = AFMT_S16_LE, rate_request, channels_request; 
   gchar *device;
 
   channels_request = audio->num_channels;
