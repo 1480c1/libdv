@@ -14,10 +14,10 @@ bin_PROGRAMS= encodedv dvconnect
 noinst_PROGRAMS= insert_audio fix_headers scan_packet_headers steal_header ppmqscale dvavi
 
 encodedv_SOURCES= encodedv.c 
-encodedv_LDADD= ../libdv/libdv.la
+encodedv_LDADD= ../libdv/libdv.la $(POPT_LIB)
 
 insert_audio_SOURCES = insert_audio.c 
-insert_audio_LDADD= ../libdv/libdv.la
+insert_audio_LDADD= ../libdv/libdv.la $(POPT_LIB)
 
 fix_headers_SOURCES = fix_headers.c 
 fix_headers_LDADD= ../libdv/libdv.la
@@ -29,7 +29,7 @@ steal_header_SOURCES = steal_header.c
 ppmqscale_SOURCES = ppmqscale.c
 
 dvconnect_SOURCES = dvconnect.c
-dvconnect_LDADD = $(PTHREAD_LIBS)
+dvconnect_LDADD = $(PTHREAD_LIBS) $(POPT_LIB)
 
 dvavi_SOURCES = dvavi.c
 dvavi_LDADD= ../libdv/libdv.la

@@ -168,8 +168,6 @@ if $use_sdl; then
 	AM_PATH_SDL(1.1.6,
 	[
 		AC_DEFINE(HAVE_SDL) 
-		LIBS="$LIBS $SDL_LIBS" 
-		CFLAGS="$CFLAGS $SDL_CFLAGS"
  	])
 fi
 
@@ -203,9 +201,8 @@ REQUIRES_NOPKGCONFIG=""
 if test "$GCC" = "yes"; then
       AC_CHECK_LIB(popt, poptGetContext,
       [
-        LIBS="-lpopt ${LIBS}"
+        POPT_LIB="-lpopt"
         AC_DEFINE(HAVE_LIBPOPT, 1, [Define if you have the 'popt' library])
-        REQUIRES_NOPKGCONFIG="-lpopt"
       ],
       [
         AC_MSG_WARN(playdv needs the popt package for command line parsing.
@@ -213,6 +210,7 @@ if test "$GCC" = "yes"; then
 			ftp://ftp.redhat.com/pub/redhat/code/popt)
       ])
 fi
+AC_SUBST(POPT_LIB)
 AC_SUBST(REQUIRES_NOPKGCONFIG)
 
 dnl Checks for header files.

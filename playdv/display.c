@@ -576,10 +576,10 @@ dv_display_Xv_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name,
     shmat(dv_dpy->shminfo.shmid, 0, 0);
 
   XShmAttach(dv_dpy->dpy, &dv_dpy->shminfo);
+  XSync(dv_dpy->dpy, False);
+
   if (dv_dpy -> shminfo. shmid > 0)
     shmctl (dv_dpy -> shminfo. shmid, IPC_RMID, 0);
-
-  XSync(dv_dpy->dpy, False);
 
   return 1;
 } /* dv_display_Xv_init */
