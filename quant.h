@@ -8,7 +8,7 @@
 #ifndef DV_QUANT_H
 #define DV_QUANT_H
 
-#include "dv_types.h"
+#include <dv_types.h>
 
 #ifdef __cplusplus
 extern "C" {

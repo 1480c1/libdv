@@ -23,13 +23,7 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
-#if HAVE_LIBPOPT
-#include <popt.h>
-#endif // HAVE_LIBPOPT
+#include <dv_types.h>
 
 #include <unistd.h>
 #include <stdio.h>
@@ -39,7 +33,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/soundcard.h>
-#include <glib.h>
+
 #include "oss.h"
 
 static const gchar *default_device = "/dev/audio";

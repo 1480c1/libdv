@@ -23,17 +23,12 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
+#include <dv_types.h>
 
 #include <math.h>
 #include <assert.h>
-#include <glib.h>
 #include <stdio.h>
 #include <stdlib.h>
-
 #include <gtk/gtk.h>
 
 #include "bitstream.h"

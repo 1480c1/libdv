@@ -1,12 +1,7 @@
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include <dv_types.h>
 
-#include <glib.h>
 #include <stdio.h>
 #include <assert.h>
-
-#include "bitstream.h"
 
 static guint8 buffer[10000] = "Deliberately buried, eh?";
 

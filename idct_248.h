@@ -27,7 +27,7 @@
 #ifndef IDCT_248_H
 #define IDCT_248_H
 
-#include "dv_types.h"
+#include <dv_types.h>
 
 #ifdef __cplusplus
 extern "C" {

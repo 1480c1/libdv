@@ -27,7 +27,7 @@
 #ifndef DV_WEIGHTING_H
 #define DV_WEIGHTING_H
 
-#include "dv_types.h"
+#include <dv_types.h>
 
 #ifdef __cplusplus
 extern "C" {

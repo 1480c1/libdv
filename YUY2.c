@@ -27,9 +27,10 @@
 /* Most of this file is derived from patch 101018 submitted by Stefan
  * Lucke <lucke@berlin.snafu.de> */
 
+#include <dv_types.h>
+
 #include <stdlib.h>
 
-#include "dv_types.h"
 #include "YUY2.h"
 
 #if ARCH_X86

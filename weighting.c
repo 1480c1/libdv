@@ -24,11 +24,11 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+
+#include <dv_types.h>
 
 #include <math.h>
+
 #include "weighting.h"
 
 dv_coeff_t preSC[64] __attribute__ ((aligned (32))) = {

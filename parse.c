@@ -24,9 +24,10 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
+#include <dv_types.h>
+
 #include <stdio.h>
 
-#include "dv_types.h"
 #include "util.h"
 #include "bitstream.h"
 #include "vlc.h"

@@ -23,10 +23,11 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
+#include <dv_types.h>
+
 #include <stdio.h>
 #include <math.h>
 
-#include "dv_types.h"
 #include "util.h"
 #include "audio.h"
 

@@ -27,7 +27,7 @@
 #ifndef DV_DCT_H
 #define DV_DCT_H
 
-#include "dv_types.h"
+#include <dv_types.h>
 
 #define DCT_YUV_PRECISION 2        /* means fixpoint with YUV_PRECISION bits 
 				      after the point (if you change this,

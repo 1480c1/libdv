@@ -24,6 +24,8 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
+#include <dv_types.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/time.h>
@@ -33,7 +35,6 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 
-#include "dv_types.h"
 #include "dv.h"
 #include "display.h"
 #include "oss.h"

@@ -28,11 +28,11 @@
 #define DV_H
 
 
+#include <dv_types.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <bitstream.h>
-
-#include "dv_types.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -33,7 +33,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#include "dv_types.h"
+#include <dv_types.h>
 #include "util.h"
 #include "display.h"
 

@@ -27,7 +27,7 @@
 #ifndef DV_RGB_H
 #define DV_RGB_H
 
-#include "dv_types.h"
+#include <dv_types.h>
 
 /* Convert output of decoder to RGB layout.  
  * 

@@ -24,12 +24,11 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+
+#include <dv_types.h>
 
 #include <stdio.h>
-#include <glib.h>
+
 #include "vlc.h"
 
 typedef struct dv_vlc_test_s {

@@ -25,8 +25,9 @@
  */
 
 
+#include <dv_types.h>
+
 #include <math.h>
-#include "dv_types.h"
 
 #define COLOR_FRACTION_BITS 10
 #define COLOR_FRACTION_MUL  (1 << COLOR_FRACTION_BITS)

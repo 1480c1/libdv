@@ -1,10 +1,7 @@
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "dv_types.h"
 #include "dv.h"
 #include "util.h"
 #include "dct.h"

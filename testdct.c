@@ -24,12 +24,11 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include <dv_types.h>
 
 #include <stdio.h>
 #include <math.h>
+
 #include "dct.h"
 
 static double x88[64] = {

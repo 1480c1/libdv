@@ -39,17 +39,13 @@
  * That said, this is way faster the brute force float version.
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+
+#include <dv_types.h>
 
 #include <stdio.h>
 #include <math.h>
-#include <glib.h>
 
 #define IDCT_248_UNIT_TEST 0
-
-typedef gint32 dv_248_coeff_t;
 
 static dv_248_coeff_t dv_idct_248_prescale[64];
 

@@ -24,7 +24,8 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#include "dv_types.h"
+#include <dv_types.h>
+
 #include "place.h"
 
 #define DEBUG_HIGHLIGHT_MBS 0
