@@ -24,6 +24,7 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
+#include <stdio.h>
 #include <glib.h>
 #include "vlc.h"
 
@@ -140,13 +141,23 @@ int main(int argc, char **argv)
     run = dv_vlc_test_table[i].run;
     if(amp > 0) { len++; val <<= 1; }
     dv_decode_vlc(val, len, &vlc);
-    g_assert(run == vlc.run && amp == vlc.amp && len == vlc.len);
+    if (!(run == vlc.run && amp == vlc.amp && len == vlc.len)) {
+      fprintf(stderr, "Failed at %d; expected (%d,%d,%d), found (%d,%d,%d)\n",
+	      i,
+	      run, amp, len,
+	      vlc.run, vlc.amp, vlc.len);
+    }
   }
   for(run=6; run < 62; run++) {
     len = 13;
     val = (126 << 6) | run;
     amp = 0;
     dv_decode_vlc(val, len, &vlc);
+    if (!(run == vlc.run && amp == vlc.amp && len == vlc.len)) {
+      fprintf(stderr, "Failed; expected (%d,%d,%d), found (%d,%d,%d)\n",
+	      run, amp, len,
+	      vlc.run, vlc.amp, vlc.len);
+    }
     g_assert(run == vlc.run && amp == vlc.amp && len == vlc.len);
   }
   for(amp=23; amp < 256; amp++) {
@@ -154,6 +165,18 @@ int main(int argc, char **argv)
     run = 0;
     len = 16;
     dv_decode_vlc(val, len, &vlc);
+    if (!(run == vlc.run && amp == vlc.amp && len == vlc.len)) {
+      fprintf(stderr, "Failed; expected (%d,%d,%d), found (%d,%d,%d)\n",
+	      run, amp, len,
+	      vlc.run, vlc.amp, vlc.len);
+    }
+    g_assert(run == vlc.run && amp == vlc.amp && len == vlc.len);
+    __dv_decode_vlc(val, &vlc);
+    if (!(run == vlc.run && amp == vlc.amp && len == vlc.len)) {
+      fprintf(stderr, "Failed; expected (%d,%d,%d), found (%d,%d,%d)\n",
+	      run, amp, len,
+	      vlc.run, vlc.amp, vlc.len);
+    }
     g_assert(run == vlc.run && amp == vlc.amp && len == vlc.len);
   }
   exit(0);
