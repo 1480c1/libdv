@@ -104,9 +104,9 @@ static inline int32_t fixed_multiply(int32_t a, int32_t b) {
 
 /* Will this actually compile?  I dunno */
 static inline int32_t fixed_multiply(int32_t a, int32_t b) {
-  int64 product;
+  int64_t product;
 
-  product = (int64)a * (int64)b;
+  product = (int64_t)a * (int64_t)b;
   product >>= (32 - 2);
   return(product);
 } // fixed_multiply

@@ -56,7 +56,7 @@
 // #define ARCH_X86 0
 
 #if !ARCH_X86
-inline gint f2b(float f)
+inline int f2b(float f)
 {
 	int b = rint(f);
 	if (b < 0)
@@ -68,7 +68,7 @@ inline gint f2b(float f)
 }
 
 
-inline gint f2sb(float f)
+inline int f2sb(float f)
 {
 	int b = rint(f);
 	

@@ -392,9 +392,9 @@ static inline void
 dv_render_macroblock_yuv(dv_decoder_t *dv, dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
   if(dv->sampling == e_dv_sample_411) {
     if(mb->x >= 704) {
-      dv_mb411_right_YUY2(mb, pixels, pitches); /* Right edge are 420! */
+      dv_mb411_right_YUY2(mb, pixels, pitches, dv->add_ntsc_setup); /* Right edge are 420! */
     } else {
-      dv_mb411_YUY2(mb, pixels, pitches);
+      dv_mb411_YUY2(mb, pixels, pitches, dv->add_ntsc_setup);
     } /* else */
   } else {
     DV_MB420_YUV(mb, pixels, pitches);
