@@ -23,8 +23,8 @@ was developed according to the official standards for DV video, IEC
 %files
 %defattr(-,root,root)
 %doc ChangeLog COPYING README README.encoder AUTHORS NEWS INSTALL TODO COPYRIGHT 
-%{_mandir}/man1/playdv.1.gz
-%{_mandir}/man1/encodedv.1.gz
+%{_mandir}/man1/playdv.1.bz2
+%{_mandir}/man1/encodedv.1.bz2
 %{_bindir}/playdv
 %{_bindir}/encodedv
 %{_libdir}/libdv.so*

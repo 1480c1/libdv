@@ -1,3 +1,9 @@
+2002-07-30  Charles 'Buck' Krasic  <krasic@acm.org>
+	* libdv 0.98 release.
+
+	* add configure script to CVS repository, to ease the pain of
+	  dealing with autotools version messiness.
+
 2002-07-30  Dan Dennedy <dan@dennedy.org>
 	* applied patch from Steven Schultz <sms@2BSD.COM> to add
 	  cross-platform checks for endian.h.
