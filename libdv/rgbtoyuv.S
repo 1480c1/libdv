@@ -42,7 +42,7 @@
 #define DV_WIDTH_BYTE_HALF  360	
 		
 .global rgbtoycb_mmx
-.global yuvtoycb_mmx
+# .global yuvtoycb_mmx
 
 .data
 

@@ -1,7 +1,129 @@
 #! /bin/bash
+
+DIE=0
+package=libdv
+srcfile=libdv/dv.c
+
+function autoconf_version_msg() {
+    echo
+    echo "You must have autoconf 2.50 or greater to bootstrap $package."
+    echo "Get the latest version from ftp://ftp.gnu.org/gnu/autoconf/"
+    DIE=1
+}
+
+(autoconf --version) < /dev/null > /dev/null 2>&1 || {
+    autoconf_version_msg
+}
+
+autoconf_major=`autoconf --version | head -n 1 | sed 's/^[^0-9]*//' | sed 's/\([0-9]*\).\([0-9]*\)/\1/'`
+autoconf_minor=`autoconf --version | head -n 1 | sed 's/^[^0-9]*//' | sed 's/\([0-9]*\).\([0-9]*\)/\2/'`
+
+if [ $autoconf_major -le 2 ]; then
+	if [ $autoconf_major -lt 2 ]; then
+		autoconf_version_msg
+	elif [ $autoconf_minor -lt 50 ]; then
+		autoconf_version_msg
+	fi
+fi
+
+function automake_version_msg () { 
+    echo
+    echo "You must have automake 1.4-p2 or greater to bootstrap $package."
+    echo "I got mine from ftp://rawhide.redhat.com:/pub/redhat/linux/rawhide/SRPMS/SRPMS/automake-1.4p4-2.src.rpm"
+    DIE=1
+}
+(automake --version) < /dev/null > /dev/null 2>&1 || {
+    automake_version_msg
+}
+
+
+automake_major=`automake --version | head -n 1 | sed 's/^[^0-9]*//' | sed 's/\([0-9]*\).\([0-9]*\)\(-p\(.*\)\)*/\1/'`
+automake_minor=`automake --version | head -n 1 | sed 's/^[^0-9]*//' | sed 's/\([0-9]*\).\([0-9]*\)\(-p\(.*\)\)*/\2/'`
+automake_patch=`automake --version | head -n 1 | sed 's/^[^0-9]*//' | sed 's/\([0-9]*\).\([0-9]*\)\(-p\(.*\)\)*/\4/'`
+
+if [ $automake_major -le 1 ]; then
+	if [ $automake_major -lt 1 ]; then
+		automake_version_msg
+	elif [ $automake_minor -le 4 ]; then
+		if [ $automake_minor -lt 4 ]; then
+		    automake_version_msg
+                elif [ $automake_patch -lt 2 ]; then
+		    automake_version_msg
+		fi
+	fi
+fi
+
+function libtool_version_msg () {
+	echo
+	echo "You must have libtool 1.4 or greater to bootstrap $package."
+	echo "Get the latest version from ftp://alpha.gnu.org/gnu/libtool/"
+	DIE=1
+} 
+
+(libtool --version) < /dev/null > /dev/null 2>&1 || {
+	libtool_version_msg 
+}
+
+libtool_version=`libtool --version | sed 's/^.* \([0-9\.]*\) .*$/\1/'`
+libtool_major=`echo $libtool_version | cut -d. -f1`
+libtool_minor=`echo $libtool_version | cut -d. -f2`
+if [ $libtool_major -le 1 ]; then
+	if [ $libtool_major -lt 1 ]; then
+		libtool_version_msg
+	elif [ $libtool_minor -lt 4 ]; then
+		libtool_version_msg
+	fi
+fi
+
+function pkgconfig_version_msg () {
+	echo
+	echo "You must have pkg-config 0.7.0 or greater to bootstrap $package."
+	echo "I got mine from ftp://ftp.gtk.org/pub/gtk/v1.3/dependencies/"
+	DIE=1
+} 
+
+(pkg-config --version) < /dev/null > /dev/null 2>&1 || {
+	pkgconfig_version_msg
+}
+
+pkgconfig_major=`pkg-config --version | sed 's/\([0-9]*\).\([0-9]*\).\([0-9]*\)/\1/'`
+pkgconfig_minor=`pkg-config --version | sed 's/\([0-9]*\).\([0-9]*\).\([0-9]*\)/\2/'`
+
+if [ $pkgconfig_major -lt 1 ]; then
+	if [ $pkgconfig_minor -lt 7 ]; then
+	    pkgconfig_version_msg
+	fi
+fi
+
+#
+# Sigh, we need this here because of SDL_PATH_CONFIG in configure.in
+#
+function sdl_version_msg () {
+	echo
+	echo "You must have SDL installed to bootstrap $package."
+	echo "Download the appropriate package for your distribution,"
+	echo "or get the source tarball at http://libsdl.org/"
+	DIE=1
+} 
+
+(sdl-config --version) < /dev/null > /dev/null 2>&1 || {
+	sdl_version_msg
+}
+
+
+if test "$DIE" -eq 1; then
+	exit 1
+fi
+
+test -f $srcfile || {
+	echo "You must run this script in the top-level $package directory"
+	exit 1
+}
+
 set -x
 aclocal -I config
 libtoolize --force --copy
+aclocal -I config
 autoheader
 automake --foreign --copy --add-missing
 autoconf

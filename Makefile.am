@@ -11,12 +11,16 @@ AUX_DIST                  = $(ac_aux_dir)/config.guess \
 AUX_DIST_EXTRA		  = $(ac_aux_dir)/ac_c_bigendian_cross.m4 \
                                    $(ac_aux_dir)/README
 
-EXTRA_DIST                = bootstrap COPYRIGHT README.encoder @PACKAGE@.spec 
+EXTRA_DIST                = bootstrap COPYRIGHT README.encoder README.dvconnect \
+                            @PACKAGE@.spec @PACKAGE@.pc
 
 MAINTAINERCLEANFILES      = Makefile.in aclocal.m4 configure config.h.in \
                             stamp-h.in $(AUX_DIST)
 
 CLEANFILES                = 
+
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = libdv.pc
 
 rpm: dist
 	rpm -ta @PACKAGE@-@VERSION@.tar.gz
@@ -27,3 +31,5 @@ dist-hook:
 		cp $$file $(distdir)/$$file; \
 	done
 
+maintainer-clean-local:
+	rm -f libdv*.tar.gz

@@ -27,6 +27,7 @@ insert_audio
 libdv*tar.gz
 libdv.la
 libdv.spec
+libdv.pc
 libtool
 ltconfig
 ppmqscale

@@ -221,11 +221,11 @@ typedef struct {
    counter examples.  If we do find out there is one, we'll have to
    fix it... */
 
-#if defined(WORDS_BIGENDIAN)
-#define BIG_ENDIAN_BITFIELD
-#else
+#if (G_BYTE_ORDER == G_LITTLE_ENDIAN)
 #define LITTLE_ENDIAN_BITFIELD
-#endif  // WORDS_BIGENDIAN
+#else
+#define BIG_ENDIAN_BITFIELD
+#endif  /* (G_BYTE_ORDER == G_LITTLE_ENDIAN) */
 
 typedef struct {
 #if defined(LITTLE_ENDIAN_BITFIELD)

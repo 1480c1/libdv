@@ -70,6 +70,7 @@ make prefix=$RPM_BUILD_ROOT/usr install
 %doc ChangeLog COPYING README README.encoder AUTHORS NEWS INSTALL TODO COPYRIGHT
 /usr/include/libdv/*
 /usr/lib/lib*.a
+/usr/lib/pkgconfig/libdv.pc
 
 %clean
 rm -rf ${RPM_BUILD_ROOT}

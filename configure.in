@@ -8,28 +8,42 @@ AM_INIT_AUTOMAKE(libdv, 0.9)
 
 AC_CANONICAL_HOST
 AM_MAINTAINER_MODE
-AC_DISABLE_SHARED
+AC_LIBTOOL_PICMODE(no)
 
 dnl Checks for programs.
 
 AC_SUBST(CFLAGS)
 AC_PROG_CC
 
-CFLAGS="$CFLAGS -I . -I .."
+dnl CPPFLAGS=-I'$(top_srcdir)'/src
 
 dnl Add -Wall if gcc
 if test "$GCC" = "yes"; then
-   CFLAGS="$CFLAGS -Wall -O2"
+   CFLAGS="$CFLAGS -Wall"
 fi
 
+AH_TEMPLATE([_GNU_SOURCE],
+            [Define to enable GNU extensions of glibc, notably large file support])
+           
+AH_TEMPLATE([YUV_420_USE_YV12],
+            [Define to 1 to use planar YUV format for 420 blocks in IEC PAL])
+
+AH_TEMPLATE([ARCH_X86],
+            [Define as 1 if host is an IA32])
+
+AH_TEMPLATE([DEBUG], 
+	    [Define to indicate DEBUGGING is enabled possibly with a level])
+
+AH_TEMPLATE([HAVE_SDL], 
+	    [Define as 1 if you have libsdl])
+
+AC_DEFINE(_GNU_SOURCE)
 
 AC_PROG_INSTALL
 AM_PROG_LIBTOOL
 
 use_asm=:
 arch_x86=false
-
-AC_DEFINE(_GNU_SOURCE)
 
 AC_ARG_ENABLE(asm,
 [  --disable-asm           disable use of architecture specific assembly code],
@@ -120,21 +134,16 @@ AM_CONDITIONAL(HOST_X86, $arch_x86)
 
 dnl Checks for libraries.
 
-AM_PATH_GLIB(, 
-[
-	AC_DEFINE(HAVE_GLIB)
-	LIBS="$LIBS $GLIB_LIBS"
- 	CFLAGS="$CFLAGS $GLIB_CFLAGS" 	
-], [
- 	AC_MSG_ERROR([No glib. Bad.  Get it at:  http://www.gtk.org/. ])
-])
+REQUIRES='glib >= 1.2.4 gtk+ >= 1.2.4'
+PKG_CHECK_MODULES(LIBDV,$REQUIRES)
 
-AM_PATH_GTK(,
-[
-	AC_DEFINE(HAVE_GTK) 
-	LIBS="$LIBS $GTK_LIBS" 
-	CFLAGS="$CFLAGS $GTK_CFLAGS" 
-])
+dnl pass-thru to .pc files
+AC_SUBST(REQUIRES)
+dnl used in Makefile.am
+AC_SUBST(LIBDV_CFLAGS)
+AC_SUBST(LIBDV_LIBS)
+CPPFLAGS="$CPPFLAGS $LIBDV_CFLAGS"
+LDFLAGS="$LDFLAGS $LIBDV_LIBS"
 
 if $use_sdl; then
 	AM_PATH_SDL(1.1.6,
@@ -172,7 +181,6 @@ AC_C_CONST
 AC_C_INLINE
 AC_TYPE_OFF_T
 AC_TYPE_SIZE_T
-AC_C_BIGENDIAN_CROSS
 AC_HEADER_TIME
 
 dnl Checks for library functions.
@@ -182,4 +190,4 @@ AC_CHECK_FUNCS(gettimeofday)
 AC_SUBST(ac_aux_dir)
 AC_SUBST(RPM_RELEASE)
 
-AC_OUTPUT(Makefile libdv.spec libdv/Makefile playdv/Makefile encodedv/Makefile)
+AC_OUTPUT(Makefile libdv.spec libdv.pc libdv/Makefile playdv/Makefile encodedv/Makefile)

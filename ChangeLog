@@ -1,5 +1,8 @@
 2001-06-24  Charles 'Buck' Krasic  <krasic@acm.org>
 
+	* Move bootstrap to bleeding edge autotools, with checks in
+	  bootstrap for the proper versions.  Add support for pkgconfig.
+ 
 	* Make build more quiet.  Fixups for some gcc warnings.
 
 2001-06-24  Daniel Kobras <kobras@tat.physik.uni-tuebingen.de> 
