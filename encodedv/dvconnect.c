@@ -687,6 +687,9 @@ int send_raw(const char*const* filenames, int channel, int nbuffers,
 	int got_frame;
 	unsigned int packet_sizes[321];
 
+	if ( filenames == NULL )
+		return -1;
+
 	src_filenames = filenames;
 	if (!*src_filenames) {
 		src_filenames = 0;
