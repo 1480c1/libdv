@@ -95,7 +95,10 @@ void weight_init(void)
 {
 	double temp[64];
 	double temp_postsc[64];
-	int i, z, x, y;
+	int i, z, x;
+#if 0	
+	int y;
+#endif
 #if ARCH_X86
 	const double dv_weight_bias_factor = (double)(1UL << DV_WEIGHT_BIAS);
 #endif

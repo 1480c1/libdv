@@ -226,7 +226,6 @@ static void dct_aan_line(short* in, short* out)
 	var v42,v43,v45,v47;   
 	var v54,v55,v56,v57,va0;   
 
-	int i,n;
 	v0 = in[0];
 	v1 = in[1];
 	v2 = in[2];
