@@ -69,7 +69,7 @@ extern void dv_construct_vlc_table();
 extern void dv_decode_vlc(int bits,int maxbits, dv_vlc_t *result);
 extern void __dv_decode_vlc(int bits, dv_vlc_t *result);
 
-extern __inline__ void dv_peek_vlc(bitstream_t *bs,int maxbits, dv_vlc_t *result) {
+static inline void dv_peek_vlc(bitstream_t *bs,int maxbits, dv_vlc_t *result) {
   if(maxbits < 16)
     dv_decode_vlc(bitstream_show(bs,16),maxbits,result);
   else
