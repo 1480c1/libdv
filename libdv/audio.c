@@ -27,6 +27,7 @@
 
 #include <stdio.h>
 #include <math.h>
+#include <string.h>
 
 #include "util.h"
 #include "audio.h"
