@@ -26,6 +26,7 @@
 
 #include <glib.h>
 #include <stdio.h>
+#include <assert.h>
 
 #include "bitstream.h"
 #include "dv.h"
@@ -56,14 +57,14 @@ static gint    dv_parse_bit_end[6]   = {       18*8, 32*8, 46*8, 60*8, 70*8, 80*
 static gint     dv_super_map_vertical[5] = { 2, 6, 8, 0, 4 };
 static gint     dv_super_map_horizontal[5] = { 2, 1, 3, 0, 4 };
 
-static gint  dv_88_reorder_prime[64] = {
+static gint8  dv_88_reorder_prime[64] = {
 0, 1, 8, 16, 9, 2, 3, 10,		17, 24, 32, 25, 18, 11, 4, 5,
 12, 19, 26, 33, 40, 48, 41, 34,		27, 20, 13, 6, 7, 14, 21, 28,
 35, 42, 49, 56, 57, 50, 43, 36,		29, 22, 15, 23, 30, 37, 44, 51,
 58, 59, 52, 45, 38, 31, 39, 46,		53, 60, 61, 54, 47, 55, 62, 63 
 };
 
-static gint  dv_reorder[2][64] = {
+static gint8  dv_reorder[2][64] = {
   { 0 },
   {
     0, 32, 1, 33, 8, 40, 2, 34,		9, 41, 16, 48, 24, 56, 17, 49,
@@ -209,7 +210,7 @@ static gint dv_parse_ac_coeffs(dv_videosegment_t *seg) {
   gint             m, b, pass;
   gint             bits_left;
   gboolean         vlc_error;
-  gint           **reorder, *reorder_sentinel;
+  gint8           **reorder, *reorder_sentinel;
   dv_coeff_t      *coeffs;
   dv_macroblock_t *mb;
   dv_block_t      *bl, *bl_bit_source;
@@ -345,19 +346,32 @@ static gint dv_parse_ac_coeffs(dv_videosegment_t *seg) {
 #endif
 } // dv_parse_ac_coeffs
 
-static __inline__ void dv_parse_ac_coeffs_pass0(bitstream_t *bs, gint m,  gint b,  dv_macroblock_t *mb, dv_block_t *bl) {
+void dv_parse_ac_coeffs_pass0(bitstream_t *bs,
+			      gint m, 
+			      gint b,
+			      dv_macroblock_t *mb,
+			      dv_block_t *bl);
+
+#if ! USE_MMX_ASM
+static __inline__ void dv_parse_ac_coeffs_pass0(bitstream_t *bs,
+						gint m, 
+						gint b,
+						dv_macroblock_t *mb,
+						dv_block_t *bl) {
   dv_vlc_t         vlc;
   gint             bits_left;
+  guint32 bits;
 
   vlc_trace("\nB%d",b);
   // Main coeffient parsing loop
   memset(&bl->coeffs[1],'\0',sizeof(bl->coeffs)-sizeof(bl->coeffs[0]));
   while(1) {
     bits_left = bl->end - bl->offset;
+    bits = bitstream_show(bs,16);
     if(bits_left >= 16) 
-      __dv_decode_vlc(bitstream_show(bs,16),&vlc);
+      __dv_decode_vlc(bits, &vlc);
     else
-      dv_decode_vlc(bitstream_show(bs,bits_left),bits_left,&vlc);
+      dv_decode_vlc(bits, bits_left,&vlc);
     if(vlc.run < 0) break;
     // complete, valid vlc found
     vlc_trace("(%d,%d,%d)",vlc.run,vlc.amp,vlc.len);
@@ -390,6 +404,7 @@ static __inline__ void dv_parse_ac_coeffs_pass0(bitstream_t *bs, gint m,  gint b
 #endif // PARSE_VLC_TRACE
   vlc_trace("\n");
 } // dv_parse_ac_coeffs_pass0
+#endif
 
 /* DV requires vlc decode of AC coefficients for each block in three passes:
  *    Pass1 : decode coefficient vlc bits from their own block's area

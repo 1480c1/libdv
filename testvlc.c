@@ -140,7 +140,7 @@ int main(int argc, char **argv)
     len = dv_vlc_test_table[i].len;
     run = dv_vlc_test_table[i].run;
     if(amp > 0) { len++; val <<= 1; }
-    dv_decode_vlc(val, len, &vlc);
+    dv_decode_vlc(val << (16 - len), len, &vlc);
     if (!(run == vlc.run && amp == vlc.amp && len == vlc.len)) {
       fprintf(stderr, "Failed at %d; expected (%d,%d,%d), found (%d,%d,%d)\n",
 	      i,
@@ -152,7 +152,7 @@ int main(int argc, char **argv)
     len = 13;
     val = (126 << 6) | run;
     amp = 0;
-    dv_decode_vlc(val, len, &vlc);
+    dv_decode_vlc(val << (16 - len), len, &vlc);
     if (!(run == vlc.run && amp == vlc.amp && len == vlc.len)) {
       fprintf(stderr, "Failed; expected (%d,%d,%d), found (%d,%d,%d)\n",
 	      run, amp, len,
@@ -164,7 +164,7 @@ int main(int argc, char **argv)
     val = (127 << 9) | (amp << 1);
     run = 0;
     len = 16;
-    dv_decode_vlc(val, len, &vlc);
+    dv_decode_vlc(val << (16 - len), len, &vlc);
     if (!(run == vlc.run && amp == vlc.amp && len == vlc.len)) {
       fprintf(stderr, "Failed; expected (%d,%d,%d), found (%d,%d,%d)\n",
 	      run, amp, len,

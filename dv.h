@@ -54,8 +54,8 @@ typedef struct dv_block_s {
   double       fcoeffs[64];
   gint         dct_mode; 
   gint         class_no;
-  gint        *reorder;
-  gint        *reorder_sentinel;
+  gint8        *reorder;
+  gint8        *reorder_sentinel;
   gint         offset;   // bitstream offset of first unused bit 
   gint         end;      // bitstream offset of last bit + 1
   gint         eob;

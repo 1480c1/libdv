@@ -313,13 +313,13 @@ void dv_construct_vlc_table() {
 /* Note we assume bits is right (lsb) aligned, and that (0 < maxbits <
  * 17).  This may look crazy, but there are no branches here. */
 
-#if ! USE_ASM_FOR_VLC
+#if ! USE_MMX_ASM
 void dv_decode_vlc(gint bits,gint maxbits, dv_vlc_t *result) {
   static dv_vlc_t vlc_broken = {run: -1, amp: -1, len: VLC_NOBITS};
   dv_vlc_t *results[2] = { &vlc_broken, result };
   gint class, has_sign, amps[2];
   
-  bits = bits << (16 - maxbits); // left align input
+  // note that BITS is left aligned
   class = dv_vlc_classes[maxbits][(bits & (dv_vlc_class_index_mask[maxbits])) >> (dv_vlc_class_index_rshift[maxbits])];
   *result = dv_vlc_lookups[class][(bits & (dv_vlc_index_mask[class])) >> (dv_vlc_index_rshift[class])];
   amps[1] = -(amps[0] = result->amp);

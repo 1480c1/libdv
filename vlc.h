@@ -30,8 +30,6 @@
 #include <glib.h>
 #include "bitstream.h"
 
-#define USE_ASM_FOR_VLC 1
-
 #define VLC_NOBITS (-1)
 #define VLC_ERROR (-2)
 
@@ -70,7 +68,7 @@ extern void __dv_decode_vlc(gint bits, dv_vlc_t *result);
 
 extern __inline__ void dv_peek_vlc(bitstream_t *bs,gint maxbits, dv_vlc_t *result) {
   if(maxbits < 16)
-    dv_decode_vlc(bitstream_show(bs,maxbits),maxbits,result);
+    dv_decode_vlc(bitstream_show(bs,16),maxbits,result);
   else
     __dv_decode_vlc(bitstream_show(bs,16),result);
 } // dv_peek_vlc
