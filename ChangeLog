@@ -1,3 +1,10 @@
+2000-12-21  Charles 'Buck' Krasic  <krasic@acm.org>
+
+	* Applied outstanding patch submissions.  The major parts included
+	getting the encoder to build again, and autotool'ing the build.
+	This ChangeLog files is far from complete.  The log
+	information in CVS is where most of the changes are documented.
+ 
 2000-05-08  Charlie Krasic  <krasic@cse.ogi.edu>
 
 	* Moved to macroblock at a time color conversion, based on the work
