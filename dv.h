@@ -39,7 +39,7 @@ extern "C" {
 
 /* Main API */
 extern dv_decoder_t *dv_decoder_new      (void);
-extern void          dv_init             (dv_decoder_t *dv);
+extern void          dv_init             (void); 
 extern gint          dv_parse_header     (dv_decoder_t *dv, guchar *buffer);
 extern void          dv_decode_full_frame(dv_decoder_t *dv, 
 					  guchar *buffer, dv_color_space_t color_space, 

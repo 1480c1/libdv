@@ -397,9 +397,6 @@ typedef struct {
   dv_header_t        header;
   dv_audio_t        *audio;
   dv_video_t        *video;
-#if ARCH_X86
-  gboolean           use_mmx;
-#endif
   gint               arg_video_system;
 
   gboolean           prev_frame_decoded;
@@ -425,5 +422,9 @@ typedef struct {
   struct poptOption option_table[DV_OSS_NUM_OPTS+1];
 #endif // HAVE_LIBPOPT
 } dv_oss_t;
+
+#if ARCH_X86
+extern gboolean dv_use_mmx;
+#endif
 
 #endif // DV_TYPES_H

@@ -1,5 +1,11 @@
 2001-02-14  Charles 'Buck' Krasic  <krasic@acm.org>
 
+	* Bug fix for bug #131581: 
+	  "Initializating multiple dv_decoder_t	objects fails".  
+
+	  Changed dv_init() to remove dependence on per-stream object, and
+	  ignore multiple invocations.
+
 	* Bugfix from Stefan Lucke for recent PAL breakage.
 
 2001-02-08  Charles 'Buck' Krasic  <krasic@acm.org>

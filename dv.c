@@ -53,6 +53,8 @@
 #define DV_MB420_YUV_MMX(a,b,c) dv_mb420_YUY2_mmx(a,b,c)
 #endif 
 
+gboolean dv_use_mmx;
+
 #if HAVE_LIBPOPT
 static void
 dv_decoder_popt_callback(poptContext con, enum poptCallbackReason reason, 
@@ -125,9 +127,12 @@ dv_decoder_new(void) {
   return(result);
 } /* dv_decoder_new */
 
-void dv_init(dv_decoder_t *dv) {
+void 
+dv_init(void) {
+  static gboolean done=FALSE;
+  if(done) goto init_done;
 #if ARCH_X86
-  dv->use_mmx = mmx_ok(); 
+  dv_use_mmx = mmx_ok(); 
 #endif
   weight_init();
   dct_init();
@@ -135,10 +140,13 @@ void dv_init(dv_decoder_t *dv) {
   dv_construct_vlc_table();
   dv_parse_init();
   dv_place_init();
-  dv_quant_init (dv);
+  dv_quant_init();
   dv_rgb_init();
   dv_YUY2_init();
   dv_YV12_init();
+  done=TRUE;
+ init_done:
+  return;
 } /* dv_init */
 
 static inline void 
@@ -264,7 +272,7 @@ dv_render_video_segment_bgr0(dv_decoder_t *dv, dv_videosegment_t *seg, guchar *p
 
 static inline void
 dv_render_macroblock_yuv(dv_decoder_t *dv, dv_macroblock_t *mb, guchar **pixels, guint16 *pitches) {
-  if(dv->use_mmx) {
+  if(dv_use_mmx) {
     if(dv->sampling == e_dv_sample_411) {
       if(mb->x >= 704) {
 	dv_mb411_right_YUY2_mmx(mb, pixels[0], pitches[0]); /* Right edge are 420! */
@@ -294,7 +302,7 @@ dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, guchar **p
   for (m=0,mb = seg->mb;
        m<5;
        m++,mb++) {
-    if(dv->use_mmx) {
+    if(dv_use_mmx) {
       if(dv->sampling == e_dv_sample_411) {
 	if(mb->x >= 704) {
 	  dv_mb411_right_YUY2_mmx(mb, pixels[0], pitches[0]); /* Right edge are 420! */

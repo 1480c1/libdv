@@ -137,7 +137,7 @@ extern void quant_248_inverse_mmx(dv_coeff_t *block,int qno,int klass,dv_248_coe
 void (*quant_248_inverse) (dv_coeff_t *block,int qno,int klass,dv_248_coeff_t *co);
 
 void
-dv_quant_init (dv_decoder_t *dv) 
+dv_quant_init (void) 
 {
   int	ex, qno, i;
  
@@ -152,7 +152,7 @@ dv_quant_init (dv_decoder_t *dv)
   }
   quant_248_inverse = quant_248_inverse_std;
 #if ARCH_X86
-  if (dv->use_mmx) {
+  if (dv_use_mmx) {
     quant_248_inverse = quant_248_inverse_mmx;
   }
 #endif

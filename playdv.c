@@ -233,12 +233,12 @@ main(int argc,char *argv[])
   filename = argv[1];
 #endif /* HAVE_LIBOPT */
 
+  dv_init();
+
   /* Open the input file, do fstat to get it's total size */
   if(-1 == (fd = open(filename,O_RDONLY))) goto openfail;
   if(fstat(fd, &dv_player->statbuf)) goto fstatfail;
   eof = dv_player->statbuf.st_size;
-
-  dv_init(dv_player->decoder);
 
   dv_player->decoder->quality = dv_player->decoder->video->quality;
 
