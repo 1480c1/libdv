@@ -62,7 +62,11 @@ extern int          dv_decode_full_audio(dv_decoder_t *dv,
 extern int          dv_set_audio_correction (dv_decoder_t *dv, int method);            
 extern FILE         *dv_set_error_log (dv_decoder_t *dv, FILE *errfile);            
 extern void         dv_report_video_error (dv_decoder_t *dv, uint8_t *data);
-	
+
+#define LIBDV_HAS_SAMPLE_CALCULATOR
+extern int          dv_calculate_samples( dv_encoder_t *, int frequency, 
+					  int frame_count );
+
 /*@}*/
 
 /** @addtogroup encoder

@@ -111,7 +111,7 @@ int raw_insert_audio(unsigned char * frame_buf,
 {
 	int dif_seg;
 	int dif_seg_max = isPAL ? 12 : 10;
-	int samplesperframe = audio->frequency / (isPAL ? 25 : 30);
+	int samplesperframe = audio->bytesperframe;
 	
 	int bits_per_sample = 16;
 	unsigned char* wave_buf = audio->data;

@@ -485,6 +485,7 @@ typedef struct {
   int    clamp_luma;
   int    clamp_chroma;
   int    frame_count;
+  int    samples_this_frame;
   /* the below are private */
   short *img_y;
   short *img_cr;

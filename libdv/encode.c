@@ -1802,7 +1802,14 @@ int dv_encode_full_audio(dv_encoder_t *dv_enc, int16_t **pcm,
 	audio.bitspersample = 16;
 	audio.bytealignment = 4;
 	audio.bytespersecond = frequency * audio.bytealignment;
-	audio.bytesperframe = audio.bytespersecond/(dv_enc->isPAL ? 25 : 30); /* not used */
+
+	/* estimate the number of samples per frame if not specified. */
+	dv_enc->isPAL = frame_buf[ 3 ] & 0x80;
+	if ( dv_enc->samples_this_frame == 0 )
+		audio.bytesperframe = audio.bytespersecond/(dv_enc->isPAL ? 25 : 30);
+	else
+		audio.bytesperframe = dv_enc->samples_this_frame;
+
 
 	/* interleave channels */
 	if (channels > 1) {
@@ -1812,5 +1819,80 @@ int dv_encode_full_audio(dv_encoder_t *dv_enc, int16_t **pcm,
 	}
 
 	return raw_insert_audio(frame_buf, &audio, dv_enc->isPAL);
+}
+
+/** @brief Calculate number of samples to be applied to a new frame.
+ *
+ * @param dv_enc A pointer to a dv_encoder_t struct containing relevant options:
+ *        -isPAL  Set true (non-zero) to encode the data in PAL format.
+ * @param frequency The sampling rate of the input must be one of 32000,
+ *          44100, or 48000.
+ * @param frame_count a sequential number representing the frame number.
+ * @return number of samples associated to the frame or 0 if invalid frequency
+ * 			received.
+ *
+ * @todo confirm samples returned for all frequencies
+ */
+
+int dv_calculate_samples( dv_encoder_t *encoder, int frequency, int frame_count )
+{
+	int samples = 0;
+
+	if ( encoder->isPAL )
+	{
+		samples = frequency / 25;
+
+		switch( frequency )
+		{
+			case 48000:
+				if ( frame_count % 25 == 0 )
+					samples --;
+				break;
+			case 44100:
+			case 32000:
+				break;
+			default:
+				samples = 0;
+				break;
+		}
+	}
+	else
+	{
+		samples = frequency / 30;
+
+		switch ( frequency )
+		{
+			case 48000:
+				if ( frame_count % 5 != 0 )
+					samples += 2;
+				break;
+			case 44100:
+				if ( frame_count % 300 == 0 )
+					samples = 1471;
+				else if ( frame_count % 30 == 0 )
+					samples = 1470;
+				else if ( frame_count % 2 == 0 )
+					samples = 1472;
+				else
+					samples = 1471;
+				break;
+			case 32000:
+				if ( frame_count % 30 == 0 )
+					samples = 1068;
+				else if ( frame_count % 29 == 0 )
+					samples = 1067;
+				else if ( frame_count % 4 == 2 )
+					samples = 1067;
+				else
+					samples = 1068;
+				break;
+			default:
+				samples = 0;
+		}
+	}
+
+	encoder->samples_this_frame = samples;
+
+	return samples;
 }
 
