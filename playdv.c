@@ -119,7 +119,7 @@ int main(int argc,char *argv[]) {
     } // ds
     //fprintf(stderr,"displaying frame (%d coeffs lost in parse)\n", lost_coeffs);
     frame_count++;
-#if 1
+#if BENCHMARK_MODE
     if(frame_count >= 450) break;
 #endif
     dv_display_show(dv_dpy);
