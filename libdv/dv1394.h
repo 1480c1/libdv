@@ -96,7 +96,7 @@
 
          frame 0   frame 1   frame 2   frame 3
 
-	*--------------------------------------*
+        *--------------------------------------*
         | CLEAR   | DV data | DV data | CLEAR  |
         *--------------------------------------*
                    <ACTIVE> 
@@ -114,10 +114,10 @@
    If you called DV1394_GET_STATUS at this instant, you would
    receive the following values:
    
-                  n_frames          = 4
-		  active_frame      = 1
-		  first_clear_frame = 3
-		  n_clear_frames    = 2
+          n_frames          = 4
+          active_frame      = 1
+          first_clear_frame = 3
+          n_clear_frames    = 2
 
    At this point, you should write new DV data into frame 3 and optionally
    frame 0. Then call DV1394_SUBMIT_FRAMES to inform the device that

@@ -1,3 +1,6 @@
+2002-09-03  Dan Dennedy <dan@dennedy.org>
+	* bugfix to ignore ntsc setup option for PAL in lib encoder.
+
 2002-07-30  Charles 'Buck' Krasic  <krasic@acm.org>
 	* libdv 0.98 release.
 

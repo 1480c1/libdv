@@ -1702,7 +1702,7 @@ int dv_encode_full_frame(dv_encoder_t *dv_enc, uint8_t **in,
 		return -1;
 	}
 	
-	if (dv_enc->rem_ntsc_setup == TRUE) {
+	if (dv_enc->isPAL == FALSE && dv_enc->rem_ntsc_setup == TRUE) {
 		for (i = 0;
 			i < (DV_WIDTH * (dv_enc->isPAL ? DV_PAL_HEIGHT : DV_NTSC_HEIGHT));
 			dv_enc->img_y[i++] -= (32) );
