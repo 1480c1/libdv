@@ -50,7 +50,7 @@ typedef enum sample_s {
 typedef gint16 dv_coeff_t;
 
 typedef struct dv_block_s {
-  dv_coeff_t   coeffs[64];
+  dv_coeff_t   coeffs[64] __attribute__ ((aligned (8)));
   double       fcoeffs[64];
   gint         dct_mode; 
   gint         class_no;
