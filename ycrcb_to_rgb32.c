@@ -26,27 +26,51 @@
 
 #include <glib.h>
 
-void dv_ycrcb_411_to_rgb32(gint8 *y_frame, gint8 *cr_frame, gint8 *cb_frame, guint8 *rgb_frame,gint height) {
-  int i,j;
-  gint32 y, cr, cb;
-  gint32 r, g, b;
-  gint32 impact[4];
+gint32 ylut[256];
+gint32 impactcbr[256];
+gint32 impactcbg[256];
+gint32 impactcrg[256];
+gint32 impactcrb[256];
+
+static int initted = 0;
+static void dv_ycrcb_init()
+{
+  int i;
+  for(i=0;
+      i<256;
+      ++i) {
+    ylut[i] = 298 * ((signed char)(i) + 128 - 16);
+    impactcbr[i] = 409 * (signed char)(i);
+    impactcbg[i] = 100 * (signed char)(i);
+    impactcrg[i] = 208 * (signed char)(i);
+    impactcrb[i] = 516 * (signed char)(i);
+  }
+}
+
+void dv_ycrcb_411_to_rgb32(unsigned char *y_frame, unsigned char *cr_frame, unsigned char *cb_frame, guint8 *rgb_frame, gint height) {
+  int i;
+  if (!initted) {
+    dv_ycrcb_init();
+    initted = 1;
+  }
   for(i=0;
       i<height*180;
-      i++,cr_frame++,cb_frame++) {
-    cr = *cr_frame; // +128 
-    cb = *cb_frame; // +128;
-    impact[0] = 409 * cb;
-    impact[1] = 100 * cb;
-    impact[2] = 208 * cr;
-    impact[3] = 516 * cr;
+      i++) {
+    int cr = *cr_frame++; // +128 
+    int cb = *cb_frame++; // +128;
+    int cbr = impactcbr[cb];
+    int cbg = impactcbg[cb];
+    int crg = impactcrg[cr];
+    int crb = impactcrb[cr];
+    int j;
+    
     for(j=0;
 	j<4;
 	j++) {
-      y = 298 * (*y_frame++ + 128 - 16);
-      r = (y                            + (impact[0])) / 256;
-      g = (y - (impact[1]) - (impact[2])) / 256;
-      b = (y + (impact[2]                            )) / 256;
+      gint32 y = ylut[*y_frame++];
+      gint32 r = (y       + cbr) >> 8;
+      gint32 g = (y - cbg - crg) >> 8;
+      gint32 b = (y + crb      ) >> 8;
       *rgb_frame++ = CLAMP(r,0,255);
       *rgb_frame++ = CLAMP(g,0,255);
       *rgb_frame++ = CLAMP(b,0,255);
@@ -55,38 +79,42 @@ void dv_ycrcb_411_to_rgb32(gint8 *y_frame, gint8 *cr_frame, gint8 *cb_frame, gui
   } // for i
 } // dv_ycrcb_to_rgb32
 
-void dv_ycrcb_420_to_rgb32(gint8 *y_frame, gint8 *cr_frame, gint8 *cb_frame, guint8 *rgb_frame,gint height) {
-  int i,j;
+void dv_ycrcb_420_to_rgb32(unsigned char *y_frame, unsigned char *cr_frame, unsigned char *cb_frame, guint8 *rgb_frame,gint height) {
+  int i;
   gint32 y, cr, cb;
   gint32 r, g, b;
-  gint32 impact[4];
   guint8 *rgb;
+  if (!initted) {
+    dv_ycrcb_init();
+    initted = 1;
+  }
   for(i=0;
       i<height;
       i+=2) {
+    int j;
     for(j=0;
 	j<180*2;
-	j++,cr_frame++,cb_frame++) {
-      cr = *cr_frame; // +128 
-      cb = *cb_frame; // +128;
-      impact[0] = 409 * cb;
-      impact[1] = 100 * cb;
-      impact[2] = 208 * cr;
-      impact[3] = 516 * cr;
+	j++) {
+      int cr = *cr_frame++; // +128 
+      int cb = *cb_frame++; // +128;
+      int cbr = impactcbr[cb];
+      int cbg = impactcbg[cb];
+      int crg = impactcrg[cr];
+      int crb = impactcrb[cr];
 
-      y = 298 * (*y_frame++ + 128 - 16);
-      r = (y                            + (impact[0])) / 256;
-      g = (y - (impact[1]) - (impact[2])) / 256;
-      b = (y + (impact[2]                            )) / 256;
+      y = ylut[*y_frame++];
+      r = (y       + cbr) / 256;
+      g = (y - cbg - crg) / 256;
+      b = (y + crb      ) / 256;
       *rgb_frame++ = CLAMP(r,0,255);
       *rgb_frame++ = CLAMP(g,0,255);
       *rgb_frame++ = CLAMP(b,0,255);
       rgb_frame++;
 
-      y = 298 * (*y_frame++ + 128 - 16);
-      r = (y                            + (impact[0])) / 256;
-      g = (y - (impact[1]) - (impact[2])) / 256;
-      b = (y + (impact[2]                            )) / 256;
+      y = ylut[*y_frame++];
+      r = (y       + cbr) / 256;
+      g = (y - cbg - crg) / 256;
+      b = (y + crb      ) / 256;
       *rgb_frame++ = CLAMP(r,0,255);
       *rgb_frame++ = CLAMP(g,0,255);
       *rgb_frame++ = CLAMP(b,0,255);
@@ -94,19 +122,19 @@ void dv_ycrcb_420_to_rgb32(gint8 *y_frame, gint8 *cr_frame, gint8 *cb_frame, gui
 
       rgb = rgb_frame + ((720-2)*4);
 
-      y = 298 * (*(y_frame+(720-2)) + 128 - 16);
-      r = (y                            + (impact[0])) / 256;
-      g = (y - (impact[1]) - (impact[2])) / 256;
-      b = (y + (impact[2]                            )) / 256;
+      y = ylut[*y_frame++];
+      r = (y       + cbr) / 256;
+      g = (y - cbg - crg) / 256;
+      b = (y + crb      ) / 256;
       *rgb++ = CLAMP(r,0,255);
       *rgb++ = CLAMP(g,0,255);
       *rgb++ = CLAMP(b,0,255);
       rgb++;
 
-      y = 298 * (*(y_frame+(720-1)) + 128 - 16);
-      r = (y                            + (impact[0])) / 256;
-      g = (y - (impact[1]) - (impact[2])) / 256;
-      b = (y + (impact[2]                            )) / 256;
+      y = ylut[*y_frame++];
+      r = (y       + cbr) / 256;
+      g = (y - cbg - crg) / 256;
+      b = (y + crb      ) / 256;
       *rgb++ = CLAMP(r,0,255);
       *rgb++ = CLAMP(g,0,255);
       *rgb++ = CLAMP(b,0,255);
