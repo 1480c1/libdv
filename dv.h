@@ -76,7 +76,8 @@ extern "C" {
 #define DV_DECODER_OPT_SYSTEM        0
 #define DV_DECODER_OPT_VIDEO_INCLUDE 1
 #define DV_DECODER_OPT_AUDIO_INCLUDE 2
-#define DV_DECODER_NUM_OPTS          3
+#define DV_DECODER_OPT_CALLBACK      3
+#define DV_DECODER_NUM_OPTS          4
 
 typedef enum color_space_e { 
   e_dv_color_yuv, 
@@ -191,9 +192,21 @@ static const gint frame_size_625_50 = 12 * 150 * 80;
 
 #ifdef HAVE_LIBPOPT
 extern inline void
-dv_opt_usage(struct poptOption *opt, gint num)
+dv_opt_usage(poptContext con, struct poptOption *opt, gint num)
 {
-  fprintf(stderr,"%s %s\n", opt[num].longName, opt[num].argDescrip);
+  struct poptOption *o = opt + num;
+  if(o->shortName && o->longName) {
+    fprintf(stderr,"-%c, --%s", o->shortName, o->longName);
+  } else if(o->shortName) {
+    fprintf(stderr,"-%c", o->shortName);
+  } else if(o->longName) {
+    fprintf(stderr,"--%s", o->longName);
+  } // if
+  if(o->argDescrip) {
+    fprintf(stderr, "=%s\n", o->argDescrip);
+  } else {
+    fprintf(stderr, ": invalid usage\n");
+  } // else
   exit(-1);
 } // dv_opt_usage
 #endif // HAVE_LIBPOPT

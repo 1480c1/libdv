@@ -97,6 +97,25 @@ static guchar *quantization[8] = {
   [3 ... 7] = "unknown",
 };
 
+
+#if HAVE_LIBPOPT
+static void
+dv_audio_popt_callback(poptContext con, enum poptCallbackReason reason, 
+		       const struct poptOption * opt, const char * arg, const void * data)
+{
+  dv_audio_t *audio = (dv_audio_t *)data;
+
+  if((audio->arg_audio_frequency < 0) || (audio->arg_audio_frequency > 3)) {
+    dv_opt_usage(con, audio->option_table, DV_AUDIO_OPT_FREQUENCY);
+  } // if
+  
+  if((audio->arg_audio_quantization < 0) || (audio->arg_audio_quantization > 2)) {
+    dv_opt_usage(con, audio->option_table, DV_AUDIO_OPT_QUANTIZATION);
+  } // if
+
+} // dv_audio_popt_callback 
+#endif // HAVE_LIBPOPT
+
 static gint 
 dv_audio_samples_per_frame(dv_aaux_as_t *dv_aaux_as) {
   gint result = -1;
@@ -153,6 +172,7 @@ dv_audio_new(void)
     descrip:    "audio frequency: 0=autodetect [default], 1=32 kHz, 2=44.1 kHz, 3=48 kHz",
     argDescrip: "(0|1|2|3)"
   }; // freq
+
   result->option_table[DV_AUDIO_OPT_QUANTIZATION] = (struct poptOption){ 
     longName:   "quantization", 
     shortName:  'Q', 
@@ -161,7 +181,14 @@ dv_audio_new(void)
     descrip:    "force audio quantization: 0=autodetect [default], 1=12 bit, 2=16bit",
     argDescrip: "(0|1|2)"
   }; // quant
-#endif // HAVE_POPT
+
+  result->option_table[DV_AUDIO_OPT_CALLBACK] = (struct poptOption){
+    argInfo: POPT_ARG_CALLBACK|POPT_CBFLAG_POST,
+    arg:     dv_audio_popt_callback,
+    descrip: (char *)result, // data passed to callback
+  }; // callback
+
+#endif // HAVE_LIBPOPT
   return(result);
 
  no_mem:

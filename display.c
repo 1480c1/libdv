@@ -61,6 +61,21 @@ static void dv_center_window(SDL_Surface *screen);
 static void dv_display_event (dv_display_t *dv_dpy);
 #endif 
 
+
+#if HAVE_LIBPOPT
+static void
+dv_display_popt_callback(poptContext con, enum poptCallbackReason reason, 
+		       const struct poptOption * opt, const char * arg, const void * data)
+{
+  dv_display_t *display = (dv_display_t *)data;
+
+  if((display->arg_display < 0) || (display->arg_display > 3)) {
+    dv_opt_usage(con, display->option_table, DV_DISPLAY_OPT_METHOD);
+  } // if
+  
+} // dv_display_popt_callback 
+#endif // HAVE_LIBPOPT
+
 dv_display_t *
 dv_display_new(void) 
 {
@@ -78,7 +93,14 @@ dv_display_new(void)
     descrip:    "video display method: 0=autoselect [default], 1=gtk, 2=Xv, 3=SDL",
     argDescrip: "(0|1|2|3)",
   }; // display method
-#endif // HAVE_POPT
+
+  result->option_table[DV_DISPLAY_OPT_CALLBACK] = (struct poptOption){
+    argInfo: POPT_ARG_CALLBACK|POPT_CBFLAG_POST,
+    arg:     dv_display_popt_callback,
+    descrip: (char *)result, // data passed to callback
+  }; // callback
+
+#endif // HAVE_LIBPOPT
 
  no_mem:
   return(result);

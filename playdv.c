@@ -329,7 +329,7 @@ main(int argc,char *argv[])
 #if HAVE_LIBPOPT
  bad_filename:
   poptPrintUsage(optCon, stderr, 0);
-  fprintf(stderr, "Specify a single <filename> argument; e.g. pond.dv\n");
+  fprintf(stderr, "\nSpecify a single <filename> argument; e.g. pond.dv\n");
   exit(-1);
 #endif
  no_display:

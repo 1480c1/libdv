@@ -80,7 +80,8 @@ typedef struct dv_auux_as_s {
 
 #define DV_AUDIO_OPT_FREQUENCY    0
 #define DV_AUDIO_OPT_QUANTIZATION 1
-#define DV_AUDIO_NUM_OPTS         2
+#define DV_AUDIO_OPT_CALLBACK     2
+#define DV_AUDIO_NUM_OPTS         3
 
 typedef struct dv_audio_s {
   dv_aaux_as_t      aaux_as;           // low-level audio format info direct from the stream

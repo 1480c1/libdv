@@ -100,7 +100,7 @@ dv_video_popt_callback(poptContext con, enum poptCallbackReason reason,
     video->quality |= DV_QUALITY_AC_2;
     break;
   default:
-    dv_opt_usage(video->option_table, DV_VIDEO_OPT_BLOCK_QUALITY);
+    dv_opt_usage(con, video->option_table, DV_VIDEO_OPT_BLOCK_QUALITY);
     break;
   } // switch 
   if(!video->arg_monochrome) {
@@ -108,7 +108,7 @@ dv_video_popt_callback(poptContext con, enum poptCallbackReason reason,
   } // if
   
 } // dv_video_popt_callback 
-#endif // HAVE_POPT
+#endif // HAVE_LIBPOPT
 
 dv_video_t *
 dv_video_new(void)
@@ -147,7 +147,7 @@ dv_video_new(void)
   }; // callback
 #else
   video->quality = DV_QUALITY_BEST;
-#endif // HAVE_POPT
+#endif // HAVE_LIBPOPT
 
  noopt:
   return(result);

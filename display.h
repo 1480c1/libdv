@@ -46,7 +46,7 @@
  
 #if HAVE_LIBPOPT
 #include <popt.h>
-#endif // HAVE_POPT
+#endif // HAVE_LIBPOPT
 
 #include <glib.h>
 #include "dv.h"
@@ -58,8 +58,9 @@ extern "C" {
 #define DV_FOURCC_YV12  0x32315659	/* 4:2:0 Planar mode: Y + V + U  (3 planes) */
 #define DV_FOURCC_YUY2  0x32595559	/* 4:2:2 Packed mode: Y0+U0+Y1+V0 (1 plane) */
 
-#define DV_DISPLAY_OPT_METHOD 0
-#define DV_DISPLAY_NUM_OPTS   1
+#define DV_DISPLAY_OPT_METHOD   0
+#define DV_DISPLAY_OPT_CALLBACK 1
+#define DV_DISPLAY_NUM_OPTS     2
 
 typedef enum dv_dpy_lib_e {
   e_dv_dpy_Xv,

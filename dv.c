@@ -20,6 +20,20 @@
 #include "mmx.h"
 #endif
 
+#if HAVE_LIBPOPT
+static void
+dv_decoder_popt_callback(poptContext con, enum poptCallbackReason reason, 
+		       const struct poptOption * opt, const char * arg, const void * data)
+{
+  dv_decoder_t *decoder = (dv_decoder_t *)data;
+
+  if((decoder->arg_video_system < 0) || (decoder->arg_video_system > 3)) {
+    dv_opt_usage(con, decoder->option_table, DV_DECODER_OPT_SYSTEM);
+  } // if
+  
+} // dv_decoder_popt_callback 
+#endif // HAVE_LIBPOPT
+
 static void 
 convert_coeffs(dv_block_t *bl) {
   int i;
@@ -63,7 +77,7 @@ dv_decoder_new(void) {
     " 1=525/60 4:1:1 (NTSC),"
     " 2=625/50 4:2:0 (PAL,IEC 61834 DV),"
     " 3=625/50 4:1:1 (PAL,SMPTE 314M DV)",
-    argDescrip: "(0|1|2)",
+    argDescrip: "(0|1|2|3)",
     arg: &result->arg_video_system,
   }; // system
 
@@ -79,7 +93,13 @@ dv_decoder_new(void) {
     arg: result->audio->option_table,
   }; // audio include
 
-#endif // HAVE_POPT
+  result->option_table[DV_DECODER_OPT_CALLBACK] = (struct poptOption){
+    argInfo: POPT_ARG_CALLBACK|POPT_CBFLAG_POST,
+    arg:     dv_decoder_popt_callback,
+    descrip: (char *)result, // data passed to callback
+  }; // callback
+
+#endif // HAVE_LIBPOPT
 
   return(result);
 
