@@ -51,19 +51,19 @@ extern "C" {
 extern void dv_rgb_init(void);
 
 /* scalar versions */
-extern void dv_mb411_rgb(dv_macroblock_t *mb, guchar *pixels, gint pitch); 
-extern void dv_mb411_right_rgb(dv_macroblock_t *mb, guchar *pixels, gint pitch);
-extern void dv_mb420_rgb(dv_macroblock_t *mb, guchar *pixels, gint pitch); 
+extern void dv_mb411_rgb(dv_macroblock_t *mb, guchar **pixels, gint *pitches);
+extern void dv_mb411_right_rgb(dv_macroblock_t *mb, guchar **pixels, gint *pitches);
+extern void dv_mb420_rgb(dv_macroblock_t *mb, guchar **pixels, gint *pitches);
 
-extern void dv_mb411_bgr0(dv_macroblock_t *mb, guchar *pixels, gint pitch); 
-extern void dv_mb411_right_bgr0(dv_macroblock_t *mb, guchar *pixels, gint pitch);
-extern void dv_mb420_bgr0(dv_macroblock_t *mb, guchar *pixels, gint pitch); 
+extern void dv_mb411_bgr0(dv_macroblock_t *mb, guchar **pixels, gint *pitches);
+extern void dv_mb411_right_bgr0(dv_macroblock_t *mb, guchar **pixels, gint *pitches);
+extern void dv_mb420_bgr0(dv_macroblock_t *mb, guchar **pixels, gint *pitches);
 
 #if ARCH_X86
 /* pentium architecture mmx version */
-extern void dv_mb411_rgb_mmx(dv_macroblock_t *mb, guchar *pixels, gint pitch); 
-extern void dv_mb411_right_rgb_mmx(dv_macroblock_t *mb, guchar *pixels, gint pitch); 
-extern void dv_mb420_rgb_mmx(dv_macroblock_t *mb, guchar *pixels, gint pitch); 
+extern void dv_mb411_rgb_mmx(dv_macroblock_t *mb, guchar **pixels, gint *pitches);
+extern void dv_mb411_right_rgb_mmx(dv_macroblock_t *mb, guchar **pixels, gint *pitches);
+extern void dv_mb420_rgb_mmx(dv_macroblock_t *mb, guchar **pixels, gint *pitches);
 #endif // ARCH_X86
 
 #ifdef __cplusplus

@@ -43,7 +43,7 @@ extern void          dv_init             (void);
 extern gint          dv_parse_header     (dv_decoder_t *dv, guchar *buffer);
 extern void          dv_decode_full_frame(dv_decoder_t *dv, 
 					  guchar *buffer, dv_color_space_t color_space, 
-					  guchar **pixels, guint16 *pitches);
+					  guchar **pixels, gint *pitches);
 extern gint          dv_decode_full_audio(dv_decoder_t *dv, 
 					  guchar *buffer, gint16 **outbufs);
 
@@ -52,10 +52,10 @@ extern gint dv_parse_video_segment(dv_videosegment_t *seg, guint quality);
 extern void dv_decode_video_segment(dv_decoder_t *dv, dv_videosegment_t *seg, guint quality);
 
 extern void dv_render_video_segment_rgb(dv_decoder_t *dv, dv_videosegment_t *seg, 
-					guchar *pixels, gint pitch );
+					guchar **pixels, gint *pitches);
 
 extern void dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, 
-					guchar **pixels, guint16 *pitches);
+					guchar **pixels, gint *pitches);
 
 /* ---------------------------------------------------------------------------
  * functions based on vaux data

@@ -1,7 +1,7 @@
 # Build problems? Try this on RH7, since they ship a buggy gcc
-CC=kgcc
+#CC=kgcc
 
-USE_SDL=1
+USE_SDL=0
 USE_XV=1
 USE_LIBPOPT=1
 USE_YV12=0
@@ -20,16 +20,32 @@ ifeq ($(USE_LIBPOPT),1)
 endif
 
 CPPFLAGS += -I. $(shell glib-config --cflags) $(shell gtk-config --cflags) $(SDL_CFLAGS)
-#CFLAGS += -mcpu=i686 -pg -O6 -funroll-all-loops -Wall  $(CPPFLAGS)                 # for regular profiling with gprof
-#CFLAGS += -mcpu=i686 -g -pg -ax -O6 -funroll-all-loops -Wall  $(CPPFLAGS)          # for line by line profiling with gprof -l
-#CFLAGS += -mcpu=i686 -s -O6 -funroll-all-loops -Wall  $(CPPFLAGS)                  # for maximum speed
-CFLAGS += -mcpu=i686 -g -O -fstrict-aliasing -Wall  $(CPPFLAGS)                     # for debugging
-LDFLAGS += $(shell glib-config --libs) $(shell gtk-config --libs) -lm $(XV_LDFLAGS) $(SDL_LDFLAGS) $(POPT_LDFLAGS)
 
-CPPFLAGS += -D_GNU_SOURCE -DUSE_MMX_ASM=1 -DARCH_X86 -DHAVE_LIBXV=$(USE_XV) -DHAVE_GTK=1 -DHAVE_SDL=$(USE_SDL) -DYUV_420_USE_YV12=$(USE_YV12) -DVERSION="\"0.5pre\"" -DHAVE_LIBPOPT=$(USE_LIBPOPT)
-asm = vlc_x86.S quant_x86.S idct_block_mmx.S dct_block_mmx.S rgbtoyuv.S
+# for regular profiling with gprof
+#CFLAGS += -mcpu=i686 -pg -O6 -funroll-all-loops -Wall  $(CPPFLAGS)
 
-gensources=dv.c dct.c idct_248.c weighting.c quant.c vlc.c place.c parse.c bitstream.c YUY2.c YV12.c rgb.c oss.c audio.c util.c
+# for line by line profiling with gprof -l
+#CFLAGS += -mcpu=i686 -g -pg -ax -O6 -funroll-all-loops -Wall  $(CPPFLAGS)
+
+# for maximum speed
+CFLAGS += -mcpu=i686 -s -O6 -funroll-all-loops -Wall  $(CPPFLAGS)
+
+# for debugging
+#CFLAGS += -mcpu=i686 -g -pg -O -fstrict-aliasing -Wall  $(CPPFLAGS)
+
+LDFLAGS += $(shell glib-config --libs) $(shell gtk-config --libs) -lm \
+	$(XV_LDFLAGS) $(SDL_LDFLAGS) $(POPT_LDFLAGS)
+
+CPPFLAGS += -D_GNU_SOURCE -DUSE_MMX_ASM=1 -DARCH_X86 -DHAVE_LIBXV=$(USE_XV) \
+	-DHAVE_GTK=1 -DHAVE_SDL=$(USE_SDL) -DYUV_420_USE_YV12=$(USE_YV12) \
+	-DVERSION="\"0.8pre\"" -DHAVE_LIBPOPT=$(USE_LIBPOPT)
+
+asm = vlc_x86.S quant_x86.S idct_block_mmx.S dct_block_mmx.S rgbtoyuv.S  \
+	transpose_x86.S encode_x86.S
+
+gensources=dv.c dct.c idct_248.c weighting.c quant.c \
+	vlc.c place.c parse.c bitstream.c YUY2.c YV12.c rgb.c \
+	oss.c audio.c util.c headers.c
 genobjects=$(gensources:.c=.o) $(asm:.S=.o)
 
 sources = $(gensources)
@@ -50,7 +66,7 @@ deps=$(sources:.c=.d) $(asm:.S=.d) $(auxsources:.c=.d)
                            [ -s $@ ] || rm -f $@'
 
 
-all: libdv.a playdv
+all: libdv.a playdv encode
 
 libdv.a: $(objects) 
 	$(AR) cru $@ $?

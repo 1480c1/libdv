@@ -56,6 +56,7 @@ static void dv_center_window(SDL_Surface *screen);
 #if HAVE_LIBXV
 
 #define XV_FORMAT_MASK		0x03
+#define XV_FORMAT_ASIS		0x00
 #define XV_FORMAT_NORMAL	0x01
 #define XV_FORMAT_WIDE		0x02
 
@@ -70,21 +71,50 @@ static void dv_center_window(SDL_Surface *screen);
 #define DV_FORMAT_WIDE		1
 
 static void dv_display_event (dv_display_t *dv_dpy);
-static gint dv_display_Xv_init (dv_display_t *dv_dpy, gchar *w_name, gchar   *i_name, int flags);
+static gint dv_display_Xv_init (dv_display_t *dv_dpy, gchar *w_name,
+				gchar   *i_name, int flags, int size);
 #endif 
 
 
 #if HAVE_LIBPOPT
 static void
 dv_display_popt_callback(poptContext con, enum poptCallbackReason reason, 
-			 const struct poptOption * opt, const char * arg, const void * data)
+			 const struct poptOption * opt,
+			 const char * arg, const void * data)
 {
   dv_display_t *display = (dv_display_t *)data;
 
   if((display->arg_display < 0) || (display->arg_display > 3)) {
     dv_opt_usage(con, display->option_table, DV_DISPLAY_OPT_METHOD);
   } /* if */
-  
+
+  if (display->arg_aspect_string) {
+    if (strlen (display->arg_aspect_string) == 1) {
+      switch (display->arg_aspect_string[0]) {
+        case 'n':
+          display->arg_aspect_val |= XV_FORMAT_NORMAL;
+          break;
+        case 'w':
+          display->arg_aspect_val |= XV_FORMAT_WIDE;
+          break;
+        default:
+          dv_opt_usage(con, display->option_table, DV_DISPLAY_OPT_ASPECT);
+          break;
+      }
+    } else if (!strcmp ("normal", display->arg_aspect_string)) {
+      display->arg_aspect_val |= XV_FORMAT_NORMAL;
+    } else if (!strcmp ("wide", display->arg_aspect_string)) {
+      display->arg_aspect_val |= XV_FORMAT_WIDE;
+    } else {
+      dv_opt_usage(con, display->option_table, DV_DISPLAY_OPT_ASPECT);
+    }
+  }
+
+  if ((display->arg_size_val != 0) &&
+      ((display->arg_size_val < 10) || (display->arg_size_val > 100))) {
+    dv_opt_usage(con, display->option_table, DV_DISPLAY_OPT_SIZE);
+  } /* if */
+
 } /* dv_display_popt_callback */
 #endif /* HAVE_LIBPOPT */
 
@@ -98,12 +128,30 @@ dv_display_new(void)
 
 #if HAVE_LIBPOPT
   result->option_table[DV_DISPLAY_OPT_METHOD] = (struct poptOption) {
-    longName:   "display", 
-    shortName:  'd', 
-    argInfo:    POPT_ARG_INT, 
+    longName:   "display",
+    shortName:  'd',
+    argInfo:    POPT_ARG_INT,
     arg:        &result->arg_display,
     descrip:    "video display method: 0=autoselect [default], 1=gtk, 2=Xv, 3=SDL",
     argDescrip: "(0|1|2|3)",
+		  }; /* display method */
+
+  result->option_table[DV_DISPLAY_OPT_ASPECT] = (struct poptOption) {
+    longName:   "aspect",
+    argInfo:    POPT_ARG_STRING,
+    arg:        &result->arg_aspect_string,
+    descrip:    "video display aspect ratio (for Xv only): "
+                "n=normal 4:3, w=wide 16:9",
+    argDescrip: "(n|w|normal|wide)",
+		  }; /* display method */
+
+  result->option_table[DV_DISPLAY_OPT_SIZE] = (struct poptOption) {
+    longName:   "size",
+    argInfo:    POPT_ARG_INT,
+    arg:        &result->arg_size_val,
+    descrip:    "initial scaleing percentage (for Xv only):   "
+                "10 <= n <= 100 ",
+    argDescrip: "(10 .. 100)",
 		  }; /* display method */
 
   result->option_table[DV_DISPLAY_OPT_CALLBACK] = (struct poptOption){
@@ -234,8 +282,12 @@ dv_display_gdk_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv) {
 
 #if HAVE_LIBXV
 
+/* ----------------------------------------------------------------------------
+ */
 static void
-dv_display_event (dv_display_t *dv_dpy) {
+dv_display_event (dv_display_t *dv_dpy)
+{
+    gint	old_pic_format;
 
   while (XCheckTypedWindowEvent (dv_dpy->dpy, dv_dpy->win,
 				 ConfigureNotify, &dv_dpy->event)) {
@@ -243,6 +295,13 @@ dv_display_event (dv_display_t *dv_dpy) {
       case ConfigureNotify:
 	dv_dpy->dwidth = dv_dpy->event.xconfigure.width;
 	dv_dpy->dheight = dv_dpy->event.xconfigure.height;
+        /* --------------------------------------------------------------------
+         * set current picture format to unknown, so that .._check_format
+         * does some work.
+         */
+        old_pic_format = dv_dpy->pic_format;
+        dv_dpy->pic_format = DV_FORMAT_UNKNOWN;
+        dv_display_check_format (dv_dpy, old_pic_format);
 	break;
       default:
 	break;
@@ -252,6 +311,8 @@ dv_display_event (dv_display_t *dv_dpy) {
 
 #endif /* HAVE_LIBXV */
 
+/* ----------------------------------------------------------------------------
+ */
 void
 dv_display_set_norm (dv_display_t *dv_dpy, dv_system_t norm)
 {
@@ -260,6 +321,8 @@ dv_display_set_norm (dv_display_t *dv_dpy, dv_system_t norm)
 #endif /* HAVE_LIBXV */
 } /* dv_display_set_norm */
 
+/* ----------------------------------------------------------------------------
+ */
 void
 dv_display_check_format(dv_display_t *dv_dpy, int pic_format)
 {
@@ -271,61 +334,45 @@ dv_display_check_format(dv_display_t *dv_dpy, int pic_format)
       !(dv_dpy->flags & XV_FORMAT_MASK))
     return;
 
-  switch (pic_format) {
-    case DV_FORMAT_UNKNOWN:
-      return;
-      break;
-    case DV_FORMAT_NORMAL:
-      if (dv_dpy->flags & XV_FORMAT_WIDE) {
-	/*
-	 * display format 16:9, dv source format 4:3
-	 */
-	dv_dpy->lyoff = 0;
-	dv_dpy->dheight = dv_dpy->lheight = 576;
-	dv_dpy->dwidth = dv_dpy->lwidth = 768;
-	dv_dpy->lxoff = (1024 - 768) / 2;
-      } else {
-	/*
-	 * display format 4:3, dv source format 4:3
-	 */
-	dv_dpy->lxoff = dv_dpy->lyoff = 0;
-	dv_dpy->dwidth = dv_dpy->lwidth = 768;
-	dv_dpy->dheight = dv_dpy->lheight = 576;
-      } /* else */
-      break;
-    case DV_FORMAT_WIDE:
-      if (dv_dpy->flags & XV_FORMAT_NORMAL) {
-	/*
-	 * display format 4:3, dv source format 16:9
-	 */
-	dv_dpy->lxoff = 0;
-	dv_dpy->dwidth = dv_dpy->lwidth = 768;
-	dv_dpy->dheight = dv_dpy->lheight = 432;
-	dv_dpy->lyoff = (576 - 432) / 2;
-      } else {
-	/*
-	 * display format 16:9, dv source format 16:9
-	 */
-	dv_dpy->lxoff = dv_dpy->lyoff = 0;
-	dv_dpy->dwidth = dv_dpy->lwidth = 1024;
-	dv_dpy->dheight = dv_dpy->lheight = 576;
-      } /* else */
-      break;
-  } /* switch */
-  if (dv_dpy->flags & XV_SIZE_QUARTER) {
-    dv_dpy->lxoff /= 2;
-    dv_dpy->lyoff /= 2;
-    dv_dpy->lwidth /= 2;
-    dv_dpy->lheight /= 2;
-    dv_dpy->dwidth /= 2;
-    dv_dpy->dheight /= 2;
-  } /* if */
+  /* --------------------------------------------------------------------
+   * check if there are some aspect ratio constraints
+   */
+  if (dv_dpy->flags & XV_FORMAT_NORMAL) {
+    if (pic_format == DV_FORMAT_NORMAL) {
+      dv_dpy->lxoff = dv_dpy->lyoff = 0;
+      dv_dpy->lwidth = dv_dpy->dwidth;
+      dv_dpy->lheight = dv_dpy->dheight;
+    } else if (pic_format == DV_FORMAT_WIDE) {
+      dv_dpy->lxoff = 0;
+      dv_dpy->lyoff = dv_dpy->dheight / 8;
+      dv_dpy->lwidth = dv_dpy->dwidth;
+      dv_dpy->lheight = (dv_dpy->dheight * 3) / 4;
+    }
+  } else if (dv_dpy->flags & XV_FORMAT_WIDE) {
+    if (pic_format == DV_FORMAT_NORMAL) {
+      dv_dpy->lxoff = dv_dpy->dwidth / 8;
+      dv_dpy->lyoff = 0;
+      dv_dpy->lwidth = (dv_dpy->dwidth * 3) / 4;
+      dv_dpy->lheight = dv_dpy->dheight;
+    } else if (pic_format == DV_FORMAT_WIDE) {
+      dv_dpy->lxoff = dv_dpy->lyoff = 0;
+      dv_dpy->lwidth = dv_dpy->dwidth;
+      dv_dpy->lheight = dv_dpy->dheight;
+    }
+  } else {
+    dv_dpy->lwidth = dv_dpy->dwidth;
+    dv_dpy->lheight = dv_dpy->dheight;
+  }
+  dv_dpy->pic_format = pic_format;
 #endif /* HAVE_LIBXV */
 } /* dv_display_check_format */
 
 #if HAVE_LIBXV
+/* ----------------------------------------------------------------------------
+ */
 static gint
-dv_display_Xv_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name, int flags) {
+dv_display_Xv_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name,
+                   int flags, int size) {
   int		scn_id,
                 ad_cnt, fmt_cnt,
                 got_port, got_fmt,
@@ -419,15 +466,18 @@ dv_display_Xv_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name, int flags
     return 0;
   }
 
-  /*
+  /* --------------------------------------------------------------------------
    * default settings which allow arbitraray resizing of the window
    */
   hints.flags = PSize | PMaxSize | PMinSize;
   hints.min_width = dv_dpy->width / 16;
   hints.min_height = dv_dpy->height / 16;
 
-  hints.max_width = dv_dpy->width * 16;
-  hints.max_height = dv_dpy->height *16;
+  /* --------------------------------------------------------------------------
+   * maximum dimensions for Xv support are about 2048x2048
+   */
+  hints.max_width = 2048;
+  hints.max_height = 2048;
 
   wmhints.input = True;
   wmhints.flags = InputHint;
@@ -452,15 +502,20 @@ dv_display_Xv_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name, int flags
       dv_dpy->lwidth = dv_dpy->dwidth = 1024;
     }
   }
-  if (flags & XV_SIZE_QUARTER) {
-    dv_dpy->lwidth /= 2;
-    dv_dpy->lheight /= 2;
-    dv_dpy->dwidth /= 2;
-    dv_dpy->dheight /= 2;
+  if (size) {
+    dv_dpy->lwidth  = (int)(((double)dv_dpy->lwidth  * (double)size)/100.0);
+    dv_dpy->lheight = (int)(((double)dv_dpy->lheight * (double)size)/100.0);
+    dv_dpy->dwidth  = (int)(((double)dv_dpy->dwidth  * (double)size)/100.0);
+    dv_dpy->dheight = (int)(((double)dv_dpy->dheight * (double)size)/100.0);
   }
-  if (flags & (XV_SIZE_MASK | XV_FORMAT_MASK)) {
-    hints.max_width = hints.min_width = dv_dpy->dwidth;
-    hints.max_height = hints.min_height = dv_dpy->dheight;
+  if (flags & XV_FORMAT_MASK) {
+    hints.flags |= PAspect;
+    if (flags & XV_FORMAT_WIDE) {
+      hints.min_aspect.x = hints.max_aspect.x = 1024;
+    } else {
+      hints.min_aspect.x = hints.max_aspect.x = 768;
+    }
+    hints.min_aspect.y = hints.max_aspect.y = 576;
   }
 
   if (!(flags & XV_NOSAWINDOW)) {
@@ -638,7 +693,9 @@ dv_display_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv, gint width, gin
     /* Autoselect */
 #if HAVE_LIBXV
     /* Try to use Xv first, then SDL */
-    if(dv_display_Xv_init(dv_dpy, w_name, i_name, XV_FORMAT_NORMAL)) {
+    if(dv_display_Xv_init(dv_dpy, w_name, i_name,
+			  dv_dpy->arg_aspect_val,
+			  dv_dpy->arg_size_val)) {
       goto Xv_ok;
     } else 
 #endif /* HAVE_LIBXV */
@@ -655,7 +712,9 @@ dv_display_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv, gint width, gin
   case 2:
 #if HAVE_LIBXV
     /* Xv */
-    if(dv_display_Xv_init(dv_dpy, w_name, i_name, XV_FORMAT_WIDE | XV_SIZE_QUARTER)) {
+    if(dv_display_Xv_init(dv_dpy, w_name, i_name,
+			  dv_dpy->arg_aspect_val,
+			  dv_dpy->arg_size_val)) {
       goto Xv_ok;
     } else {
       fprintf(stderr, "Attempt to display via Xv failed\n");

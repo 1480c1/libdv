@@ -331,30 +331,34 @@ main(int argc,char *argv[])
 			     dv_player->display->color_space, 
 			     dv_player->display->pixels, 
 			     dv_player->display->pitches);
-	if(dv_player->arg_dump_frames) {
-		FILE* fp;
-		char fname[4096];
-		if (strcmp(dv_player->arg_dump_frames, "-") == 0) {
-			fp = stdout;
-		} else {
-			snprintf(fname, 4096, dv_player->arg_dump_frames, 
-				 frame_count);
-			fp = fopen(fname, "w");
-		}
-		fprintf(fp, "P6\n# CREATOR: playdv\n%d %d\n255\n", 
-			dv_player->display->width, dv_player->display->height);
-		fwrite(dv_player->display->pixels[0], 
-		       3, dv_player->display->width 
-		       * dv_player->display->height, fp);
-		if (fp != stdout) {
-			fclose(fp);
-		}
-	}
 	dv_player->decoder->prev_frame_decoded = 1;
       } else {
 	fprintf (stderr, "same_frame\n");
       }
 
+      /* ----------------------------------------------------------------------
+       * save all frames. even it was not nessessary to decode
+       */
+      if(dv_player->arg_dump_frames) {
+          FILE* fp;
+          char fname[4096];
+
+        if (strcmp(dv_player->arg_dump_frames, "-") == 0) {
+          fp = stdout;
+        } else {
+          snprintf(fname, 4096, dv_player->arg_dump_frames,
+                   frame_count);
+          fp = fopen(fname, "w");
+        }
+        fprintf(fp, "P6\n# CREATOR: playdv\n%d %d\n255\n",
+                dv_player->display->width, dv_player->display->height);
+        fwrite(dv_player->display->pixels[0],
+               3, dv_player->display->width
+                * dv_player->display->height, fp);
+        if (fp != stdout) {
+          fclose(fp);
+        }
+      }
       /* Display */
       dv_display_show(dv_player->display);
     } /* if  */

@@ -1,3 +1,22 @@
+2001-03-30  Stefan Lucke <Stefan.Lucke@snafu.de>
+	* New options (available for Xv only):
+		--aspect ([w|wide|n|normal])
+		--size (10 .. 100)
+
+	* Reenabled scaling with Xv. Aspect ratio is keept constant when
+	  --aspect option is specified. This depends on used window
+	  manager too. KDE :-(( , fvwm, enlightment :-)
+
+	* Changed all render functions to have the same paramerlist
+
+	* Bug fixes:
+	  According to SDL linux FAQ: Applications which support
+	  SDL should have an sdl.m4 file in their config.
+	
+	  Assembler error messages with encode_x86.S
+	  my one does not like div operations with defines.
+	  replaced DV_WIDTH/2 by DV_WIDTH_2	
+		
 2001-03-19  Charles 'Buck' Krasic  <krasic@acm.org>
 
 	* Version 0.7

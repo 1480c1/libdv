@@ -77,7 +77,7 @@ dv_YUY2_init(void) {
 } /* dv_YUY2_init */
 
 void 
-dv_mb411_YUY2(dv_macroblock_t *mb, guchar *pixels, gint pitch) {
+dv_mb411_YUY2(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
   dv_coeff_t		*Y[4], *cr_frame, *cb_frame;
   unsigned char	        *pyuv, *pwyuv, cb, cr;
   int			i, j, row;
@@ -89,7 +89,7 @@ dv_mb411_YUY2(dv_macroblock_t *mb, guchar *pixels, gint pitch) {
   cr_frame = mb->b[4].coeffs;
   cb_frame = mb->b[5].coeffs;
 
-  pyuv = pixels + (mb->x * 2) + (mb->y * pitch);
+  pyuv = pixels[0] + (mb->x * 2) + (mb->y * pitches[0]);
 
   for (row = 0; row < 8; ++row) { // Eight rows
     pwyuv = pyuv;
@@ -117,12 +117,12 @@ dv_mb411_YUY2(dv_macroblock_t *mb, guchar *pixels, gint pitch) {
       Y[i] = Ytmp;
     } /* for i */
 
-    pyuv += pitch;
+    pyuv += pitches[0];
   } /* for row */
 } /* dv_mb411_YUY2 */
 
 void 
-dv_mb411_right_YUY2(dv_macroblock_t *mb, guchar *pixels, gint pitch) {
+dv_mb411_right_YUY2(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
 
   dv_coeff_t		*Y[4], *Ytmp, *cr_frame, *cb_frame;
   unsigned char	        *pyuv, *pwyuv, cb, cr;
@@ -134,7 +134,7 @@ dv_mb411_right_YUY2(dv_macroblock_t *mb, guchar *pixels, gint pitch) {
   Y[2] = mb->b[2].coeffs;
   Y[3] = mb->b[3].coeffs;
 
-  pyuv = pixels + (mb->x * 2) + (mb->y * pitch);
+  pyuv = pixels[0] + (mb->x * 2) + (mb->y * pitches[0]);
 
   for (j = 0; j < 4; j += 2) { // Two rows of blocks 
     cr_frame = mb->b[4].coeffs + (j * 2);
@@ -167,7 +167,7 @@ dv_mb411_right_YUY2(dv_macroblock_t *mb, guchar *pixels, gint pitch) {
 
       cb_frame += 4;
       cr_frame += 4;
-      pyuv += pitch;
+      pyuv += pitches[0];
     } /* for row */
 
   } /* for j */
@@ -176,7 +176,7 @@ dv_mb411_right_YUY2(dv_macroblock_t *mb, guchar *pixels, gint pitch) {
 /* ----------------------------------------------------------------------------
  */
 void
-dv_mb420_YUY2 (dv_macroblock_t *mb, guchar **pixels, gint16 *pitches) {
+dv_mb420_YUY2 (dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
     dv_coeff_t		*Y [4], *Ytmp0, *cr_frame, *cb_frame;
     unsigned char	*pyuv,
 			*pwyuv0, *pwyuv1,
@@ -235,7 +235,7 @@ dv_mb420_YUY2 (dv_macroblock_t *mb, guchar **pixels, gint16 *pitches) {
  *   Question:  do other video cards behave the same way?
  * */
 void 
-dv_mb411_YUY2_mmx(dv_macroblock_t *mb, guchar *pixels, gint pitch) {
+dv_mb411_YUY2_mmx(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
     dv_coeff_t		*Y[4], *cr_frame, *cb_frame;
     unsigned char	*pyuv, *pwyuv;
     int			i, row;
@@ -247,7 +247,7 @@ dv_mb411_YUY2_mmx(dv_macroblock_t *mb, guchar *pixels, gint pitch) {
     cr_frame = mb->b[4].coeffs;
     cb_frame = mb->b[5].coeffs;
 
-    pyuv = pixels + (mb->x * 2) + (mb->y * pitch);
+    pyuv = pixels[0] + (mb->x * 2) + (mb->y * pitches[0]);
 
     movq_m2r (mmx_0x7f94s, mm6);
     movq_m2r (mmx_0x7f24s, mm5);
@@ -309,13 +309,13 @@ dv_mb411_YUY2_mmx(dv_macroblock_t *mb, guchar *pixels, gint pitch) {
 	cb_frame += 2;
 	Y [i] = Ytmp;
       } /* for i */
-      pyuv += pitch;
+      pyuv += pitches[0];
     } /* for j */
     emms ();
 } /* dv_mb411_YUY2_mmx */
 
 void 
-dv_mb411_right_YUY2_mmx(dv_macroblock_t *mb, guchar *pixels, gint pitch) {
+dv_mb411_right_YUY2_mmx(dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
 
   dv_coeff_t		*Y[4], *Ytmp, *cr_frame, *cb_frame;
   unsigned char	        *pyuv;
@@ -326,7 +326,7 @@ dv_mb411_right_YUY2_mmx(dv_macroblock_t *mb, guchar *pixels, gint pitch) {
   Y[2] = mb->b[2].coeffs;
   Y[3] = mb->b[3].coeffs;
 
-  pyuv = pixels + (mb->x * 2) + (mb->y * pitch);
+  pyuv = pixels[0] + (mb->x * 2) + (mb->y * pitches[0]);
 
   movq_m2r(mmx_0x0080s,mm7);
 
@@ -390,7 +390,7 @@ dv_mb411_right_YUY2_mmx(dv_macroblock_t *mb, guchar *pixels, gint pitch) {
       cr_frame += 8;
       cb_frame += 8;
 
-      pyuv += pitch;
+      pyuv += pitches[0];
     } /* for row */
 
   } /* for j */
@@ -400,7 +400,7 @@ dv_mb411_right_YUY2_mmx(dv_macroblock_t *mb, guchar *pixels, gint pitch) {
 /* ----------------------------------------------------------------------------
  */
 void
-dv_mb420_YUY2_mmx (dv_macroblock_t *mb, guchar **pixels, gint16 *pitches) {
+dv_mb420_YUY2_mmx (dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
     dv_coeff_t		*Y [4], *Ytmp0, *cr_frame, *cb_frame;
     unsigned char	*pyuv,
 			*pwyuv0, *pwyuv1;
@@ -480,8 +480,6 @@ dv_mb420_YUY2_mmx (dv_macroblock_t *mb, guchar **pixels, gint16 *pitches) {
 	por_r2r (mm4, mm1);
 
 	movq_r2m (mm1, pwyuv1[8]);
-
-	movq_r2r (mm2, mm4);
 
 	pwyuv0 += 16;
 	pwyuv1 += 16;

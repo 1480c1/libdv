@@ -205,20 +205,20 @@ dv_decode_video_segment(dv_decoder_t *dv, dv_videosegment_t *seg, guint quality)
 } /* dv_decode_video_segment */
 
 static inline void
-dv_render_macroblock_rgb(dv_decoder_t *dv, dv_macroblock_t *mb, guchar *pixels, gint pitch ) {
+dv_render_macroblock_rgb(dv_decoder_t *dv, dv_macroblock_t *mb, guchar **pixels, gint *pitches ) {
   if(dv->sampling == e_dv_sample_411) {
     if(mb->x >= 704) {
-      dv_mb411_right_rgb(mb, pixels, pitch); /* Right edge are 16x16 */
+      dv_mb411_right_rgb(mb, pixels, pitches); /* Right edge are 16x16 */
     } else {
-      dv_mb411_rgb(mb, pixels, pitch);
+      dv_mb411_rgb(mb, pixels, pitches);
     } /* else */
   } else {
-    dv_mb420_rgb(mb, pixels, pitch);
+    dv_mb420_rgb(mb, pixels, pitches);
   } /* else */
 } /* dv_render_macroblock_rgb */
 
 void
-dv_render_video_segment_rgb(dv_decoder_t *dv, dv_videosegment_t *seg, guchar *pixels, gint pitch ) {
+dv_render_video_segment_rgb(dv_decoder_t *dv, dv_videosegment_t *seg, guchar **pixels, gint *pitches ) {
   dv_macroblock_t *mb;
   gint m;
   for (m=0,mb = seg->mb;
@@ -226,31 +226,31 @@ dv_render_video_segment_rgb(dv_decoder_t *dv, dv_videosegment_t *seg, guchar *pi
        m++,mb++) {
     if(dv->sampling == e_dv_sample_411) {
       if(mb->x >= 704) {
-	dv_mb411_right_rgb(mb, pixels, pitch); /* Right edge are 16x16 */
+	dv_mb411_right_rgb(mb, pixels, pitches); /* Right edge are 16x16 */
       } else {
-	dv_mb411_rgb(mb, pixels, pitch);
+	dv_mb411_rgb(mb, pixels, pitches);
       } /* else */
     } else {
-      dv_mb420_rgb(mb, pixels, pitch);
+      dv_mb420_rgb(mb, pixels, pitches);
     } /* else */
   } /* for    */
 } /* dv_render_video_segment_rgb */
 
 static inline void
-dv_render_macroblock_bgr0(dv_decoder_t *dv, dv_macroblock_t *mb, guchar *pixels, gint pitch ) {
+dv_render_macroblock_bgr0(dv_decoder_t *dv, dv_macroblock_t *mb, guchar **pixels, gint *pitches ) {
   if(dv->sampling == e_dv_sample_411) {
     if(mb->x >= 704) {
-      dv_mb411_right_bgr0(mb, pixels, pitch); /* Right edge are 16x16 */
+      dv_mb411_right_bgr0(mb, pixels, pitches); /* Right edge are 16x16 */
     } else {
-      dv_mb411_bgr0(mb, pixels, pitch);
+      dv_mb411_bgr0(mb, pixels, pitches);
     } /* else */
   } else {
-    dv_mb420_bgr0(mb, pixels, pitch);
+    dv_mb420_bgr0(mb, pixels, pitches);
   } /* else */
 } /* dv_render_macroblock_bgr0 */
 
 void
-dv_render_video_segment_bgr0(dv_decoder_t *dv, dv_videosegment_t *seg, guchar *pixels, gint pitch ) {
+dv_render_video_segment_bgr0(dv_decoder_t *dv, dv_videosegment_t *seg, guchar **pixels, gint *pitches ) {
   dv_macroblock_t *mb;
   gint m;
   for (m=0,mb = seg->mb;
@@ -258,12 +258,12 @@ dv_render_video_segment_bgr0(dv_decoder_t *dv, dv_videosegment_t *seg, guchar *p
        m++,mb++) {
     if(dv->sampling == e_dv_sample_411) {
       if(mb->x >= 704) {
-	dv_mb411_right_bgr0(mb, pixels, pitch); /* Right edge are 16x16 */
+	dv_mb411_right_bgr0(mb, pixels, pitches); /* Right edge are 16x16 */
       } else {
-	dv_mb411_bgr0(mb, pixels, pitch);
+	dv_mb411_bgr0(mb, pixels, pitches);
       } /* else */
     } else {
-      dv_mb420_bgr0(mb, pixels, pitch);
+      dv_mb420_bgr0(mb, pixels, pitches);
     } /* else */
   } /* for    */
 } /* dv_render_video_segment_bgr0 */
@@ -271,13 +271,13 @@ dv_render_video_segment_bgr0(dv_decoder_t *dv, dv_videosegment_t *seg, guchar *p
 #if ARCH_X86
 
 static inline void
-dv_render_macroblock_yuv(dv_decoder_t *dv, dv_macroblock_t *mb, guchar **pixels, guint16 *pitches) {
+dv_render_macroblock_yuv(dv_decoder_t *dv, dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
   if(dv_use_mmx) {
     if(dv->sampling == e_dv_sample_411) {
       if(mb->x >= 704) {
-	dv_mb411_right_YUY2_mmx(mb, pixels[0], pitches[0]); /* Right edge are 420! */
+	dv_mb411_right_YUY2_mmx(mb, pixels, pitches); /* Right edge are 420! */
       } else {
-	dv_mb411_YUY2_mmx(mb, pixels[0], pitches[0]);
+	dv_mb411_YUY2_mmx(mb, pixels, pitches);
       } /* else */
     } else {
       DV_MB420_YUV_MMX(mb, pixels, pitches);
@@ -285,9 +285,9 @@ dv_render_macroblock_yuv(dv_decoder_t *dv, dv_macroblock_t *mb, guchar **pixels,
   } else {
     if(dv->sampling == e_dv_sample_411) {
       if(mb->x >= 704) {
-	dv_mb411_right_YUY2(mb, pixels[0], pitches[0]); /* Right edge are 420! */
+	dv_mb411_right_YUY2(mb, pixels, pitches); /* Right edge are 420! */
       } else {
-	dv_mb411_YUY2(mb, pixels[0], pitches[0]);
+	dv_mb411_YUY2(mb, pixels, pitches);
       } /* else */
     } else {
       DV_MB420_YUV(mb, pixels, pitches);
@@ -296,7 +296,7 @@ dv_render_macroblock_yuv(dv_decoder_t *dv, dv_macroblock_t *mb, guchar **pixels,
 } /* dv_render_macroblock_yuv */
 
 void
-dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, guchar **pixels, guint16 *pitches) {
+dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, guchar **pixels, gint *pitches) {
   dv_macroblock_t *mb;
   gint m;
   for (m=0,mb = seg->mb;
@@ -305,9 +305,9 @@ dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, guchar **p
     if(dv_use_mmx) {
       if(dv->sampling == e_dv_sample_411) {
 	if(mb->x >= 704) {
-	  dv_mb411_right_YUY2_mmx(mb, pixels[0], pitches[0]); /* Right edge are 420! */
+	  dv_mb411_right_YUY2_mmx(mb, pixels, pitches); /* Right edge are 420! */
 	} else {
-	  dv_mb411_YUY2_mmx(mb, pixels[0], pitches[0]);
+	  dv_mb411_YUY2_mmx(mb, pixels, pitches);
 	} /* else */
       } else {
 	DV_MB420_YUV_MMX(mb, pixels, pitches);
@@ -315,9 +315,9 @@ dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, guchar **p
     } else {
       if(dv->sampling == e_dv_sample_411) {
 	if(mb->x >= 704) {
-	  dv_mb411_right_YUY2(mb, pixels[0], pitches[0]); /* Right edge are 420! */
+	  dv_mb411_right_YUY2(mb, pixels, pitches); /* Right edge are 420! */
 	} else {
-	  dv_mb411_YUY2(mb, pixels[0], pitches[0]);
+	  dv_mb411_YUY2(mb, pixels, pitches);
 	} /* else */
       } else {
 	DV_MB420_YUV(mb, pixels, pitches);
@@ -329,12 +329,12 @@ dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, guchar **p
 #else /* ARCH_X86 */
 
 static inline void
-dv_render_macroblock_yuv(dv_decoder_t *dv, dv_macroblock_t *mb, guchar **pixels, guint16 *pitches) {
+dv_render_macroblock_yuv(dv_decoder_t *dv, dv_macroblock_t *mb, guchar **pixels, gint *pitches) {
   if(dv->sampling == e_dv_sample_411) {
     if(mb->x >= 704) {
-      dv_mb411_right_YUY2(mb, pixels[0], pitches[0]); /* Right edge are 420! */
+      dv_mb411_right_YUY2(mb, pixels, pitches); /* Right edge are 420! */
     } else {
-      dv_mb411_YUY2(mb, pixels[0], pitches[0]);
+      dv_mb411_YUY2(mb, pixels, pitches);
     } /* else */
   } else {
     DV_MB420_YUV(mb, pixels, pitches);
@@ -342,7 +342,7 @@ dv_render_macroblock_yuv(dv_decoder_t *dv, dv_macroblock_t *mb, guchar **pixels,
 } /* dv_render_macroblock_yuv */
 
 void
-dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, guchar **pixels, guint16 *pitches) {
+dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, guchar **pixels, gint *pitches) {
   dv_macroblock_t *mb;
   gint m;
   for (m=0,mb = seg->mb;
@@ -350,9 +350,9 @@ dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, guchar **p
        m++,mb++) {
     if(dv->sampling == e_dv_sample_411) {
       if(mb->x >= 704) {
-	dv_mb411_right_YUY2(mb, pixels[0], pitches[0]); /* Right edge are 420! */
+	dv_mb411_right_YUY2(mb, pixels, pitches); /* Right edge are 420! */
       } else {
-	dv_mb411_YUY2(mb, pixels[0], pitches[0]);
+	dv_mb411_YUY2(mb, pixels, pitches);
       } /* else */
     } else {
       DV_MB420_YUV(mb, pixels, pitches);
@@ -379,7 +379,7 @@ void dv_check_coeff_ranges(dv_macroblock_t *mb) {
 
 void
 dv_decode_full_frame(dv_decoder_t *dv, guchar *buffer, 
-		     dv_color_space_t color_space, guchar **pixels, guint16 *pitches) {
+		     dv_color_space_t color_space, guchar **pixels, gint *pitches) {
 
   static dv_videosegment_t vs;
   dv_videosegment_t *seg = &vs;
@@ -395,7 +395,7 @@ dv_decode_full_frame(dv_decoder_t *dv, guchar *buffer,
   seg->isPAL = (dv->system == e_dv_system_625_50);
 
   /* each DV frame consists of a sequence of DIF segments  */
-  for (ds=0; ds < dv->num_dif_seqs; ds++) { 
+  for (ds=0; ds < dv->num_dif_seqs; ds++) {
     /* Each DIF segment conists of 150 dif blocks, 135 of which are video blocks */
     /* A video segment consists of 5 video blocks, where each video
        block contains one compressed macroblock.  DV bit allocation
@@ -436,7 +436,7 @@ dv_decode_full_frame(dv_decoder_t *dv, guchar *buffer,
 	     m++,mb++) {
 	  dv_decode_macroblock(dv, mb, dv->quality);
 	  dv_place_macroblock(dv, seg, mb, m);
-	  dv_render_macroblock_bgr0(dv, mb, pixels[0], pitches[0]);
+	  dv_render_macroblock_bgr0(dv, mb, pixels, pitches);
 	} /* for m */
         break;
       case e_dv_color_rgb:
@@ -448,7 +448,7 @@ dv_decode_full_frame(dv_decoder_t *dv, guchar *buffer,
 #if RANGE_CHECKING
 	  dv_check_coeff_ranges(mb);
 #endif
-	  dv_render_macroblock_rgb(dv, mb, pixels[0], pitches[0]);
+	  dv_render_macroblock_rgb(dv, mb, pixels, pitches);
 	} /* for m */
 	break;
       } /* switch */

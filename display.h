@@ -50,8 +50,10 @@
 #define DV_FOURCC_YUY2  0x32595559	/* 4:2:2 Packed mode: Y0+U0+Y1+V0 (1 plane) */
 
 #define DV_DISPLAY_OPT_METHOD   0
-#define DV_DISPLAY_OPT_CALLBACK 1
-#define DV_DISPLAY_NUM_OPTS     2
+#define DV_DISPLAY_OPT_ASPECT	1
+#define DV_DISPLAY_OPT_SIZE	2
+#define DV_DISPLAY_OPT_CALLBACK 3
+#define DV_DISPLAY_NUM_OPTS     4
 
 typedef enum dv_dpy_lib_e {
   e_dv_dpy_Xv,
@@ -64,7 +66,7 @@ typedef struct {
   dv_color_space_t color_space;
   gint		    width, height;
   guchar           *pixels[3];
-  guint16           pitches[3];
+  gint              pitches[3];
 
   /* Begin Private */
   dv_dpy_lib_t      lib;
@@ -104,9 +106,13 @@ typedef struct {
   SDL_Rect rect;
 #endif
 
-  gint arg_display;
+  gint 			arg_display,
+			arg_aspect_val,
+			arg_size_val;
+  gchar			*arg_aspect_string;
+
 #if HAVE_LIBPOPT
-  struct poptOption option_table[DV_DISPLAY_NUM_OPTS+1]; 
+  struct poptOption	option_table[DV_DISPLAY_NUM_OPTS+1];
 #endif // HAVE_LIBPOPT
 } dv_display_t;
 
