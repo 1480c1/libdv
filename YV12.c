@@ -214,8 +214,9 @@ dv_mb420_YV12_mmx(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches) {
     } /* for row */
 
   } // for i 
+  emms();
 
-} /* dv_mb420_YV12 */
+} /* dv_mb420_YV12_mmx */
 
 
 #endif // ARCH_X86
