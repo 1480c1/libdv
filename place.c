@@ -24,6 +24,10 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include "dv.h"
 #include "place.h"
 
@@ -141,8 +145,7 @@ dv_place_video_segment(dv_decoder_t *dv, dv_videosegment_t *seg) {
 } // dv_place_video_segment
 
 void
-dv_place_frame(dv_decoder_t *dv) {
-  dv_frame_t *frame = &dv->frame;
+dv_place_frame(dv_decoder_t *dv, dv_frame_t *frame) {
   dv_videosegment_t *seg;
   gint ds, v; // dif sequence, video segment
   guint dif = 0;

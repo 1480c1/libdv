@@ -24,6 +24,10 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include "vlc.h"
 
@@ -344,7 +348,7 @@ void dv_construct_vlc_table() {
 /* Note we assume bits is right (lsb) aligned, and that (0 < maxbits <
  * 17).  This may look crazy, but there are no branches here. */
 
-#if ! USE_MMX_ASM
+#if ! ARCH_X86
 void dv_decode_vlc(gint bits,gint maxbits, dv_vlc_t *result) {
   static dv_vlc_t vlc_broken = {run: -1, amp: -1, len: VLC_NOBITS};
   dv_vlc_t *results[2] = { &vlc_broken, result };
@@ -374,4 +378,4 @@ void __dv_decode_vlc(gint bits, dv_vlc_t *result) {
   result->amp = amps[has_sign &  // or vlc not valid
 		    (bits >> sign_rshift[result->len])];
 } // __dv_decode_vlc
-#endif // ! USE_ASM_FOR_VLC
+#endif // ! ARCH_X86

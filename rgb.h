@@ -51,11 +51,11 @@ extern void dv_mb411_rgb(dv_macroblock_t *mb, guchar *pixels, gint pitch);
 extern void dv_mb411_right_rgb(dv_macroblock_t *mb, guchar *pixels, gint pitch);
 extern void dv_mb420_rgb(dv_macroblock_t *mb, guchar *pixels, gint pitch); 
 
-#if USE_MMX_ASM
+#if ARCH_X86
 /* pentium architecture mmx version */
 extern void dv_mb411_rgb_mmx(dv_macroblock_t *mb, guchar *pixels, gint pitch); 
 extern void dv_mb411_right_rgb_mmx(dv_macroblock_t *mb, guchar *pixels, gint pitch); 
 extern void dv_mb420_rgb_mmx(dv_macroblock_t *mb, guchar *pixels, gint pitch); 
-#endif
+#endif // ARCH_X86
 
 #endif /* __DV_RGB_H__ */

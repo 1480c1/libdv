@@ -27,28 +27,32 @@
 /* Most of this file is derived from patch 101018 submitted by Stefan
  * Lucke <lucke@berlin.snafu.de> */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <glib.h>
 #include <stdlib.h>
 
 #include "dv.h"
 #include "YUY2.h"
 
-#if USE_MMX_ASM
+#if ARCH_X86
 #include "mmx.h"
-#endif // USE_MMX_ASM
+#endif // ARCH_X68
 
 /* Lookup tables for mapping signed to unsigned, and clamping */
 static unsigned char	real_uvlut[256], *uvlut;
 static unsigned char	real_ylut[768],  *ylut;
 
-#if USE_MMX_ASM
+#if ARCH_X86
 /* Define some constants used in MMX range mapping and clamping logic */
 static mmx_t		mmx_0x0010s = (mmx_t) 0x0010001000100010LL,
 			mmx_0x0080s = (mmx_t) 0x0080008000800080LL,
 			mmx_0x7f24s = (mmx_t) 0x7f247f247f247f24LL,
 			mmx_0x7f94s = (mmx_t) 0x7f947f947f947f94LL,
 			mmx_0xff00s = (mmx_t) 0xff00ff00ff00ff00LL;
-#endif // USE_MMX_ASM
+#endif // ARCH_X86
 
 void 
 dv_YUY2_init(void) {
@@ -173,7 +177,7 @@ dv_mb411_right_YUY2(dv_macroblock_t *mb, guchar *pixels, gint pitch) {
   } /* for j */
 } /* dv_mb411_right_YUY2 */
 
-#if USE_MMX_ASM
+#if ARCH_X86
 
 /* TODO (by Buck): 
  *
@@ -349,6 +353,6 @@ dv_mb411_right_YUY2_mmx(dv_macroblock_t *mb, guchar *pixels, gint pitch) {
   emms();
 } /* dv_mb411_right_YUY2_mmx */
 
-#endif // USE_MMX_ASM
+#endif // ARCH_X86
 
 

@@ -24,6 +24,10 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <math.h>
 #include <glib.h>
 #include "quant.h"
@@ -146,7 +150,6 @@ void quant_248(dv_coeff_t *block,int qno,int class) {
   block[0] = dc;
 }
 
-#if !USE_MMX_ASM
 void quant_88_inverse(dv_coeff_t *block,int qno,int class) {
   int i;
   guint8 *pq;			/* pointer to the four quantization
@@ -160,7 +163,6 @@ void quant_88_inverse(dv_coeff_t *block,int qno,int class) {
   for (i = 1; i < 64; i++)
     block[i] <<= (pq[dv_88_areas[i]] + extra);
 }
-#endif
 
 void quant_248_inverse(dv_coeff_t *block,int qno,int class) {
   int i;

@@ -27,13 +27,13 @@
 #ifndef __DISPLAY_H__
 #define __DISPLAY_H__
 
-#if HAVE_XV40x
+#if HAVE_LIBXV
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
 #include <X11/extensions/XShm.h>
 #include <X11/extensions/Xvlib.h>
-#endif // HAVE_XV40x
+#endif // HAVE_LIBXV
 
 #if HAVE_SDL
 #include <SDL/SDL.h>
@@ -68,7 +68,7 @@ typedef struct {
   guint32           len; 
   guint32           format;   /* fourcc code for YUV modes */
 
-#if HAVE_XV40x
+#if HAVE_LIBXV
   /* -----------------------------------------------------------
    * Xv specific members
    */
@@ -81,7 +81,7 @@ typedef struct {
   XvPortID	    port;
   XShmSegmentInfo   shminfo;
   XvImage          *xv_image;
-#endif
+#endif // HAVE_LIBXV
 
 #if HAVE_GTK
   /* -----------------------------------------------------------

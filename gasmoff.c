@@ -1,5 +1,10 @@
+
 #include <glib.h>
 #include <stdio.h>
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #include "bitstream.h"
 #include "dv.h"
@@ -54,6 +59,7 @@ int main(int argc, char *argv[])
   export(DV_QUALITY_DC);
   export(DV_QUALITY_AC_1);
   export(DV_QUALITY_AC_2);
+  export(DV_WEIGHT_BIAS);
 
   return 0;
 }

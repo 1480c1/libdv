@@ -1,3 +1,7 @@
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 
 #include "dv.h"
@@ -11,6 +15,9 @@
 #include "rgb.h"
 #include "YUY2.h"
 #include "YV12.h"
+#if ARCH_X86
+#include "mmx.h"
+#endif
 
 static void 
 convert_coeffs(dv_block_t *bl) {
@@ -32,8 +39,11 @@ convert_coeffs_prime(dv_block_t *bl) {
   } // for 
 } // convert_coeffs_prime
 
-void dv_init(void) {
-  weight_init();  
+void dv_init(dv_decoder_t *dv) {
+#if ARCH_X86
+  dv->use_mmx = mmx_ok(); 
+#endif
+  weight_init(dv);  
   dct_init();
   dv_dct_248_init();
   dv_construct_vlc_table();
@@ -45,7 +55,7 @@ void dv_init(void) {
 } /* dv_init */
 
 static inline void 
-dv_decode_macroblock(dv_macroblock_t *mb, guint quality) {
+dv_decode_macroblock(dv_decoder_t *dv, dv_macroblock_t *mb, guint quality) {
   dv_block_t *bl;
   gint b;
   for (b=0,bl = mb->b;
@@ -53,20 +63,26 @@ dv_decode_macroblock(dv_macroblock_t *mb, guint quality) {
        b++,bl++) {
     if (bl->dct_mode == DV_DCT_248) { 
       quant_248_inverse(bl->coeffs,mb->qno,bl->class_no);
-      weight_248_inverse(bl->coeffs);
+      weight_248_inverse(dv,bl->coeffs);
       convert_coeffs(bl);
       dv_idct_248(bl->coeffs248);
       convert_coeffs_prime(bl);
     } else {
-      quant_88_inverse(bl->coeffs,mb->qno,bl->class_no);
-      weight_88_inverse(bl->coeffs);
+#if ARCH_X86
+      quant_88_inverse_x86(bl->coeffs,mb->qno,bl->class_no);
+      weight_88_inverse(dv,bl->coeffs);
       idct_88(bl->coeffs);
+#else // ARCH_X86
+      quant_88_inverse(bl->coeffs,mb->qno,bl->class_no);
+      weight_88_inverse(dv,bl->coeffs);
+      idct_88(bl->coeffs);
+#endif // ARCH_X86
     } // else
   } // for b
 } /* dv_decode_macroblock */
 
 void 
-dv_decode_video_segment(dv_videosegment_t *seg, guint quality) {
+dv_decode_video_segment(dv_decoder_t *dv, dv_videosegment_t *seg, guint quality) {
   dv_macroblock_t *mb;
   dv_block_t *bl;
   gint m, b;
@@ -78,14 +94,20 @@ dv_decode_video_segment(dv_videosegment_t *seg, guint quality) {
 	 b++,bl++) {
       if (bl->dct_mode == DV_DCT_248) { 
 	quant_248_inverse(bl->coeffs,mb->qno,bl->class_no);
-	weight_248_inverse(bl->coeffs);
+	weight_248_inverse(dv,bl->coeffs);
 	convert_coeffs(bl);
 	dv_idct_248(bl->coeffs248);
 	convert_coeffs_prime(bl);
       } else {
-	quant_88_inverse(bl->coeffs,mb->qno,bl->class_no);
-	weight_88_inverse(bl->coeffs);
+#if ARCH_X86
+	quant_88_inverse_x86(bl->coeffs,mb->qno,bl->class_no);
+	weight_88_inverse(dv,bl->coeffs);
 	idct_88(bl->coeffs);
+#else // ARCH_X86
+	quant_88_inverse(bl->coeffs,mb->qno,bl->class_no);
+	weight_88_inverse(dv,bl->coeffs);
+	idct_88(bl->coeffs);
+#endif // ARCH_X86
       } // else
     } // for b
   } // for mb
@@ -123,7 +145,7 @@ dv_render_video_segment_rgb(dv_decoder_t *dv, dv_videosegment_t *seg, guchar *pi
   } // for   
 } /* dv_render_video_segment_rgb */
 
-#if USE_MMX_ASM
+#if ARCH_X86
 
 static inline void
 dv_render_macroblock_yuv(dv_decoder_t *dv, dv_macroblock_t *mb, guchar **pixels, guint16 *pitches) {
@@ -181,7 +203,7 @@ dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, guchar **p
   } // for   
 } /* dv_render_video_segment_yuv */
 
-#else // USE_MMX_ASM
+#else // ARCH_X86
 
 static inline void
 dv_render_macroblock_yuv(dv_decoder_t *dv, dv_macroblock_t *mb, guchar **pixels, guint16 *pitches) {
@@ -215,7 +237,7 @@ dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, guchar **p
   } // for   
 } /* dv_render_video_segment_yuv */
 
-#endif // USE_MMX_ASM
+#endif // ! ARCH_X86
 
 void
 dv_decode_full_frame(dv_decoder_t *dv, guchar *buffer, 
@@ -259,7 +281,7 @@ dv_decode_full_frame(dv_decoder_t *dv, guchar *buffer,
 	for (m=0,mb = seg->mb;
 	     m<5;
 	     m++,mb++) {
-	  dv_decode_macroblock(mb, dv->quality);
+	  dv_decode_macroblock(dv, mb, dv->quality);
 	  dv_place_macroblock(dv, seg, mb, m);
 	  dv_render_macroblock_yuv(dv, mb, pixels, pitches);
 	} // for m
@@ -267,7 +289,7 @@ dv_decode_full_frame(dv_decoder_t *dv, guchar *buffer,
 	for (m=0,mb = seg->mb;
 	     m<5;
 	     m++,mb++) {
-	  dv_decode_macroblock(mb, dv->quality);
+	  dv_decode_macroblock(dv, mb, dv->quality);
 	  dv_place_macroblock(dv, seg, mb, m);
 	  dv_render_macroblock_rgb(dv, mb, pixels[0], pitches[0]);
 	} // for m

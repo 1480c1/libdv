@@ -24,27 +24,31 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <glib.h>
 #include <stdlib.h>
 
 #include "dv.h"
 #include "YV12.h"
 
-#if USE_MMX_ASM
+#if ARCH_X86
 #include "mmx.h"
-#endif // USE_MMX_ASM
+#endif // ARCH_X86
 
 /* Lookup tables for mapping signed to unsigned, and clamping */
 static unsigned char	real_uvlut[256], *uvlut;
 static unsigned char	real_ylut[768],  *ylut;
 
-#if USE_MMX_ASM
+#if ARCH_X86
 /* Define some constants used in MMX range mapping and clamping logic */
 static mmx_t		mmx_0x10s   = (mmx_t) 0x1010101010101010LL,
 			mmx_0x0080s = (mmx_t) 0x0080008000800080LL,
 			mmx_0x7f24s = (mmx_t) 0x7f247f247f247f24LL,
                         mmx_0x7f94s = (mmx_t) 0x7f947f947f947f94LL;
-#endif // USE_MMX_ASM
+#endif // ARCH_X86
 
 void 
 dv_YV12_init(void) {
@@ -133,7 +137,7 @@ dv_mb420_YV12(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches) {
 
 } /* dv_mb420_YV12 */
 
-#if USE_MMX_ASM
+#if ARCH_X86
 
 void 
 dv_mb420_YV12_mmx(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches) {
@@ -214,5 +218,5 @@ dv_mb420_YV12_mmx(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches) {
 } /* dv_mb420_YV12 */
 
 
-#endif // USE_MMX_ASM
+#endif // ARCH_X86
 

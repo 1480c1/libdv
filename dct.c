@@ -24,6 +24,10 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <math.h>
 #include <string.h>
 #include "dct.h"
@@ -109,31 +113,33 @@ void dct_248(double *block) {
     block[i] = temp[i];
 }
 
-void idct_block_mmx(gint16 *block);
+extern void idct_block_mmx(gint16 *block);
 
-void idct_88(dv_coeff_t *block) {
-#if !USE_MMX_ASM
+void 
+idct_88(dv_coeff_t *block) {
   int v,h,y,x,i;
   double temp[64];
 
+#if ARCH_X86
+  idct_block_mmx(block);
+  emms();
+#else
   memset(temp,0,sizeof(temp));
   for (v=0;v<8;v++) {
     for (h=0;h<8;h++) {
       for (y=0;y<8;y++){ 
         for (x=0;x<8;x++) {
           temp[y*8+x] += C[v] * C[h] * block[v*8+h] * KC88[x][y][h][v];
-        }
-      }
-    }
-  }
+        } /* for x */
+      } /* for y */
+    } /* for h */
+  } /* for v */
 
   for (i=0;i<64;i++)
     block[i] = temp[i];
-#else
-  idct_block_mmx(block);
-  emms();
 #endif
-}
+} /* idct_88 */
+
 
 #if BRUTE_FORCE_248
 

@@ -29,10 +29,10 @@
 
 #include "dv.h"
 
-void weight_init(void);
-void weight_88(dv_coeff_t *block);
-void weight_248(dv_coeff_t *block);
-void weight_88_inverse(dv_coeff_t *block);
-void weight_248_inverse(dv_coeff_t *block);
+void weight_init(dv_decoder_t *dv);
+void weight_88(dv_decoder_t *dv, dv_coeff_t *block);
+void weight_248(dv_decoder_t *dv, dv_coeff_t *block);
+void weight_88_inverse(dv_decoder_t *dv, dv_coeff_t *block);
+void weight_248_inverse(dv_decoder_t *dv, dv_coeff_t *block);
 
 #endif // __WEIGHTING_H__

@@ -42,12 +42,11 @@
 #define DV_FSC_0         (0)
 #define DV_FSC_1         (1)
 
-#if USE_MMX_ASM
+#if ARCH_X86
 #define DV_WEIGHT_BIAS	 6
 #else
 #define DV_WEIGHT_BIAS	 0
 #endif
-
 
 #define DV_QUALITY_COLOR       1     /* Clear this bit to make monochrome */
 
@@ -154,8 +153,7 @@ typedef struct dv_decoder_s {
   gint        height, width;
   size_t      frame_size;
   dv_header_t header;
-  dv_frame_t  frame;
-#if USE_MMX_ASM
+#if ARCH_X86
   gboolean    use_mmx;
 #endif
 } dv_decoder_t;
@@ -165,14 +163,14 @@ static const gint frame_size_525_60 = 10 * 150 * 80;
 static const gint frame_size_625_50 = 12 * 150 * 80;
 
 /* Main API */
-extern void dv_init(void);
+extern void dv_init(dv_decoder_t *dv);
 extern gint dv_parse_header(dv_decoder_t *dv, guchar *buffer);
 extern void dv_decode_full_frame(dv_decoder_t *dv, guchar *buffer, 
 				 dv_color_space_t color_space, guchar **pixels, guint16 *pitches);
 
 /* Low level API */
 extern gint dv_parse_video_segment(dv_videosegment_t *seg, guint quality);
-extern void dv_decode_video_segment(dv_videosegment_t *seg, guint quality);
+extern void dv_decode_video_segment(dv_decoder_t *dv, dv_videosegment_t *seg, guint quality);
 
 extern void dv_render_video_segment_rgb(dv_decoder_t *dv, dv_videosegment_t *seg, 
 					guchar *pixels, gint pitch );

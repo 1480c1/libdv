@@ -24,6 +24,10 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <glib.h>
 #include <stdio.h>
 #include <assert.h>
@@ -77,7 +81,7 @@ gint8  dv_reorder[2][64] = {
 void dv_parse_init(void) {
   gint i;
   for(i=0;i<64;i++) {
-#if !USE_MMX_ASM
+#if !ARCH_X86
     dv_reorder[DV_DCT_88][i] = ((dv_88_reorder_prime[i] / 8) * 8) + (dv_88_reorder_prime[i] % 8);
 #else
     dv_reorder[DV_DCT_88][i] = ((dv_88_reorder_prime[i] % 8) * 8) + (dv_88_reorder_prime[i] / 8);
@@ -356,7 +360,7 @@ void dv_parse_ac_coeffs_pass0(bitstream_t *bs,
 			      dv_macroblock_t *mb,
 			      dv_block_t *bl);
 
-#if ! USE_MMX_ASM
+#if ! ARCH_X86
 __inline__ void dv_parse_ac_coeffs_pass0(bitstream_t *bs,
 						dv_macroblock_t *mb,
 						dv_block_t *bl) {
@@ -421,7 +425,7 @@ __inline__ void dv_parse_ac_coeffs_pass0(bitstream_t *bs,
  * in a single frame, that more tolerant aproaches.
  *
  *  */
-#if ! USE_MMX_ASM
+#if ! ARCH_X86
 gint dv_parse_video_segment(dv_videosegment_t *seg, guint quality) {
   gint             m, b;
   gint             mb_start;

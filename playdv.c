@@ -24,6 +24,10 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdlib.h>
 #include <glib.h>
 #include <stdio.h>
@@ -34,13 +38,11 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 
-#include "mmx.h"
 #include "dv.h"
 #include "display.h"
 #include "bitstream.h"
 #include "place.h"
 
-#define BENCHMARK_MODE 0
 
 /* Book-keeping for mmap */
 
@@ -89,6 +91,7 @@ int main(int argc,char *argv[]) {
   off_t offset = 0, eof;
   guint frame_count = 0;
   gdouble seconds;
+  gboolean benchmark_mode = FALSE;
 
   /* Open the input file, do fstat to get it's total size */
   if (argc != 2) goto usage;
@@ -96,12 +99,8 @@ int main(int argc,char *argv[]) {
   if(fstat(fd, &statbuf)) goto fstatfail;
   eof = statbuf.st_size;
 
-  dv_init();
+  dv_init(&dv);
   dv.quality = DV_QUALITY_BEST;
-
-#if USE_MMX_ASM
-  dv.use_mmx = mmx_ok();
-#endif
 
   /* Read in header of first frame to see how big frames are */
   mmap_unaligned(fd,0,header_size,&mmap_region);
@@ -131,9 +130,8 @@ int main(int argc,char *argv[]) {
     dv_display_show(dv_dpy);
 
     frame_count++;
-#if BENCHMARK_MODE
-    if(frame_count >= 180) break;
-#endif
+    if(benchmark_mode && (frame_count >= 150)) break;
+
     // Release the frame's data
     munmap_unaligned(&mmap_region); 
 

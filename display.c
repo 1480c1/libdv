@@ -27,6 +27,10 @@
 /* Most of this file is derived from patches 101018 and 101136 submitted by
  * Stefan Lucke <lucke@berlin.snafu.de> */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <glib.h>
 #include <math.h>
 #include "dv.h"
@@ -36,7 +40,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#if HAVE_XV40x
+#if HAVE_LIBXV
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #endif
@@ -49,7 +53,7 @@ static gint dv_display_Xv_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_nam
 static void dv_center_window(SDL_Surface *screen);
 #endif
 
-#if HAVE_XV40x
+#if HAVE_LIBXV
 static void dv_display_event (dv_display_t *dv_dpy);
 #endif 
 
@@ -59,7 +63,7 @@ void
 dv_display_show(dv_display_t *dv_dpy) {
   switch(dv_dpy->lib) {
   case e_dv_dpy_Xv:
-#if HAVE_XV40x
+#if HAVE_LIBXV
     dv_display_event(dv_dpy);
     XvShmPutImage(dv_dpy->dpy, dv_dpy->port,
 		  dv_dpy->win, dv_dpy->gc,
@@ -70,7 +74,7 @@ dv_display_show(dv_display_t *dv_dpy) {
 		  dv_dpy->rwidth, dv_dpy->rheight,	        /* dw, dh */
 		  True);
     XFlush(dv_dpy->dpy);
-#endif // HAVE_XV40x
+#endif // HAVE_LIBXV
     break;
   case e_dv_dpy_XShm:
     break;
@@ -107,7 +111,7 @@ dv_display_exit(dv_display_t *dv_dpy) {
 
   switch(dv_dpy->lib) {
   case e_dv_dpy_Xv:
-#if HAVE_XV40x
+#if HAVE_LIBXV
     XvStopVideo(dv_dpy->dpy, dv_dpy->port, dv_dpy->win);
     if(dv_dpy->shminfo.shmaddr)
       shmdt(dv_dpy->shminfo.shmaddr);
@@ -117,7 +121,7 @@ dv_display_exit(dv_display_t *dv_dpy) {
 
     if(dv_dpy->xv_image)
       free(dv_dpy->xv_image);
-#endif
+#endif // HAVE_LIBXV
     break;
   case e_dv_dpy_gtk:
     /* TODO: cleanup gtk and gdk stuff */
@@ -167,7 +171,7 @@ dv_display_gdk_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv) {
   return FALSE;
 } /* dv_display_init */
 
-#if HAVE_XV40x
+#if HAVE_LIBXV
 
 static void
 dv_display_event (dv_display_t *dv_dpy) {
@@ -184,14 +188,14 @@ dv_display_event (dv_display_t *dv_dpy) {
   } // while
 } /* dv_display_event */
 
-#endif /* HAVE_XV40x */
+#endif /* HAVE_LIBXV */
 
 /* ----------------------------------------------------------------------------
  */
 static gint
 dv_display_Xv_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name) {
   gint		ret = 0;
-#if HAVE_XV40x
+#if HAVE_LIBXV
   int		scn_id, ad_cnt, got_port, i, k;
   XGCValues	values;
   XSizeHints	hints;
@@ -298,7 +302,7 @@ dv_display_Xv_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name) {
   XSync(dv_dpy->dpy, False);
 
   ret = 1;
-#endif
+#endif // HAVE_LIBXV
   return ret;
 } /* dv_display_Xv_init */
 

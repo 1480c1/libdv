@@ -33,6 +33,6 @@
 extern void dv_place_init(void);
 extern void dv_place_macroblock(dv_decoder_t *dv, dv_videosegment_t *seg, dv_macroblock_t *mb, gint m);
 extern void dv_place_video_segment(dv_decoder_t *dv, dv_videosegment_t *seg);
-extern void dv_place_frame(dv_decoder_t *dv);
+extern void dv_place_frame(dv_decoder_t *dv, dv_frame_t *frame);
 
 #endif // __PLACE_H__
