@@ -886,6 +886,7 @@ dv_parse_header(dv_decoder_t *dv, const uint8_t *buffer) {
 
  parse_error:
  no_bitstream:
+  free( bs );
   return(-1);
 } /* dv_parse_header */
 

@@ -469,14 +469,19 @@ static unsigned short reorder_248[64] = {
 	14,28,30,44,46,58,60,64
 };
 
+
 void _dv_prepare_reorder_tables(void)
 {
-	int i;
-	for (i = 0; i < 64; i++) {
- 		reorder_88[i]--;
- 		reorder_88[i] *= 2;
-		reorder_248[i]--;
-		reorder_248[i] *= 2;
+	static int done = 0;
+	if (done == 0) {
+		int i;
+		for (i = 0; i < 64; i++) {
+			reorder_88[i]--;
+			reorder_88[i] *= 2;
+			reorder_248[i]--;
+			reorder_248[i] *= 2;
+		}
+		done = 1;
 	}
 }
 
@@ -1494,6 +1499,10 @@ dv_encoder_new(int rem_ntsc_setup, int clamp_luma, int clamp_chroma) {
   result->force_dct = DV_DCT_AUTO;
 
   dv_init( clamp_luma, clamp_chroma);
+  _dv_init_vlc_test_lookup();
+  _dv_init_vlc_encode_lookup();
+  _dv_init_qno_start();
+  _dv_prepare_reorder_tables();
 
   result->frame_count = 0;
   return(result);
@@ -1526,6 +1535,10 @@ dv_encoder_free( dv_encoder_t *encoder)
     if (encoder->img_cb != NULL) free(encoder->img_cb);
     free(encoder);
   }
+  if (vlc_encode_lookup != NULL)
+    free(vlc_encode_lookup);
+  if (vlc_num_bits_lookup != NULL)
+    free(vlc_num_bits_lookup);
 } /* dv_encoder_free */
 
 

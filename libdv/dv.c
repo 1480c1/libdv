@@ -170,6 +170,7 @@ dv_decoder_free( dv_decoder_t *decoder)
 	if (decoder != NULL) {
 		if (decoder->audio != NULL) free(decoder->audio);
 		if (decoder->video != NULL) free(decoder->video);
+		if (decoder->bs != NULL) free(decoder->bs);
 		free(decoder);
 	}
 } /* dv_decoder_free */
@@ -192,10 +193,6 @@ dv_init(int clamp_luma, int clamp_chroma) {
   dv_rgb_init(clamp_luma, clamp_chroma);
   dv_YUY2_init(clamp_luma, clamp_chroma);
   dv_YV12_init(clamp_luma, clamp_chroma);
-  _dv_init_vlc_test_lookup();
-  _dv_init_vlc_encode_lookup();
-  _dv_init_qno_start();
-  _dv_prepare_reorder_tables();
 
   done=TRUE;
  init_done:
@@ -454,7 +451,7 @@ dv_decode_full_frame(dv_decoder_t *dv, const uint8_t *buffer,
   unsigned int offset = 0, dif = 0, audio=0;
 
   if(!seg->bs) {
-    seg->bs = _dv_bitstream_init();
+    dv->bs = seg->bs = _dv_bitstream_init();
     if(!seg->bs)
       goto no_mem;
   } /* if */

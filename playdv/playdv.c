@@ -397,7 +397,7 @@ restart:
      * Map the frame's data into memory
      */
     mmap_unaligned (fd,dv_player->no_mmap, 
-		    offset, dv_player->decoder->frame_size, 
+		    offset, dv_player->decoder->frame_size,
 		    &dv_player->mmap_region);
     if (MAP_FAILED == dv_player->mmap_region.map_start) goto map_failed;
     if (dv_parse_header (dv_player->decoder,

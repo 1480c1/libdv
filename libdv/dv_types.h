@@ -475,6 +475,7 @@ typedef struct dv_decoder_s {
   uint8_t             ssyb_next;
   uint8_t             ssyb_pack [256];
   uint8_t             ssyb_data [45][4];
+  bitstream_t        *bs;
 
 #if HAVE_LIBPOPT
   struct poptOption option_table[DV_DECODER_NUM_OPTS+1];

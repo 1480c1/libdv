@@ -1,3 +1,9 @@
+2003-10-29  Dan Dennedy  <dan@dennedy.org>
+	* libdv/parse.c: bugfix memory leak on error parsing header.
+	* libdv/dv.c: bugfix memory leak on non-freed bitstream_t
+	* libdv/dv.c, encode.c: remove encoder-specific malloc and init from
+	  the decoder init path. bugfix memory leaks in vlc.
+
 2003-10-27  Dan Dennedy  <dan@dennedy.org>
 	* libdv/enc_output.c, audio.c: fix speed flag handling for SMPTE 314M
 
