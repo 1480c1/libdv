@@ -18,6 +18,7 @@ int main(int argc, char *argv[])
 {
     declaresize(dv_macroblock_t);
     declare(dv_macroblock_t,	eob_count);
+    declare(dv_macroblock_t,	vlc_error);
 
     declaresize(dv_block_t);
     declare(dv_block_t,		coeffs);
@@ -29,6 +30,8 @@ int main(int argc, char *argv[])
     declare(dv_block_t,		end);
     declare(dv_block_t,		eob);
     declare(dv_block_t,		mark);
+
+    declare(bitstream_t,	buf);
 
     return 0;
 }
