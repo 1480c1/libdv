@@ -69,9 +69,6 @@ void convert_coeffs_prime(dv_block_t *bl)
 
 int main(int argc,char *argv[]) {
   static guint8 vsbuffer[80*5]      __attribute__ ((aligned (64))); 
-  static gint8 y_frame[720*576]     __attribute__ ((aligned (64)));
-  static gint8 cr_frame[180*576]    __attribute__ ((aligned (64)));
-  static gint8 cb_frame[180*576]    __attribute__ ((aligned (64)));
   static dv_videosegment_t videoseg __attribute__ ((aligned (64)));
   FILE *f;
   dv_sample_t sampling;
@@ -86,13 +83,10 @@ int main(int argc,char *argv[]) {
   gint lost_coeffs;
   guint dif;
   guint offset;
+  size_t mb_offset;
   static gint frame_count;
-#if GTKDISPLAY
   GtkWidget *window,*image;
-#if ! Y_ONLY
   guint8 rgb_frame[720*576*4];
-#endif
-#endif
 
   if (argc >= 2)
     f = fopen(argv[1],"r");
@@ -105,6 +99,7 @@ int main(int argc,char *argv[]) {
   dv_construct_vlc_table();
   dv_parse_init();
   dv_place_init();
+  dv_ycrcb_init();
   videoseg.bs = bitstream_init();
 
   lost_coeffs = 0;
@@ -190,10 +185,16 @@ int main(int argc,char *argv[]) {
 	      idct_88(bl->coeffs);
 	    } // else
 	  } // for b
-	  if(sampling == e_dv_sample_411)
-	    dv_place_411_macroblock(mb,y_frame,cr_frame,cb_frame);
-	  else
-	    dv_place_420_macroblock(mb,y_frame,cr_frame,cb_frame);
+	  if(sampling == e_dv_sample_411) {
+	    mb_offset = dv_place_411_macroblock(mb,4);
+	    if((mb->j == 4) && (mb->k > 23)) 
+	      dv_ycrcb_420_block(rgb_frame + mb_offset, mb->b);
+	    else
+	      dv_ycrcb_411_block(rgb_frame + mb_offset, mb->b);
+	  } else {
+	    mb_offset = dv_place_420_macroblock(mb,4);
+	    dv_ycrcb_420_block(rgb_frame + mb_offset, mb->b);
+	  }
         } // for mb
 	dif+=5;
       } // for s
@@ -205,19 +206,8 @@ int main(int argc,char *argv[]) {
 #endif
 #if GTKDISPLAY
 	
-#if Y_ONLY
-    for(m=0;m<720*(isPAL?576:480);m++) y_frame[m] += 128;
-    gdk_draw_gray_image(image->window,image->style->fg_gc[image->state],
-                        0,0,720,isPAL?576:480,GDK_RGB_DITHER_NORMAL,y_frame,720);
-#else
-    if(sampling == e_dv_sample_411)
-      dv_ycrcb_411_to_rgb32(y_frame,cr_frame,cb_frame,rgb_frame,isPAL?576:480);
-    else
-      dv_ycrcb_420_to_rgb32(y_frame,cr_frame,cb_frame,rgb_frame,isPAL?576:480);
-
     gdk_draw_rgb_32_image(image->window,image->style->fg_gc[image->state],
                         0,0,720,isPAL?576:480,GDK_RGB_DITHER_NORMAL,rgb_frame,720*4);
-#endif
     gdk_flush();
     while (gtk_events_pending())
       gtk_main_iteration();

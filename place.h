@@ -27,13 +27,10 @@
 #ifndef __PLACE_H__
 #define __PLACE_H__
 
-#include "dv.h"
+#include <stddef.h>
 
-void dv_place_init(void);
-void dv_place_411_macroblock(dv_macroblock_t *mb,guint8 *y_frame,
-			     guint8 *cr_frame,guint8 *cb_frame);
-
-void dv_place_420_macroblock(dv_macroblock_t *mb,guint8 *y_frame,
-			     guint8 *cr_frame,guint8 *cb_frame);
+extern void dv_place_init(void);
+extern size_t dv_place_411_macroblock(dv_macroblock_t *mb, size_t pel_size);
+extern size_t dv_place_420_macroblock(dv_macroblock_t *mb, size_t pel_size);
 
 #endif // __PLACE_H__

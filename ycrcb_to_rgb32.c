@@ -25,109 +25,139 @@
  */
 
 #include <glib.h>
+#include "dv.h"
+
+#define DVC_IMAGE_WIDTH 720
+#define DVC_IMAGE_CHANS 4
+#define DVC_IMAGE_ROWOFFSET (DVC_IMAGE_WIDTH * DVC_IMAGE_CHANS)
 
 gint32 ylut[256];
+gint32 impactcbr[256];
+gint32 impactcbg[256];
+gint32 impactcrg[256];
+gint32 impactcrb[256];
 
-static int initted = 0;
-static void dv_ycrcb_init()
+static gint8 _dv_clamp[512];
+static gint8 *dv_clamp;
+
+static inline guint8 dv_clamp_c(gint d) { return d; }
+static inline guint8 dv_clamp_y(gint d) {
+	return dv_clamp[d];
+} // dv_clamp_y
+
+void dv_ycrcb_init()
 {
-  int i;
+  gint i;
   for(i=0;
       i<256;
       ++i) {
-    ylut[i] = 298 * ((signed char)(i) + 128 - 16);
+    ylut[i] = 298 * ((gint8)(i) + 128 - 16);
+    impactcbr[i] = 409 * (gint8)(i);
+    impactcbg[i] = 100 * (gint8)(i);
+    impactcrg[i] = 208 * (gint8)(i);
+    impactcrb[i] = 516 * (gint8)(i);
+  }
+  dv_clamp = _dv_clamp+128;
+  for(i=-128; i<(256+128); i++) {
+    if(i < 16) _dv_clamp[i] = 16-128;
+    else if(i > 235) _dv_clamp[i] = 235-128;
+    else _dv_clamp[i] = i-128;
+  } // for 
+}
+
+void dv_ycrcb_411_block(guint8 *base, dv_block_t *bl)
+{
+  dv_coeff_t *Y[4], *cr_frame, *cb_frame;
+  guint8 *rgbp = base;
+  int i,j,k, row;
+  Y[0] = bl[0].coeffs;
+  Y[1] = bl[1].coeffs;
+  Y[2] = bl[2].coeffs;
+  Y[3] = bl[3].coeffs;
+  cb_frame = bl[4].coeffs;
+  cr_frame = bl[5].coeffs;
+  for (row = 0; row < 8; ++row) { // Eight rows
+    for (i = 0; i < 4; ++i) {     // Four Y blocks
+      dv_coeff_t *Ytmp = Y[i]; // less indexing in inner loop speedup?
+      for (j = 0; j < 2; ++j) {   // two 4-pixel spans per Y block
+        int cb = dv_clamp_c(*cb_frame++); // +128;
+        int cr = dv_clamp_c(*cr_frame++); // +128
+        int cbr = impactcbr[cb];
+        int cbcrg = impactcbg[cb] + impactcrg[cr];
+        int crb = impactcrb[cr];
+ 
+        for (k = 0; k < 4; ++k) { // 4-pixel span
+          gint32 y = ylut[dv_clamp_y(*Ytmp++)];
+          gint32 r = (y + cbr  ) >> 8;
+          gint32 g = (y - cbcrg) >> 8;
+          gint32 b = (y + crb  ) >> 8;
+          *rgbp++ = (guint8)CLAMP(r,0,255);
+          *rgbp++ = (guint8)CLAMP(g,0,255);
+          *rgbp++ = (guint8)CLAMP(b,0,255);
+#if (DVC_IMAGE_CHANS == 4)
+          rgbp++;
+#endif
+        }
+      }
+      Y[i] = Ytmp;
+    }
+    rgbp += DVC_IMAGE_ROWOFFSET - 4 * 8 * DVC_IMAGE_CHANS; // 4 rows, 8 pixels
   }
 }
 
-void dv_ycrcb_411_to_rgb32(unsigned char *y_frame, unsigned char *cr_frame, unsigned char *cb_frame, guint8 *rgb_frame, gint height) {
-  int i;
-  if (!initted) {
-    dv_ycrcb_init();
-    initted = 1;
+void dv_ycrcb_420_block(guint8 *base, dv_block_t *bl)
+{
+  dv_coeff_t *Y[4], *cr_frame, *cb_frame;
+  guint8 *rgbp0, *rgbp1;
+  int i, j, k, row, col;
+  rgbp0 = base;
+  rgbp1 = base + DVC_IMAGE_ROWOFFSET;
+  Y[0] = bl[0].coeffs;
+  Y[1] = bl[1].coeffs;
+  Y[2] = bl[2].coeffs;
+  Y[3] = bl[3].coeffs;
+  cb_frame = bl[4].coeffs;
+  cr_frame = bl[5].coeffs;
+  for (j = 0; j < 4; j += 2) { // Two rows of blocks j, j+1
+    for (row = 0; row < 8; row+=2) { // 4 pairs of two rows
+      for (i = 0; i < 2; ++i) { // Two columns of blocks
+        int yindex = j + i;
+        dv_coeff_t *Ytmp0 = Y[yindex];
+        dv_coeff_t *Ytmp1 = Y[yindex] + 8;
+        for (col = 0; col < 4; ++col) {  // 4 spans of 2x2 pixels
+          int cb = dv_clamp_c(*cb_frame++); // +128;
+          int cr = dv_clamp_c(*cr_frame++); // +128
+          int cbr = impactcbr[cb];
+          int cbcrg = impactcbg[cb] + impactcrg[cr];
+          int crb = impactcrb[cr];
+          for (k = 0; k < 2; ++k) { // 2x2 pixel
+            gint32 y = ylut[dv_clamp_y(*Ytmp0++)];
+            gint32 r = (y       + cbr) >> 8;
+            gint32 g = (y - cbcrg) >> 8;
+            gint32 b = (y + crb      ) >> 8;
+            *(rgbp0)++ = (guint8)CLAMP(r,0,255);
+            *(rgbp0)++ = (guint8)CLAMP(g,0,255);
+            *(rgbp0)++ = (guint8)CLAMP(b,0,255);
+#if (DVC_IMAGE_CHANS == 4)
+            rgbp0++;
+#endif
+
+            y = ylut[dv_clamp_y(*Ytmp1++)];
+            r = (y       + cbr) >> 8;
+            g = (y - cbcrg) >> 8;
+            b = (y + crb      ) >> 8;
+            *(rgbp1)++ = (guint8)CLAMP(r,0,255);
+            *(rgbp1)++ = (guint8)CLAMP(g,0,255);
+            *(rgbp1)++ = (guint8)CLAMP(b,0,255);
+#if (DVC_IMAGE_CHANS == 4)
+            rgbp1++;
+#endif
+          }
+        }
+        Y[yindex] = Ytmp1;
+      }
+      rgbp0 += 2 * DVC_IMAGE_ROWOFFSET - 2 * 8 * DVC_IMAGE_CHANS;
+      rgbp1 += 2 * DVC_IMAGE_ROWOFFSET - 2 * 8 * DVC_IMAGE_CHANS;
+    }
   }
-  for(i=0;
-      i<height*180;
-      i++) {
-    signed char cr = (signed char)*cr_frame++; // +128
-    signed char cb = (signed char)*cb_frame++; // +128;
-    int cbr = 409 * cb;
-    int cbcrg = 208 * cb + 100 * cr;
-    int crb = 516 * cr;
-    int j;
-    
-    for(j=0;
-	j<4;
-	j++) {
-      gint32 y = ylut[*y_frame++];
-      gint32 r = (y       + cbr) >> 8;
-      gint32 g = (y - cbcrg) >> 8;
-      gint32 b = (y + crb      ) >> 8;
-      *rgb_frame++ = CLAMP(r,0,255);
-      *rgb_frame++ = CLAMP(g,0,255);
-      *rgb_frame++ = CLAMP(b,0,255);
-      rgb_frame++;
-    } // for j
-  } // for i
-} // dv_ycrcb_to_rgb32
-
-void dv_ycrcb_420_to_rgb32(gint8 *y_frame, gint8 *cr_frame, gint8 *cb_frame, guint8 *rgb_frame,gint height) {
-  int i,j;
-  gint32 y, cr, cb;
-  gint32 r, g, b;
-  gint32 impact[4];
-  guint8 *rgb;
-  for(i=0;
-      i<height;
-      i+=2) {
-    for(j=0;
-	j<180*2;
-	j++,cr_frame++,cb_frame++) {
-      cr = *cr_frame; // +128 
-      cb = *cb_frame; // +128;
-      impact[0] = 409 * cr;
-      impact[1] = 100 * cb;
-      impact[2] = 208 * cr;
-      impact[3] = 516 * cb;
-
-      y = 298 * (*y_frame++ + 128 - 16);
-      r = (y                            + (impact[0])) / 256;
-      g = (y - (impact[1]) - (impact[2])) / 256;
-      b = (y + (impact[3]                            )) / 256;
-      *rgb_frame++ = CLAMP(b,0,255);
-      *rgb_frame++ = CLAMP(g,0,255);
-      *rgb_frame++ = CLAMP(r,0,255);
-      rgb_frame++;
-
-      y = 298 * (*y_frame++ + 128 - 16);
-      r = (y                            + (impact[0])) / 256;
-      g = (y - (impact[1]) - (impact[2])) / 256;
-      b = (y + (impact[3]                            )) / 256;
-      *rgb_frame++ = CLAMP(b,0,255);
-      *rgb_frame++ = CLAMP(g,0,255);
-      *rgb_frame++ = CLAMP(r,0,255);
-      rgb_frame++;
-
-      rgb = rgb_frame + ((720-2)*4);
-
-      y = 298 * (*(y_frame+(720-2)) + 128 - 16);
-      r = (y                            + (impact[0])) / 256;
-      g = (y - (impact[1]) - (impact[2])) / 256;
-      b = (y + (impact[3]                            )) / 256;
-      *rgb++ = CLAMP(b,0,255);
-      *rgb++ = CLAMP(g,0,255);
-      *rgb++ = CLAMP(r,0,255);
-      rgb++;
-
-      y = 298 * (*(y_frame+(720-1)) + 128 - 16);
-      r = (y                            + (impact[0])) / 256;
-      g = (y - (impact[1]) - (impact[2])) / 256;
-      b = (y + (impact[3]                            )) / 256;
-      *rgb++ = CLAMP(b,0,255);
-      *rgb++ = CLAMP(g,0,255);
-      *rgb++ = CLAMP(r,0,255);
-
-    } // for i
-    y_frame += 720;
-    rgb_frame += (720*4);
-  } // for j
-} // dv_ycrcb_to_rgb32
+}

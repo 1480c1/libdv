@@ -27,7 +27,8 @@
 #ifndef __DV_YCRCB_TO_RGB32_H__
 #define __DV_YCRCB_TO_RGB32_H__
 
-void dv_ycrcb_411_to_rgb32(gint8 *y_frame, gint8 *cr_frame, gint8 *cb_frame, guint8 *rgb_frame,gint height);
-void dv_ycrcb_420_to_rgb32(gint8 *y_frame, gint8 *cr_frame, gint8 *cb_frame, guint8 *rgb_frame,gint height);
+void dv_ycrcb_init();
+void dv_ycrcb_411_block(unsigned char *base, dv_block_t *bl);
+void dv_ycrcb_420_block(unsigned char *base, dv_block_t *bl);
 
 #endif // __DV_YCRCB_TO_RGB32_H__
