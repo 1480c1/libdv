@@ -161,10 +161,10 @@ dv_display_gdk_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv) {
   /* -------------------------------------------------------------------
 	 * Setup converter functions for RGB video
 	 */
-  return True;
+  return TRUE;
  nomem:
-#endif // HAVE_GDK
-  return False;
+#endif // HAVE_GTK
+  return FALSE;
 } /* dv_display_init */
 
 #if HAVE_XV40x
@@ -381,7 +381,7 @@ dv_display_SDL_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name) {
 
 static int
 dv_display_SDL_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name) {
-  return(False);
+  return(FALSE);
 } /* dv_display_SDL_init */
 
 #endif // HAVE_SDL
