@@ -114,13 +114,17 @@ void quant_248(dv_coeff_t *block,int qno,int class) {
 void quant_88_inverse(dv_coeff_t *block,int qno,int class) {
   int i;
   dv_coeff_t dc;
+  guint8 *pq;			/* pointer to the four quantization
+                                   factors that we'll use */
 
-  dc = block[0];
-  for (i=0;i<64;i++) {
-    block[i] *=
-      dv_quant_steps[qno+dv_quant_offset[class]][dv_88_areas[i]];
-  }
+  dc = block[0];		/* preserve the DC term */
+
+  pq = dv_quant_steps[qno + dv_quant_offset[class]];
+  for (i = 0; i < 64; i++)
+    block[i] *= pq[dv_88_areas[i]];
+
   if(class==3) { for (i=0;i<64;i++) block[i] *= 2; }
+
   block[0] = dc;
 }
 
