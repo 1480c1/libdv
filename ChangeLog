@@ -1,3 +1,13 @@
+2001-01-20  Charles 'Buck' Krasic  <krasic@acm.org>
+
+	* version 0.3
+
+	* Minor configure.in cleanups.
+
+	* Add Peter's new utilities to Makefile.am.  Minor cleanups for
+	  -Wall.
+	
+
 2001-01-20  Peter Schlaile <udbz@rz.uni-karlsruhe.de>
 	
 	* Made encoder finally work correctly for DCT 88

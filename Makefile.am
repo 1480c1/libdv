@@ -19,7 +19,8 @@ lib_LTLIBRARIES= libdv.la
 bin_PROGRAMS= playdv encode
 
 BUILT_SOURCES = asmoff.h
-EXTRA_PROGRAMS= dovlc testvlc testbitstream gasmoff
+EXTRA_PROGRAMS= dovlc testvlc testbitstream gasmoff \
+	insert_audio fix_headers scan_packet_headers steal_header
 
 #
 # If HOST_X86 is set, we build all the x86 asm stuff..
@@ -64,6 +65,14 @@ testbitstream_SOURCES= testbitstream.c bitstream.c bitstream.h
 
 encode_SOURCES= encode.c 
 encode_LDADD= libdv.la
+
+insert_audio_SOURCES = insert_audio.c
+
+fix_headers_SOURCES = fix_headers.c
+
+scan_packet_headers_SOURCES = scan_packet_headers.c
+
+steal_header_SOURCES = steal_header.c
 
 rpm: @PACKAGE@.spec
 	make dist

@@ -33,4 +33,5 @@ int main(int argc, const char** argv)
 		printf("\n");
 	}
 
+	exit(0);
 }
