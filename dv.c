@@ -44,6 +44,27 @@ void dv_init(void) {
   dv_YV12_init();
 } /* dv_init */
 
+static inline void 
+dv_decode_macroblock(dv_macroblock_t *mb, guint quality) {
+  dv_block_t *bl;
+  gint b;
+  for (b=0,bl = mb->b;
+       b<((quality & DV_QUALITY_COLOR) ? 6 : 4);
+       b++,bl++) {
+    if (bl->dct_mode == DV_DCT_248) { 
+      quant_248_inverse(bl->coeffs,mb->qno,bl->class_no);
+      weight_248_inverse(bl->coeffs);
+      convert_coeffs(bl);
+      dv_idct_248(bl->coeffs248);
+      convert_coeffs_prime(bl);
+    } else {
+      quant_88_inverse(bl->coeffs,mb->qno,bl->class_no);
+      weight_88_inverse(bl->coeffs);
+      idct_88(bl->coeffs);
+    } // else
+  } // for b
+} /* dv_decode_macroblock */
+
 void 
 dv_decode_video_segment(dv_videosegment_t *seg, guint quality) {
   dv_macroblock_t *mb;
@@ -70,6 +91,19 @@ dv_decode_video_segment(dv_videosegment_t *seg, guint quality) {
   } // for mb
 } /* dv_decode_video_segment */
 
+static inline void
+dv_render_macroblock_rgb(dv_decoder_t *dv, dv_macroblock_t *mb, guchar *pixels, gint pitch ) {
+  if(dv->sampling == e_dv_sample_411) {
+    if(mb->x >= 704) {
+      dv_mb411_right_rgb(mb, pixels, pitch); // Right edge are 16x16
+    } else {
+      dv_mb411_rgb(mb, pixels, pitch);
+    } // else
+  } else {
+    dv_mb420_rgb(mb, pixels, pitch);
+  } // else
+} // dv_render_macroblock_rgb
+
 void
 dv_render_video_segment_rgb(dv_decoder_t *dv, dv_videosegment_t *seg, guchar *pixels, gint pitch ) {
   dv_macroblock_t *mb;
@@ -90,6 +124,31 @@ dv_render_video_segment_rgb(dv_decoder_t *dv, dv_videosegment_t *seg, guchar *pi
 } /* dv_render_video_segment_rgb */
 
 #if USE_MMX_ASM
+
+static inline void
+dv_render_macroblock_yuv(dv_decoder_t *dv, dv_macroblock_t *mb, guchar **pixels, guint16 *pitches) {
+  if(dv->use_mmx) {
+    if(dv->sampling == e_dv_sample_411) {
+      if(mb->x >= 704) {
+	dv_mb411_right_YUY2_mmx(mb, pixels[0], pitches[0]); // Right edge are 420!
+      } else {
+	dv_mb411_YUY2_mmx(mb, pixels[0], pitches[0]);
+      } // else
+    } else {
+      dv_mb420_YV12_mmx(mb, pixels, pitches);
+    } // else
+  } else {
+    if(dv->sampling == e_dv_sample_411) {
+      if(mb->x >= 704) {
+	dv_mb411_right_YUY2(mb, pixels[0], pitches[0]); // Right edge are 420!
+      } else {
+	dv_mb411_YUY2(mb, pixels[0], pitches[0]);
+      } // else
+    } else {
+      dv_mb420_YV12(mb, pixels, pitches);
+    } // else
+  } // else
+} /* dv_render_macroblock_yuv */
 
 void
 dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, guchar **pixels, guint16 *pitches) {
@@ -124,6 +183,19 @@ dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, guchar **p
 
 #else // USE_MMX_ASM
 
+statinc inline void
+dv_render_macroblock_yuv(dv_decoder_t *dv, dv_macroblock_t *mb, guchar **pixels, guint16 *pitches) {
+  if(dv->sampling == e_dv_sample_411) {
+    if(mb->x >= 704) {
+      dv_mb411_right_YUY2(mb, pixels[0], pitches[0]); // Right edge are 420!
+    } else {
+      dv_mb411_YUY2(mb, pixels[0], pitches[0]);
+    } // else
+  } else {
+    dv_mb420_YV12(mb, pixels, pitches);
+  } // else
+} /* dv_render_macroblock_yuv */
+
 void
 dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, guchar **pixels, guint16 *pitches) {
   dv_macroblock_t *mb;
@@ -149,15 +221,18 @@ void
 dv_decode_full_frame(dv_decoder_t *dv, guchar *buffer, 
 		     dv_color_space_t color_space, guchar **pixels, guint16 *pitches) {
 
-  dv_frame_t *frame = &dv->frame;
-  dv_videosegment_t *seg;
-  gint ds, v;
+  static dv_videosegment_t vs;
+  dv_videosegment_t *seg = &vs;
+  dv_macroblock_t *mb;
+  gint ds, v, m;
   guint offset = 0, dif = 0;
 
-  if(!frame->placement_done) {
-    dv_place_frame(dv);
-    frame->placement_done = TRUE;
-  } // if 
+  if(!seg->bs) {
+    seg->bs = bitstream_init();
+    if(!seg->bs) 
+      goto nomem;
+  } // if
+  seg->isPAL = (dv->system == e_dv_system_625_50);
 
   // each DV frame consists of a sequence of DIF segments 
   for (ds=0; ds < dv->num_dif_seqs; ds++) { 
@@ -174,23 +249,29 @@ dv_decode_full_frame(dv_decoder_t *dv, guchar *buffer,
       if(!(v % 3)) dif++; 
       // stage 1: parse and VLC decode 5 macroblocks that make up a video segment
       offset = dif * 80;
-      seg = &frame->ds[ds].seg[v];
-      if(!seg->bs) {
-	seg->bs = bitstream_init();
-	if(!seg->bs) 
-	  goto nomem;
-      } // if
       bitstream_new_buffer(seg->bs, buffer + offset, 80*5); 
       dv_parse_video_segment(seg, dv->quality);
       // stage 2: dequant/unweight/iDCT blocks, and place the macroblocks
       dif+=5;
-      dv_decode_video_segment(seg, dv->quality);
-      // Convert to destination color format
+      seg->i = ds;
+      seg->k = v;
       if(color_space == e_dv_color_yuv) {
-	dv_render_video_segment_yuv(dv, seg, pixels, pitches);
+	for (m=0,mb = seg->mb;
+	     m<5;
+	     m++,mb++) {
+	  dv_decode_macroblock(mb, dv->quality);
+	  dv_place_macroblock(dv, seg, mb, m);
+	  dv_render_macroblock_yuv(dv, mb, pixels, pitches);
+	} // for m
       } else {
-	dv_render_video_segment_rgb(dv, seg, pixels[0], pitches[0]);
-      } // else
+	for (m=0,mb = seg->mb;
+	     m<5;
+	     m++,mb++) {
+	  dv_decode_macroblock(mb, dv->quality);
+	  dv_place_macroblock(dv, seg, mb, m);
+	  dv_render_macroblock_rgb(dv, mb, pixels[0], pitches[0]);
+	} // for m
+      } // else color_space
     } // for v
   } // ds
   return;

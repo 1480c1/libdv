@@ -37,7 +37,7 @@ dv_place_init(void) {
   return;
 } // dv_place_init
 
-void
+static inline void
 dv_place_411_macroblock(dv_macroblock_t *mb) {
   gint mb_num; // mb number withing the 6 x 5 zig-zag pattern 
   gint mb_num_mod_6, mb_num_div_6; // temporaries
@@ -77,7 +77,7 @@ dv_place_411_macroblock(dv_macroblock_t *mb) {
   mb->y = mb_row * 8;
 } // dv_place_411_macroblock
 
-void 
+static inline void 
 dv_place_420_macroblock(dv_macroblock_t *mb) {
   gint mb_num; // mb number withing the 6 x 5 zig-zag pattern 
   gint mb_num_mod_3, mb_num_div_3; // temporaries
@@ -109,6 +109,18 @@ dv_place_420_macroblock(dv_macroblock_t *mb) {
   mb->x = mb_col * 16;
   mb->y = mb_row * 16;
 } // dv_place_420_macroblock
+
+void 
+dv_place_macroblock(dv_decoder_t *dv, dv_videosegment_t *seg, dv_macroblock_t *mb, gint m) {
+  mb->i = (seg->i + dv_super_map_vertical[m]) % dv->num_dif_seqs;
+  mb->j = dv_super_map_horizontal[m];
+  mb->k = seg->k;
+  // calculate x,y
+  if(dv->sampling == e_dv_sample_411)
+    dv_place_411_macroblock(mb); 
+  else
+    dv_place_420_macroblock(mb);
+} // dv_place_macroblock
 
 void
 dv_place_video_segment(dv_decoder_t *dv, dv_videosegment_t *seg) {
