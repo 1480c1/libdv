@@ -28,7 +28,7 @@
 #include "dv.h"
 
 #define DVC_IMAGE_WIDTH 720
-#define DVC_IMAGE_CHANS 4
+#define DVC_IMAGE_CHANS 3
 #define DVC_IMAGE_ROWOFFSET (DVC_IMAGE_WIDTH * DVC_IMAGE_CHANS)
 
 gint32 table_2_018[256];

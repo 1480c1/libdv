@@ -24,7 +24,7 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#define BENCHMARK_MODE 0
+#define BENCHMARK_MODE 1
 #if BENCHMARK_MODE
 #define GTKDISPLAY 0
 #else
@@ -86,7 +86,7 @@ int main(int argc,char *argv[]) {
   size_t mb_offset;
   static gint frame_count;
   GtkWidget *window,*image;
-  guint8 rgb_frame[720*576*4];
+  guint8 rgb_frame[720*576*3];
   guint quality = DV_QUALITY_COLOR | DV_QUALITY_AC_2;
 
   if (argc >= 2)
@@ -187,13 +187,13 @@ int main(int argc,char *argv[]) {
 	    } // else
 	  } // for b
 	  if(sampling == e_dv_sample_411) {
-	    mb_offset = dv_place_411_macroblock(mb,4);
+	    mb_offset = dv_place_411_macroblock(mb,3);
 	    if((mb->j == 4) && (mb->k > 23)) 
 	      dv_ycrcb_420_block(rgb_frame + mb_offset, mb->b);
 	    else
 	      dv_ycrcb_411_block(rgb_frame + mb_offset, mb->b);
 	  } else {
-	    mb_offset = dv_place_420_macroblock(mb,4);
+	    mb_offset = dv_place_420_macroblock(mb,3);
 	    dv_ycrcb_420_block(rgb_frame + mb_offset, mb->b);
 	  }
         } // for mb
@@ -206,9 +206,9 @@ int main(int argc,char *argv[]) {
     if(frame_count >= 300) break;
 #endif
 #if GTKDISPLAY
-	
-    gdk_draw_rgb_32_image(image->window,image->style->fg_gc[image->state],
-                        0,0,720,isPAL?576:480,GDK_RGB_DITHER_NORMAL,rgb_frame,720*4);
+
+    gdk_draw_rgb_image(image->window,image->style->fg_gc[image->state],
+		       0,0,720,isPAL?576:480,GDK_RGB_DITHER_MAX,rgb_frame,720*3);
     gdk_flush();
     while (gtk_events_pending())
       gtk_main_iteration();
