@@ -1401,7 +1401,7 @@ int dv_encoder_loop(dv_enc_input_filter_t * input,
 			skip_frame_count -= 65536;
 			skipped = 1;
 		}
-		if (output->store(target, audio_info, FALSE, 
+		if (output->store(target, audio_info, FALSE,
 				  isPAL, is16x9,now) < 0) {
 			return -1;
 		}

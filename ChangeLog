@@ -1,3 +1,6 @@
+2003-10-27  Dan Dennedy  <dan@dennedy.org>
+	* libdv/enc_output.c, audio.c: fix speed flag handling for SMPTE 314M
+
 2003-10-20  Charles 'Buck' Krasic  <krasic@acm.org>
 
 	* Change license to LGPL, with permission of all the authors.

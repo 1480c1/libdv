@@ -481,7 +481,7 @@ dv_parse_audio_header(dv_decoder_t *decoder, const uint8_t *inbuf)
 
   if(decoder->std == e_dv_std_iec_61834) {
     normal_speed = (dv_aaux_asc->pc3.speed == 0x20);
-  } else if(decoder->std == e_dv_std_iec_61834) {
+  } else if(decoder->std == e_dv_std_smpte_314m) {
     if(dv_aaux_as->pc3.system) {
       /* PAL */
       normal_speed = (dv_aaux_asc->pc3.speed == 0x64);

@@ -234,7 +234,12 @@ int _dv_raw_insert_audio(unsigned char * frame_buf,
 	head_51[0] = 0x51; /* FIXME: What's this? */ 
 	head_51[1] = 0x33;
 	head_51[2] = 0xcf;
-	head_51[3] = 0xa0;
+	if ((frame_buf[4] & 0x7) == 0) /* IEC 61834? */
+		head_51[3] = 0xa0; /* forward, normal speed */
+	else if (isPAL) /* SMPTE 314M */
+		head_51[3] = 0x80 /* forward */ | 0x64 /* normal speed */;
+	else
+		head_51[3] = 0x80 /* forward */ | 0x78 /* normal speed */;
 	head_51[4] = 0xff;
 
 	head_52[0] = 0x52;
