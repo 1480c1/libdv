@@ -110,15 +110,12 @@ AM_PATH_GTK(,
 ])
 
 if $use_sdl; then
-	AC_CHECK_LIB(SDL_Init,SDL,
+	AM_PATH_SDL(1.1.6,
 	[
-		AM_PATH_SDL(1.1.6,
-		[
-			AC_DEFINE(HAVE_SDL) 
-			LIBS="$LIBS $SDL_LIBS" 
-			CFLAGS="$CFLAGS $SDL_CFLAGS"
-	 	])
-	])
+		AC_DEFINE(HAVE_SDL) 
+		LIBS="$LIBS $SDL_LIBS" 
+		CFLAGS="$CFLAGS $SDL_CFLAGS"
+ 	])
 fi
 
 if $use_xv; then
