@@ -210,10 +210,11 @@ dv_add_renderer (dv_decoder_t *decoder, dv_renderer *renderer)
     decoder -> all_renderer [decoder -> all_renderer_count] = renderer;
     decoder -> all_renderer_count++;
   }
-      fprintf (stderr, "dv_add_renderer: now at %d/%d (%d bytes)\n",
+      fprintf (stderr, "dv_add_renderer: now at %d/%d (%d bytes) name = %s\n",
                decoder -> all_renderer_count,
                decoder -> all_renderer_size,
-               decoder -> all_renderer_size * sizeof (dv_renderer *));
+               decoder -> all_renderer_size * sizeof (dv_renderer *),
+               renderer -> name);
   decoder -> current_renderer = renderer;
 }
 
