@@ -1,0 +1,7 @@
+*.d
+gmon.out
+playdv
+testvlc
+.nfs*
+bb.out
+gprof.*

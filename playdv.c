@@ -1,0 +1,195 @@
+/* 
+ *  playdv.c
+ *
+ *     Copyright (C) Charles 'Buck' Krasic - April 2000
+ *     Copyright (C) Erik Walthinsen - April 2000
+ *
+ *  This file is part of libdv, a free DV (IEC 61834/SMPTE 314M)
+ *  decoder.
+ *
+ *  libdv is free software; you can redistribute it and/or modify it
+ *  under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your
+ *  option) any later version.
+ *   
+ *  libdv is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  General Public License for more details.
+ *   
+ *  You should have received a copy of the GNU General Public License
+ *  along with GNU Make; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *
+ *  The libdv homepage is http://libdv.sourceforge.net/.  
+ */
+
+#define BENCHMARK_MODE 0
+#if BENCHMARK_MODE
+#define GTKDISPLAY 0
+#else
+#define GTKDISPLAY 1
+#endif
+#define Y_ONLY 0
+
+#include <glib.h>
+#include <stdio.h>
+
+#include <gtk/gtk.h>
+
+#include "bitstream.h"
+#include "dct.h"
+#include "quant.h"
+#include "weighting.h"
+#include "vlc.h"
+#include "parse.h"
+#include "place.h"
+#include "ycrcb_to_rgb32.h"
+
+void convert_coeffs(dv_block_t *bl)
+{
+  int i;
+  for(i=0;
+      i<64;
+      i++) {
+    bl->fcoeffs[i] = bl->coeffs[i];
+  }
+} // convert_coeffs
+
+void convert_coeffs_prime(dv_block_t *bl)
+{
+  int i;
+  for(i=0;
+      i<64;
+      i++) {
+    bl->coeffs[i] = bl->fcoeffs[i];
+  }
+} // convert_coeffs_prime
+
+int main(int argc,char *argv[]) {
+  static guint8 vsbuffer[80*5]      __attribute__ ((aligned (64))); 
+  static gint8 y_frame[720*480]     __attribute__ ((aligned (64)));
+  static gint8 cr_frame[180*480]    __attribute__ ((aligned (64)));
+  static gint8 cb_frame[180*480]    __attribute__ ((aligned (64)));
+  static dv_videosegment_t videoseg __attribute__ ((aligned (64)));
+  FILE *f;
+  dv_macroblock_t *mb;
+  dv_block_t *bl;
+  gint ds;
+  gint b,m,v;
+  gint lost_coeffs;
+  guint dif;
+  guint offset;
+  static gint frame_count;
+#if GTKDISPLAY
+  GtkWidget *window,*image;
+#if ! Y_ONLY
+  guint8 rgb_frame[720*480*4];
+#endif
+#endif
+
+  if (argc >= 2)
+    f = fopen(argv[1],"r");
+  else
+    f = stdin;
+#if GTKDISPLAY
+  gtk_init(&argc,&argv);  
+  gdk_rgb_init();
+  gtk_widget_set_default_colormap(gdk_rgb_get_cmap());
+  gtk_widget_set_default_visual(gdk_rgb_get_visual());
+  window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+  image = gtk_drawing_area_new();
+  gtk_container_add(GTK_CONTAINER(window),image);
+  gtk_drawing_area_size(GTK_DRAWING_AREA(image),720,480);
+  gtk_widget_set_usize(GTK_WIDGET(image),720,480);
+  gtk_widget_show(image);
+  gtk_widget_show(window);
+  gdk_flush();
+  while (gtk_events_pending())
+    gtk_main_iteration();
+  gdk_flush();
+#endif
+
+  weight_init();  
+  dct_init();
+  dv_construct_vlc_table();
+  dv_parse_init();
+  dv_place_init();
+  videoseg.bs = bitstream_init();
+
+  lost_coeffs = 0;
+  dif = 0;
+  while (!feof(f)) {
+    /* Rather read a whole frame at a time, as this gives the
+       data-cache a lot longer time to stay warm during decode */
+    // each DV frame consists of a sequence of DIF segments 
+    for (ds=0;
+	 ds<10;
+	 ds++) { 
+      // Each DIF segment conists of 150 dif blocks, 135 of which are video blocks
+      dif += 6; // skip the first 6 dif blocks in a dif sequence 
+      /* A video segment consists of 5 video blocks, where each video
+         block contains one compressed macroblock.  DV bit allocation
+         for the VLC stage can spill bits between blocks in the same
+         video segment.  So parsing needs the whole segment to decode
+         the VLC data */
+      // Loop through video segments 
+      for (v=0;v<27;v++) {
+	// skip audio block - interleaved before every 3rd video segment
+	if(!(v % 3)) dif++; 
+        // stage 1: parse and VLC decode 5 macroblocks that make up a video segment
+	offset = dif * 80;
+	if(fseek(f,offset,SEEK_SET)) break;
+	if(fread(vsbuffer,sizeof(vsbuffer),1,f)<1) break;
+	bitstream_new_buffer(videoseg.bs, vsbuffer, 80*5); 
+	videoseg.i = ds;
+	videoseg.k = v;
+        lost_coeffs += dv_parse_video_segment(&videoseg);
+        // stage 2: dequant/unweight/iDCT blocks, and place the macroblocks
+        for (m=0,mb = videoseg.mb;
+	     m<5;
+	     m++,mb++) {
+	  for (b=0,bl = mb->b;
+	       b<6;
+	       b++,bl++) {
+	    if (bl->dct_mode == DV_DCT_248) { 
+	      quant_248_inverse(bl->coeffs,mb->qno,bl->class_no);
+	      weight_248_inverse(bl->coeffs);
+	      convert_coeffs(bl);
+	      idct_248(bl->fcoeffs);
+	      convert_coeffs_prime(bl);
+	    } else {
+	      quant_88_inverse(bl->coeffs,mb->qno,bl->class_no);
+	      weight_88_inverse(bl->coeffs);
+	      idct_88(bl->coeffs);
+	    } // else
+	  } // for b
+	  dv_place_macroblock(mb,y_frame,cr_frame,cb_frame);
+        } // for mb
+	dif+=5;
+      } // for s
+    } // ds
+    //fprintf(stderr,"displaying frame (%d coeffs lost in parse)\n", lost_coeffs);
+    frame_count++;
+#if BENCHMARK_MODE
+    if(frame_count >= 300) break;
+#endif
+#if GTKDISPLAY
+	
+#if Y_ONLY
+    for(m=0;m<720*480;m++) y_frame[m] += 128;
+    gdk_draw_gray_image(image->window,image->style->fg_gc[image->state],
+                        0,0,720,480,GDK_RGB_DITHER_NORMAL,y_frame,720);
+#else
+    dv_ycrcb_to_rgb32(y_frame,cr_frame,cb_frame,rgb_frame);
+    gdk_draw_rgb_32_image(image->window,image->style->fg_gc[image->state],
+                        0,0,720,480,GDK_RGB_DITHER_NORMAL,rgb_frame,720*4);
+#endif
+    gdk_flush();
+    while (gtk_events_pending())
+      gtk_main_iteration();
+    gdk_flush();
+#endif
+  }
+  exit(0);
+}
