@@ -258,14 +258,14 @@ dv_mb420_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
 
   for (j = 0; j < 4; j += 2) { // Two rows of blocks j, j+1
 
-    for (row = 0; row < 8; row+=2) { // 4 pairs of two rows
+    for (row = 0; row < 4; row++) { // 4 pairs of two rows
       pwrgb0 = prgb;
-      pwrgb1 = prgb + pitches[0];
+      pwrgb1 = prgb + pitches[0] * 2;
 
       for (i = 0; i < 2; ++i) { // Two columns of blocks
         int yindex = j + i;
         dv_coeff_t *Ytmp0 = Y[yindex];
-        dv_coeff_t *Ytmp1 = Y[yindex] + 8;
+        dv_coeff_t *Ytmp1 = Y[yindex] + 16;
         for (col = 0; col < 4; ++col) {  // 4 spans of 2x2 pixels
           int8_t cb = clamp (-128, *cb_frame++, 127); // +128;
           int8_t cr = clamp (-128, *cr_frame++, 127); // +128
@@ -292,10 +292,12 @@ dv_mb420_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
           } // for k
 
         } // for col
-        Y[yindex] = Ytmp1;
+        if (row & 1)
+          Ytmp0 += 16;
+        Y[yindex] = Ytmp0;
       } // for i
 
-      prgb += (2 * pitches[0]);
+      prgb += (row & 1) ? 3 * pitches [0] : pitches [0];
     } // for row
 
   } // for j
@@ -431,14 +433,14 @@ dv_mb420_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
 
   for (j = 0; j < 4; j += 2) { // Two rows of blocks j, j+1
 
-    for (row = 0; row < 8; row+=2) { // 4 pairs of two rows
+    for (row = 0; row < 4; row++) { // 4 pairs of two rows
       pwrgb0 = prgb;
       pwrgb1 = prgb + pitches[0];
 
       for (i = 0; i < 2; ++i) { // Two columns of blocks
         int yindex = j + i;
         dv_coeff_t *Ytmp0 = Y[yindex];
-        dv_coeff_t *Ytmp1 = Y[yindex] + 8;
+        dv_coeff_t *Ytmp1 = Y[yindex] + 16;
         for (col = 0; col < 4; ++col) {  // 4 spans of 2x2 pixels
           int8_t cb = clamp (-128, *cb_frame++, 127); // +128;
           int8_t cr = clamp (-128, *cr_frame++, 127); // +128
@@ -467,10 +469,12 @@ dv_mb420_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
           } // for k
 
         } // for col
-        Y[yindex] = Ytmp1;
+        if (row & 1)
+          Ytmp0 += 16;
+        Y[yindex] = Ytmp0;
       } // for i
 
-      prgb += (2 * pitches[0]);
+      prgb += (row & 1) ? 3 * pitches [0] : pitches [0];
     } // for row
 
   } // for j

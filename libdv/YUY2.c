@@ -25,7 +25,7 @@
  */
 
 /* Most of this file is derived from patch 101018 submitted by Stefan
- * Lucke <Stefan.Lucke1@epost.de> */
+ * Lucke */
 
 #if HAVE_CONFIG_H
 # include <config.h>
@@ -247,11 +247,10 @@ dv_mb411_right_YUY2(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add
  */
 void
 dv_mb420_YUY2 (dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
-    dv_coeff_t		*Y [4], *Ytmp0, *cr_frame, *cb_frame;
-    unsigned char	*pyuv,
-			*pwyuv0, *pwyuv1,
-			cb, cr;
-    int			i, j, col, row, inc_l2, inc_l4;
+    dv_coeff_t    *Y [4], *Ytmp0, *cr_frame, *cb_frame;
+    unsigned char *pyuv,*pwyuv0, *pwyuv1,
+                  cb, cr;
+    int           i, j, col, row, inc_l2, inc_l4;
 
   pyuv = pixels[0] + (mb->x * 2) + (mb->y * pitches[0]);
 
@@ -265,45 +264,49 @@ dv_mb420_YUY2 (dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
   inc_l4 = pitches[0]*2;
 
   for (j = 0; j < 4; j += 2) { // Two rows of blocks j, j+1
-    for (row = 0; row < 8; row+=2) { // 4 pairs of two rows
+    for (row = 0; row < 4; row++) { // 4 pairs of two rows
       pwyuv0 = pyuv;
-      pwyuv1 = pyuv + inc_l2;
+      pwyuv1 = pyuv + inc_l4;
       for (i = 0; i < 2; ++i) { // Two columns of blocks
         Ytmp0 = Y[j + i];
         for (col = 0; col < 4; ++col) {  // 4 spans of 2x2 pixels
           cb = uvlut[CLAMP(*cb_frame, -128, 127)];
           cr = uvlut[CLAMP(*cr_frame, -128, 127)];
-	  cb_frame++;
-	  cr_frame++;
+          cb_frame++;
+          cr_frame++;
 
 #if (BYTE_ORDER == LITTLE_ENDIAN)
-            *pwyuv0++ = ylut[CLAMP(*Ytmp0, -256, 511)];
-	    Ytmp0++;
-	    *pwyuv0++ = cb;
-            *pwyuv0++ = ylut[CLAMP(*Ytmp0, -256, 511)];
-	    *pwyuv0++ = cr;
-	    Ytmp0++;
+          *pwyuv0++ = ylut[CLAMP(*(Ytmp0 + 0), -256, 511)];
+          *pwyuv0++ = cb;
+          *pwyuv0++ = ylut[CLAMP(*(Ytmp0 + 1), -256, 511)];
+          *pwyuv0++ = cr;
 
-            *pwyuv1++ = ylut[CLAMP(*(Ytmp0 + 6), -256, 511)];
-	    *pwyuv1++ = cb;
-            *pwyuv1++ = ylut[CLAMP(*(Ytmp0 + 7), -256, 511)];
-	    *pwyuv1++ = cr;
+          *pwyuv1++ = ylut[CLAMP(*(Ytmp0 + 16), -256, 511)];
+          *pwyuv1++ = cb;
+          *pwyuv1++ = ylut[CLAMP(*(Ytmp0 + 17), -256, 511)];
+          *pwyuv1++ = cr;
 #else
-            *pwyuv0++ = cr;
-            *pwyuv0++ = ylut[CLAMP(*(Ytmp0 + 1), -256, 511)];
-            *pwyuv0++ = cb;
-            *pwyuv0++ = ylut[CLAMP(*(Ytmp0 + 0), -256, 511)];
+          *pwyuv0++ = cr;
+          *pwyuv0++ = ylut[CLAMP(*(Ytmp0 + 1), -256, 511)];
+          *pwyuv0++ = cb;
+          *pwyuv0++ = ylut[CLAMP(*(Ytmp0 + 0), -256, 511)];
 
-            *pwyuv1++ = cr;
-            *pwyuv1++ = ylut[CLAMP(*(Ytmp0 + 9), -256, 511)];
-            *pwyuv1++ = cb;
-            *pwyuv1++ = ylut[CLAMP(*(Ytmp0 + 8), -256, 511)];
-            Ytmp0 += 2;
+          *pwyuv1++ = cr;
+          *pwyuv1++ = ylut[CLAMP(*(Ytmp0 + 17), -256, 511)];
+          *pwyuv1++ = cb;
+          *pwyuv1++ = ylut[CLAMP(*(Ytmp0 + 16), -256, 511)];
 #endif
+          Ytmp0 += 2;
         }
-        Y[j + i] = Ytmp0 + 8;
+        if (row & 1) {
+          Ytmp0 += 16;
+        }
+        Y[j + i] = Ytmp0;
       }
-      pyuv += inc_l4;
+      pyuv += inc_l2;
+      if (row & 1) {
+        pyuv += inc_l4;
+      }
     }
   }
 }
@@ -559,9 +562,9 @@ dv_mb420_YUY2_mmx (dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
   }
 
   for (j = 0; j < 4; j += 2) { // Two rows of blocks j, j+1
-    for (row = 0; row < 8; row+=2) { // 4 pairs of two rows
+    for (row = 0; row < 4; row++) { // 4 pairs of two rows
       pwyuv0 = pyuv;
-      pwyuv1 = pyuv + inc_l2;
+      pwyuv1 = pyuv + inc_l4;
       for (i = 0; i < 2; ++i) { // Two columns of blocks
         Ytmp0 = Y[j + i];
 
@@ -585,7 +588,7 @@ dv_mb420_YUY2_mmx (dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
 	paddusb_r2r (mm7, mm0);		/* to black level	*/
 	movq_r2m (mm0, pwyuv0[0]);
 
-	movq_m2r (Ytmp0[8], mm0);
+	movq_m2r (Ytmp0[8+8], mm0);
 	movq_r2r (mm0, mm1);
 
 	punpcklwd_r2r (mm4, mm0);
@@ -610,7 +613,7 @@ dv_mb420_YUY2_mmx (dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
 	paddusb_r2r (mm7, mm0);		/* to black level	*/
 	movq_r2m (mm0, pwyuv0[8]);
 
-	movq_m2r (Ytmp0[12], mm0);
+	movq_m2r (Ytmp0[8+12], mm0);
 	movq_r2r (mm0, mm1);
 	punpcklwd_r2r (mm4, mm0);
 	punpckhwd_r2r (mm4, mm1);
@@ -621,13 +624,20 @@ dv_mb420_YUY2_mmx (dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
 	paddusb_r2r (mm7, mm0);		/* to black level	*/
 	movq_r2m (mm0, pwyuv1[8]);
 
-	pwyuv0 += 16;
-	pwyuv1 += 16;
+        pwyuv0 += 16;
+        pwyuv1 += 16;
         cb_frame += 4;
-	cr_frame += 4;
-        Y[j + i] = Ytmp0 + 16;
+        cr_frame += 4;
+        if (row & 1) {
+          Ytmp0 += 24;
+        } else {
+          Ytmp0 += 8;
+        }
+        Y[j + i] = Ytmp0;
       }
-      pyuv += inc_l4;
+      pyuv += inc_l2;
+      if (row & 1)
+        pyuv += inc_l4;
     }
   }
   emms ();
@@ -877,7 +887,7 @@ dv_mb420_YUY2_hh_mmx (dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
   }
 
   for (j = 0; j < 4; j += 2) { // Two rows of blocks j, j+1
-    for (row = 0; row < 8; row+=2) { // 4 pairs of two rows
+    for (row = 0; row < 4; row++) { // 4 pairs of two rows
       pwyuv0 = pyuv;
       for (i = 0; i < 2; ++i) { // Two columns of blocks
         Ytmp0 = Y[j + i];
@@ -915,10 +925,23 @@ dv_mb420_YUY2_hh_mmx (dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
 	paddusb_r2r (mm7, mm0);		/* to black level	*/
 	movq_r2m (mm0, pwyuv0[8]);
 
-	pwyuv0 += 16;
+        pwyuv0 += 16;
         cb_frame += 4;
-	cr_frame += 4;
+        cr_frame += 4;
         Y[j + i] = Ytmp0 + 16;
+      }
+      /* ---------------------------------------------------------------------
+       * for odd value of row counter (this is NOT an odd line number)
+       * we have to go one additional step forward, and for even value
+       * we have to go one step back to use the color information again.
+       * Assuming that chroma information is fields based.
+       */
+      if (row & 1) {
+        cb_frame += 8;
+        cr_frame += 8;
+      } else {
+        cb_frame -= 8;
+        cr_frame -= 8;
       }
       pyuv += inc_l2;
     }
