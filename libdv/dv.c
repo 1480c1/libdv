@@ -70,7 +70,7 @@
 #define MIN(a,b) ((a)<(b)?(a):(b))
 #define MAX(a,b) ((a)<(b)?(b):(a))
 
-  int                 dv_use_mmx;
+  int                 dv_use_mmx = 0;
   static int          all_renderer_count = 0;
   static size_t       all_renderer_size = 0;
   static dv_renderer  **all_renderer;

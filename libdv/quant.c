@@ -166,12 +166,7 @@ dv_quant_init (void)
       dv_quant_248_mul_tab [ex] [qno] [0] = dv_idct_248_prescale[0];
     }
   }
-  _dv_quant_248_inverse = quant_248_inverse_std;
-#if ARCH_X86
-  if (dv_use_mmx) {
-    _dv_quant_248_inverse = quant_248_inverse_mmx;
-  }
-#endif
+  _dv_quant_248_inverse = (dv_use_mmx) ? quant_248_inverse_mmx : quant_248_inverse_std;
 }
 
 /* ---------------------------------------------------------------------------

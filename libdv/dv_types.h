@@ -542,9 +542,7 @@ typedef struct {
   short *img_cb;
 } dv_encoder_t;
 
-#if ARCH_X86
 extern int dv_use_mmx;
-#endif
 
 extern void   dv_add_renderer (dv_decoder_t *decoder, dv_renderer *renderer);
 
