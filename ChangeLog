@@ -1,3 +1,7 @@
+2001-03-05  Thom van Os <thom@vanos.com>
+
+	* NTSC encoding fixups.
+
 2001-03-05  Peter Schlaile <udbz@rz.uni-karlsruhe.de>
 	
 	* Encoder speedups (factor 3 from realtime on my machine, it even

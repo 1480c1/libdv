@@ -667,7 +667,7 @@ void read_ppm_stream(FILE* f, unsigned char* readbuf, int * isPAL,
 	}
 	do {
 		fgets(line, sizeof(line), f); /* P6 */
-	} while ((line[0] == '#') && !feof(f));
+	} while (((line[0] == '#')||(line[0] == '\n')) && !feof(f));
 	if (sscanf(line, "%d %d\n", &width, &height) != 2) {
 		fprintf(stderr, "Bad PPM file!\n");
 		exit(1);
@@ -791,17 +791,55 @@ extern void copy_y_block_mmx(short * dst, short * src);
 extern void copy_c_block_mmx(short * dst, short * src, int src_width);
 
 void build_coeff(short* img_y, short* img_cr, short* img_cb,
-		 dv_macroblock_t *mb)
+		 dv_macroblock_t *mb, int isPAL)
 {
 	int y = mb->y;
 	int x = mb->x;
+	int i,j;
+
+	if (!isPAL) {
+	  if (mb->x <704) {
+            for (j = 0; j < 8; j++)
+                for (i = 0; i < 8; i++) {
+                        mb->b[0].coeffs[8 * i + j] = 
+                                img_y[(y + j) * DV_WIDTH + x + i];
+                        mb->b[1].coeffs[8 * i + j] = 
+                                img_y[(y + j) * DV_WIDTH + x + 8 + i];
+                        mb->b[2].coeffs[8 * i + j] = 
+                                img_y[(y + j) * DV_WIDTH + x + 16 + i];
+                        mb->b[3].coeffs[8 * i + j] = 
+                                img_y[(y + j) * DV_WIDTH + x + 24 + i];
+
+                        mb->b[4].coeffs[8 * i + j] = 
+                                img_cr[(((y + j) * DV_WIDTH) + x)/4 + i];
+                        mb->b[5].coeffs[8 * i + j] = 
+                                img_cb[(((y + j) * DV_WIDTH) + x)/4 + i];
+                }
+	  } else {
+            for (j = 0; j < 8; j++)
+                for (i = 0; i < 8; i++) {
+                        mb->b[0].coeffs[8 * i + j] = 
+                                img_y[(y + j) * DV_WIDTH +  x + i];
+                        mb->b[1].coeffs[8 * i + j] = 
+                                img_y[(y + j) * DV_WIDTH +  x + 8 + i];
+                        mb->b[2].coeffs[8 * i + j] = 
+                                img_y[(y + 8 + j) * DV_WIDTH + x + i];
+                        mb->b[3].coeffs[8 * i + j] = 
+                                img_y[(y + 8 + j) * DV_WIDTH 
+                                     + x + 8 + i];
+                        mb->b[4].coeffs[8 * i + j] = 
+                                img_cr[(((y + j + (i/4)*8) * DV_WIDTH) + x)/4 + i%4];
+                        mb->b[5].coeffs[8 * i + j] = 
+                                img_cb[(((y + j + (i/4)*8) * DV_WIDTH) + x)/4 + i%4];
+                }
+	  }
+	} else {
 
 /* FIXME: This doesn't handle correctly the rightmost block!
    (But I haven't noticed any problems yet ???)
  */
 #if !ARCH_X86
-	int i,j;
-        for (j = 0; j < 8; j++)
+            for (j = 0; j < 8; j++)
                 for (i = 0; i < 8; i++) {
                         mb->b[0].coeffs[8 * i + j] = 
                                 img_y[(y + j) * DV_WIDTH +  x + i];
@@ -820,23 +858,24 @@ void build_coeff(short* img_y, short* img_cr, short* img_cb,
                                       + x / 4 + i / 2];
                 }
 #else
-	copy_y_block_mmx(mb->b[0].coeffs, img_y + y * DV_WIDTH + x);
-	copy_y_block_mmx(mb->b[1].coeffs, img_y + y * DV_WIDTH + x + 8);
-	copy_y_block_mmx(mb->b[2].coeffs, img_y + (y + 8) * DV_WIDTH + x);
-	copy_y_block_mmx(mb->b[3].coeffs, img_y + (y + 8) * DV_WIDTH + x + 8);
-	copy_c_block_mmx(mb->b[4].coeffs,
+	    copy_y_block_mmx(mb->b[0].coeffs, img_y + y * DV_WIDTH + x);
+	    copy_y_block_mmx(mb->b[1].coeffs, img_y + y * DV_WIDTH + x + 8);
+	    copy_y_block_mmx(mb->b[2].coeffs, img_y+ (y + 8)* DV_WIDTH + x);
+	    copy_y_block_mmx(mb->b[3].coeffs, img_y+ (y + 8)* DV_WIDTH + x + 8);
+	    copy_c_block_mmx(mb->b[4].coeffs,
 			 img_cr + y * DV_WIDTH/4 + x / 4, DV_WIDTH / 4);
-	copy_c_block_mmx(mb->b[5].coeffs,
+	    copy_c_block_mmx(mb->b[5].coeffs,
 			 img_cb + y * DV_WIDTH/4 + x / 4, DV_WIDTH / 4);
 
-	transpose_mmx(mb->b[0].coeffs);
-	transpose_mmx(mb->b[1].coeffs);
-	transpose_mmx(mb->b[2].coeffs);
-	transpose_mmx(mb->b[3].coeffs);
-	transpose_mmx(mb->b[4].coeffs);
-	transpose_mmx(mb->b[5].coeffs);
-	emms();
+	    transpose_mmx(mb->b[0].coeffs);
+	    transpose_mmx(mb->b[1].coeffs);
+	    transpose_mmx(mb->b[2].coeffs);
+	    transpose_mmx(mb->b[3].coeffs);
+	    transpose_mmx(mb->b[4].coeffs);
+	    transpose_mmx(mb->b[5].coeffs);
+	    emms();
 #endif
+	}
 }
 
 static void do_dct(dv_macroblock_t *mb)
@@ -980,8 +1019,11 @@ static void process_videosegment(
 		mb->j = dv_super_map_horizontal[m];
 		mb->k = videoseg->k;
 		
-		dv_place_420_macroblock(mb);
-		build_coeff(img_y, img_cr, img_cb, mb);
+		if (videoseg->isPAL)
+			dv_place_420_macroblock(mb);
+		else
+			dv_place_411_macroblock(mb);
+		build_coeff(img_y, img_cr, img_cb, mb, videoseg->isPAL);
 		do_dct(mb);
 		do_quant(mb);
 		
@@ -1064,7 +1106,7 @@ void write_header_block(unsigned char* target, int ds, int isPAL)
 	target[1] = 0x07 | (ds << 4);
 	target[2] = 0x00;
 
-	target[3] = ( isPAL ? 0x80 : 0); /* FIXME: 0x3f */
+	target[3] = ( isPAL ? 0x80 : 0x3f); /* FIXME: 0x3f */
 	target[4] = 0x68; /* FIXME ? */
 	target[5] = 0x78; /* FIXME ? */
 	target[6] = 0x78; /* FIXME ? */
@@ -1092,14 +1134,12 @@ void write_timecode_13(unsigned char* target, struct tm * now, int frame,
   60 ff ff 20 ff 61 33 c8 fd ff 62 ff d0 e1 01 63 ff b8 c6 c9
 */
 
-void write_timecode_60(unsigned char* target, struct tm * now)
+void write_timecode_60(unsigned char* target, struct tm * now, int isPAL)
 {
 	target[0] = 0x60;
 	target[1] = 0xff;
-	target[2] = 0xff;
-	write_bcd(target + 3, (now->tm_year + 1900) / 100); 
-                              /* FIXME: Is this true? 
-				 I've doubts since newyears day ;-) */
+	target[2] = 0xff;	/* & 0x80 = color */
+	target[3] = isPAL ? 0x20 : 0x00;	/* & 0x20 = 50 fields */
 	target[4] = 0xff;
 }
 
@@ -1108,8 +1148,8 @@ void write_timecode_61(unsigned char* target, struct tm * now)
 	target[0] = 0x61; /* FIXME: What's this? */
 
 	target[1] = 0x33;
-	target[2] = 0xc8;
-	target[3] = 0xfd;
+	target[2] = 0xc8; /* & 0x07 = wide */
+	target[3] = 0xfd; /* & 0x20 = frame changed ? */
 
 	target[4] = 0xff;
 }
@@ -1184,7 +1224,7 @@ void write_subcode_blocks(unsigned char* target, int ds, int frame,
 	block_count &= 0xfff;
 }
 
-void write_vaux_blocks(unsigned char* target, int ds, struct tm* now)
+void write_vaux_blocks(unsigned char* target, int ds, struct tm* now, int isPAL)
 {
 	memset(target, 0xff, 3*80);
 
@@ -1220,12 +1260,12 @@ void write_vaux_blocks(unsigned char* target, int ds, struct tm* now)
 			target[17] = 0x81;
 		}
 	} else {
-		write_timecode_60(target + 3, now);
+		write_timecode_60(target + 3, now, isPAL);
 		write_timecode_61(target + 3 + 5, now);
 		write_timecode_62(target + 3 + 2*5, now);
 		write_timecode_63(target + 3 + 3*5, now);
 	}
-	write_timecode_60(target + 2*80+ 48, now);
+	write_timecode_60(target + 2*80+ 48, now, isPAL);
 	write_timecode_61(target + 2*80+ 48 + 5, now);
 	write_timecode_62(target + 2*80+ 48 + 2*5, now);
 	write_timecode_63(target + 2*80+ 48 + 3*5, now);
@@ -1282,7 +1322,7 @@ void write_info_blocks(unsigned char* target, int frame, int isPAL,
 		target +=   1 * 80;
 		write_subcode_blocks(target, ds, frame, now_t, isPAL);
 		target +=   2 * 80;
-		write_vaux_blocks(target, ds, now_t);
+		write_vaux_blocks(target, ds, now_t, isPAL);
 		target +=   3 * 80;
 		write_video_headers(target, frame, ds);
 		write_audio_headers(target, frame, ds);
