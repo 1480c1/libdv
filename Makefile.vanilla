@@ -3,7 +3,7 @@ CC=kgcc
 
 USE_SDL=1
 USE_XV=1
-USE_LIBPOPT=0
+USE_LIBPOPT=1
 
 ifeq ($(USE_SDL),1) 
 	SDL_CFLAGS=$(shell sdl-config --cflags)
@@ -14,14 +14,18 @@ ifeq ($(USE_XV),1)
 	XV_LDFLAGS=-lXv
 endif
 
+ifeq ($(USE_LIBPOPT),1)
+	POPT_LDFLAGS=-lpopt
+endif
+
 CPPFLAGS += -I. $(shell glib-config --cflags) $(shell gtk-config --cflags) $(SDL_CFLAGS)
 #CFLAGS += -mcpu=i686 -pg -O6 -funroll-all-loops -Wall  $(CPPFLAGS)                 # for regular profiling with gprof
 #CFLAGS += -mcpu=i686 -g -pg -ax -O6 -funroll-all-loops -Wall  $(CPPFLAGS)          # for line by line profiling with gprof -l
 #CFLAGS += -mcpu=i686 -s -O6 -funroll-all-loops -Wall  $(CPPFLAGS)                  # for maximum speed
 CFLAGS += -mcpu=i686 -g -O -fstrict-aliasing -Wall  $(CPPFLAGS)                     # for debugging
-LDFLAGS += $(shell glib-config --libs) $(shell gtk-config --libs) -lm $(XV_LDFLAGS) $(SDL_LDFLAGS)
+LDFLAGS += $(shell glib-config --libs) $(shell gtk-config --libs) -lm $(XV_LDFLAGS) $(SDL_LDFLAGS) $(POPT_LDFLAGS)
 
-CPPFLAGS += -DUSE_MMX_ASM=1 -DARCH_X86 -DHAVE_LIBXV=$(USE_XV) -DHAVE_GTK=1 -DHAVE_SDL=$(USE_SDL) -DHAVE_LIBPOPT=$(USE_LIBPOPT)
+CPPFLAGS += -D_GNU_SOURCE -DUSE_MMX_ASM=1 -DARCH_X86 -DHAVE_LIBXV=$(USE_XV) -DHAVE_GTK=1 -DHAVE_SDL=$(USE_SDL) -DHAVE_LIBPOPT=$(USE_LIBPOPT)
 asm = vlc_x86.S quant_x86.S idct_block_mmx.S dct_block_mmx.S rgbtoyuv.S
 
 gensources=dv.c dct.c idct_248.c weighting.c quant.c vlc.c place.c parse.c bitstream.c YUY2.c YV12.c rgb.c oss.c audio.c
