@@ -28,7 +28,7 @@
 #define DV_DISPLAY_H
 
 #if HAVE_CONFIG_H
-# include <config.h>
+# include <dv_config.h>
 #endif
 
 #include "libdv/dv_types.h"

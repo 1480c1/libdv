@@ -28,7 +28,7 @@
  * Lucke <Stefan.Lucke1@epost.de> */
 
 #if HAVE_CONFIG_H
-# include <config.h>
+# include <dv_config.h>
 #endif
 
 #if HAVE_ENDIAN_H

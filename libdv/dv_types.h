@@ -27,7 +27,7 @@
 #define DV_TYPES_H
 
 #if HAVE_CONFIG_H
-# include <config.h>
+# include <dv_config.h>
 #endif
 
 #if HAVE_LIBPOPT

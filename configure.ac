@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_INIT(libdv/parse.c)
 dnl AC_CONFIG_AUX_DIR(config)
-AM_CONFIG_HEADER(config.h)
+AM_CONFIG_HEADER(dv_config.h)
 
 RPM_RELEASE=1
 AC_CANONICAL_HOST
