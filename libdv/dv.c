@@ -833,6 +833,7 @@ dv_decode_full_frame (dv_decoder_t *dv, const uint8_t *buffer,
     dv_macroblock_t           *mb;
     int                       ds, v, m;
     unsigned int              offset = 0, dif = 0, audio=0;
+    char                      *old_renderer_name = NULL;
 
   if(!seg->bs) {
     seg->bs = _dv_bitstream_init();
@@ -841,6 +842,18 @@ dv_decode_full_frame (dv_decoder_t *dv, const uint8_t *buffer,
   } /* if */
   seg->isPAL = (dv->system == e_dv_system_625_50);
   pthread_mutex_lock(&dv_mutex);
+  switch (color_space) {
+    case e_dv_color_rgb:
+      old_renderer_name = dv -> current_renderer -> name;
+      dv_select_renderer_by_name (dv, "RGB24_palfix");
+      break;
+    case e_dv_color_bgr0:
+      old_renderer_name = dv -> current_renderer -> name;
+      dv_select_renderer_by_name (dv, "BGR32_palfix");
+      break;
+    default:
+      break;
+  }
   /* each DV frame consists of a sequence of DIF segments  */
   for (ds=0; ds < dv->num_dif_seqs; ds++) {
     /** Each DIF segment conists of 150 dif blocks, 135 of which are video blocks
@@ -881,6 +894,8 @@ dv_decode_full_frame (dv_decoder_t *dv, const uint8_t *buffer,
     } /* for v */
 
   } /* ds */
+  if (old_renderer_name)
+    dv_select_renderer_by_name (dv, old_renderer_name);
   pthread_mutex_unlock(&dv_mutex);
 
 #if RANGE_CHECKING
