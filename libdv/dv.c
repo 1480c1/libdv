@@ -183,6 +183,8 @@ dv_init(int clamp_luma, int clamp_chroma) {
 #if ARCH_X86
   dv_use_mmx = mmx_ok(); 
 #endif
+
+  /* decoder */
   _dv_weight_init();
   _dv_dct_init();
   dv_dct_248_init();
@@ -194,6 +196,12 @@ dv_init(int clamp_luma, int clamp_chroma) {
   dv_YUY2_init(clamp_luma, clamp_chroma);
   dv_YV12_init(clamp_luma, clamp_chroma);
 
+  /* encoder */
+  _dv_init_vlc_test_lookup();
+  _dv_init_vlc_encode_lookup();
+  _dv_init_qno_start();
+  _dv_prepare_reorder_tables();
+  
   done=TRUE;
  init_done:
   return;

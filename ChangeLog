@@ -1,3 +1,8 @@
+2003-11-10  Dan Dennedy  <dan@dennedy.org>
+	* libdv/dv.c, encode.dv: bugfix thread safetiness of encoder.
+	  In a threaded environment, one should call dv_init() to setup
+	  libdv properly before dv_decoder_new() or dv_encoder_new().
+
 2003-10-29  Dan Dennedy  <dan@dennedy.org>
 	* libdv/parse.c: bugfix memory leak on error parsing header.
 	* libdv/dv.c: bugfix memory leak on non-freed bitstream_t

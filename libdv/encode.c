@@ -411,16 +411,12 @@ static inline dv_vlc_entry_t * vlc_encode_orig(int run, int amp, int sign,
 	return ++o;
 }
 
-dv_vlc_entry_t * vlc_encode_lookup;
-unsigned char  * vlc_num_bits_lookup;
+dv_vlc_entry_t vlc_encode_lookup[32768 * 2];
+unsigned char  vlc_num_bits_lookup[32768];
 
 void _dv_init_vlc_encode_lookup(void)
 {
 	int run,amp;
-	vlc_encode_lookup = (dv_vlc_entry_t *) malloc(
-		32768 * 2 * sizeof(dv_vlc_entry_t));
-	vlc_num_bits_lookup = (unsigned char*) malloc(32768);
-		
 	for (run = 0; run <= 63; run++) {
 		for (amp = 0; amp <= 255; amp++) {
 			int index1 = (255 + amp) | (run << 9);
@@ -472,16 +468,12 @@ static unsigned short reorder_248[64] = {
 
 void _dv_prepare_reorder_tables(void)
 {
-	static int done = 0;
-	if (done == 0) {
-		int i;
-		for (i = 0; i < 64; i++) {
-			reorder_88[i]--;
-			reorder_88[i] *= 2;
-			reorder_248[i]--;
-			reorder_248[i] *= 2;
-		}
-		done = 1;
+	int i;
+	for (i = 0; i < 64; i++) {
+		reorder_88[i]--;
+		reorder_88[i] *= 2;
+		reorder_248[i]--;
+		reorder_248[i] *= 2;
 	}
 }
 
@@ -1486,6 +1478,8 @@ dv_encoder_new(int rem_ntsc_setup, int clamp_luma, int clamp_chroma) {
   result = (dv_encoder_t *)calloc(1,sizeof(dv_encoder_t));
   if(!result) return(NULL);
   
+  dv_init( clamp_luma, clamp_chroma);
+
   result->img_y = (short*) calloc(DV_PAL_HEIGHT * DV_WIDTH, sizeof(short));
   if(!result->img_y) goto no_y;
   result->img_cr = (short*) calloc(DV_PAL_HEIGHT * DV_WIDTH / 2, sizeof(short));
@@ -1497,12 +1491,6 @@ dv_encoder_new(int rem_ntsc_setup, int clamp_luma, int clamp_chroma) {
   result->clamp_luma = clamp_luma;
   result->clamp_chroma = clamp_chroma;
   result->force_dct = DV_DCT_AUTO;
-
-  dv_init( clamp_luma, clamp_chroma);
-  _dv_init_vlc_test_lookup();
-  _dv_init_vlc_encode_lookup();
-  _dv_init_qno_start();
-  _dv_prepare_reorder_tables();
 
   result->frame_count = 0;
   return(result);
@@ -1535,10 +1523,6 @@ dv_encoder_free( dv_encoder_t *encoder)
     if (encoder->img_cb != NULL) free(encoder->img_cb);
     free(encoder);
   }
-  if (vlc_encode_lookup != NULL)
-    free(vlc_encode_lookup);
-  if (vlc_num_bits_lookup != NULL)
-    free(vlc_num_bits_lookup);
 } /* dv_encoder_free */
 
 
