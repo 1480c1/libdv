@@ -2,9 +2,10 @@
 .libs
 Makefile
 Makefile.in
+dvconnect
 encodedv
 fix_headers
 insert_audio
 ppmqscale
-steal_header
 scan_packet_headers
+steal_header
