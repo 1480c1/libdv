@@ -35,7 +35,7 @@ gasmoff_SOURCES=
 
 endif # HOST_X86
 
-pkginclude_HEADERS=  dv_types.h dv.h dv1394.h
+pkginclude_HEADERS=  dv_types.h dv.h
 
 noinst_HEADERS=  YUY2.h      bitstream.h parse.h  rgb.h \
 	YV12.h   dct.h       idct_248.h  place.h  vlc.h \
