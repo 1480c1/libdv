@@ -354,7 +354,7 @@ dv_parse_audio_header(dv_decoder_t *decoder, const uint8_t *inbuf)
   case 0:
     if(decoder->std == e_dv_std_iec_61834) {
       audio->emphasis = (dv_aaux_as->pc4.ef == 0);
-    else if(decoder->std == e_dv_std_smpte_314m) {
+    } else if(decoder->std == e_dv_std_smpte_314m) {
       audio->emphasis = (dv_aaux_asc->pc1.ss == 1);
     } else {
       /* TODO: should never happen... */
