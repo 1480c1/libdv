@@ -120,8 +120,9 @@ extern int dv_frame_changed (dv_decoder_t *dv),
            dv_frame_is_color (dv_decoder_t *dv),
            dv_system_50_fields (dv_decoder_t *dv),
            dv_format_normal (dv_decoder_t *dv),
-           dv_is_progressive (dv_decoder_t *dv),
            dv_format_wide (dv_decoder_t *dv),
+           dv_format_letterbox (dv_decoder_t *dv),
+           dv_is_progressive (dv_decoder_t *dv),
            dv_get_vaux_pack (dv_decoder_t *dv, uint8_t pack_id, uint8_t *pack_data);
 
 /* ---------------------------------------------------------------------------
@@ -138,6 +139,7 @@ extern int dv_get_timestamp (dv_decoder_t *dv, char *tstprt),
  * functions based on aaux data
  */
 extern int dv_is_new_recording (dv_decoder_t *dv, const uint8_t *buffer),
+		   dv_is_normal_speed (dv_decoder_t *dv),
            dv_set_mixing_level (dv_decoder_t *dv, int new_value);
 
 /* ---------------------------------------------------------------------------

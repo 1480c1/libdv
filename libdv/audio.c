@@ -35,6 +35,8 @@
 #include "util.h"
 #include "audio.h"
 
+int dv_is_normal_speed (dv_decoder_t*);
+
 /** @file
  *  @ingroup decoder
  *  @brief Audio routines for decoding
@@ -364,7 +366,6 @@ dv_parse_audio_header(dv_decoder_t *decoder, const uint8_t *inbuf)
                 *dv_aaux_as1 = NULL;
   dv_aaux_asc_t *dv_aaux_asc = (dv_aaux_asc_t *)(inbuf + 80*6+80*16*4 + 3),
                 *dv_aaux_asc1 = NULL;
-  int           normal_speed = FALSE;
 
   if((dv_aaux_as->pc0 != 0x50) || (dv_aaux_asc->pc0 != 0x51)) goto bad_id;
 
@@ -479,19 +480,7 @@ dv_parse_audio_header(dv_decoder_t *decoder, const uint8_t *inbuf)
   audio -> aaux_as  = *dv_aaux_as;
   audio -> aaux_asc = *dv_aaux_asc;
 
-  if(decoder->std == e_dv_std_iec_61834) {
-    normal_speed = (dv_aaux_asc->pc3.speed == 0x20);
-  } else if(decoder->std == e_dv_std_smpte_314m) {
-    if(dv_aaux_as->pc3.system) {
-      /* PAL */
-      normal_speed = (dv_aaux_asc->pc3.speed == 0x64);
-    } else {
-      /* NTSC */
-      normal_speed = (dv_aaux_asc->pc3.speed == 0x78);
-    } /* else */
-  } /* else */
-
-  return(normal_speed); /* don't do audio if speed is not 1 */
+  return dv_is_normal_speed(decoder); /* don't do audio if speed is not 1 */
 
  bad_id:
   return(FALSE);
@@ -1028,3 +1017,21 @@ dv_audio_do_fade (dv_decoder_t *dv, int *ch0, int *ch1)
   return *ch0 + *ch1;
 }
 #endif
+
+int dv_is_normal_speed (dv_decoder_t *dv)
+{
+  int normal_speed = TRUE;
+	
+  if (dv->std == e_dv_std_iec_61834) {
+    normal_speed = (dv->audio->aaux_asc.pc3.speed == 0x20);
+  } else if (dv->std == e_dv_std_smpte_314m) {
+    if(dv->audio->aaux_as.pc3.system) {
+      /* PAL */
+      normal_speed = (dv->audio->aaux_asc.pc3.speed == 0x64);
+    } else {
+      /* NTSC */
+      normal_speed = (dv->audio->aaux_asc.pc3.speed == 0x78);
+    } /* else */
+  }
+  return normal_speed;
+}

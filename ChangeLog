@@ -1,3 +1,8 @@
+2004-03-15  Dan Dennedy <dan@dennedy.org>
+	* libdv/dv.c: fix widescreen detection for SMPTE vs IEC.
+	* libdv/dv.h, dv.c: added dv_format_letterbox()
+	* libdv/audio.c, dv.h: added dv_is_normal_speed()
+
 2004-01-19  Dan Dennedy <dan@dennedy.org>
 	* libdv/enc_input.c: workaround potential V4L compilation error.
 	  (bug 879258)

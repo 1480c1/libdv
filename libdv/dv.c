@@ -548,7 +548,6 @@ int
 dv_decode_full_audio(dv_decoder_t *dv, const uint8_t *buffer, int16_t **outbufs)
 {
   int ds, dif, audio_dif, result;
-  int ch;
 
   dif=0;
   if (!dv_parse_audio_header (dv, buffer))
@@ -601,10 +600,7 @@ fprintf (stderr, "# no audio\n");
 void
 dv_report_video_error (dv_decoder_t *dv, uint8_t *data)
 {
-    int  i,
-         error_code;
-    char err_msg1 [40],
-         err_msg2 [40];
+  int i, error_code;
 
   if (!dv -> video -> error_log)
     return;
@@ -619,6 +615,7 @@ dv_report_video_error (dv_decoder_t *dv, uint8_t *data)
       error_code = data [i + 3] >> 4;
 #if 0
       if (error_code) {
+        char err_msg1 [40], err_msg2 [40];
         dv_get_timestamp (dv, err_msg1);
         dv_get_recording_datetime (dv, err_msg2);
         fprintf (dv -> video -> error_log,
@@ -724,7 +721,7 @@ dv_format_normal (dv_decoder_t *dv)
   uint8_t  id;
 
   if ((id = dv -> vaux_pack [0x61]) != 0xff) {
-    if (!(dv -> vaux_data [id] [1] & 0x07)) {
+    if ((dv->vaux_data[id][1] & 0x07) != (dv->std == e_dv_std_smpte_314m? 0x2:0x7)) {
       return 1;
     }
     return 0;
@@ -740,7 +737,24 @@ dv_format_wide (dv_decoder_t *dv)
   uint8_t  id;
 
   if ((id = dv -> vaux_pack [0x61]) != 0xff) {
-    if (dv -> vaux_data [id] [1] & 0x07) {
+    if ((dv->vaux_data[id][1] & 0x07) == (dv->std == e_dv_std_smpte_314m? 0x2:0x7)) {
+      return 1;
+    }
+    return 0;
+  }
+  return -1;
+}
+
+/* ---------------------------------------------------------------------------
+ */
+int
+dv_format_letterbox (dv_decoder_t *dv)
+{
+  uint8_t  id;
+
+  if ((id = dv -> vaux_pack [0x61]) != 0xff) {
+    /* FIXME: what SMPTE 314M implementations support a letterbox format? */
+    if ((dv->vaux_data[id][1] & 0x07) == 0x3) {
       return 1;
     }
     return 0;
