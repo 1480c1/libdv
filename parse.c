@@ -471,7 +471,7 @@ gint dv_parse_video_segment(dv_videosegment_t *seg, guint quality) {
 	  b++,bl++) {
 	memset(bl->coeffs, 0, sizeof(bl->coeffs));
 	dc = bitstream_get(bs,9);  // DC coefficient (twos complement)
-	if(dc > 256) dc -= 513;
+	if(dc > 255) dc -= 512;
 	bl->coeffs[0] = dc;
 	vlc_trace("DC [%d,%d,%d,%d] = %d\n",mb->i,mb->j,mb->k,b,dc);
 	bl->dct_mode = bitstream_get(bs,1);
@@ -486,7 +486,7 @@ gint dv_parse_video_segment(dv_videosegment_t *seg, guint quality) {
 	// Pass 0, read bits from individual blocks 
 	// Get DC coeff, mode, and class from start of block
 	dc = bitstream_get(bs,9);  // DC coefficient (twos complement)
-	if(dc > 256) dc -= 513;
+	if(dc > 255) dc -= 512;
 	bl->coeffs[0] = dc;
 	vlc_trace("DC [%d,%d,%d,%d] = %d\n",mb->i,mb->j,mb->k,b,dc);
 	bl->dct_mode = bitstream_get(bs,1);

@@ -453,16 +453,11 @@ blkloop:
 	shll	$8,%eax
 	orl	%ecx,%eax
 
-	movl	%eax,%edx
-	shrl	$7,%edx			/* dc in %edx */
-	
-	/* if(dc > 256) dc -= 513; */
-	movl	$257,%ecx
-	subl	%edx,%ecx
-	sarl	$31,%ecx
-	andl	$-513,%ecx
-	addl	%edx,%ecx
-	movw	%ecx,dv_block_t_coeffs(%ebp)
+        movl    %ax,%dx
+        /* if(dc > 255) dc -= 512;
+           just do an arithmetric shift right 7bits*/
+        sar     $7,%dx                  /* dc in %dx */
+        movw    %dx,dv_block_t_coeffs(%ebp)
 
 	/* bl->class_no = bitstream_get(bs,2); */
 	movl	%eax,%ecx
