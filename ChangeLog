@@ -1,3 +1,9 @@
+2000-05-05  Charles 'Buck' Krasic  <krasic@acm.org>
+
+	* New idct code for 2-4-8.  It's an integer version, based on an
+ 	approach like that of the AAN algorithm.  Next step will be to MMX
+ 	it.
+
 2000-04-20  Charles 'Buck' Krasic  <krasic@acm.org>
 
 	* place.c: Fixes to 4:2:0 placement.  Color resembles something
