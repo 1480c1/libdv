@@ -411,12 +411,19 @@ static inline dv_vlc_entry_t * vlc_encode_orig(int run, int amp, int sign,
 	return ++o;
 }
 
-dv_vlc_entry_t vlc_encode_lookup[32768 * 2];
-unsigned char  vlc_num_bits_lookup[32768];
+dv_vlc_entry_t * vlc_encode_lookup = NULL;
+unsigned char  * vlc_num_bits_lookup = NULL;
 
 void _dv_init_vlc_encode_lookup(void)
 {
 	int run,amp;
+	
+	if (vlc_encode_lookup == NULL)
+		vlc_encode_lookup = (dv_vlc_entry_t *) malloc(
+			32768 * 2 * sizeof(dv_vlc_entry_t));
+	if (vlc_num_bits_lookup == NULL)
+		vlc_num_bits_lookup = (unsigned char*) malloc(32768);
+		
 	for (run = 0; run <= 63; run++) {
 		for (amp = 0; amp <= 255; amp++) {
 			int index1 = (255 + amp) | (run << 9);
@@ -1522,6 +1529,14 @@ dv_encoder_free( dv_encoder_t *encoder)
     if (encoder->img_cr != NULL) free(encoder->img_cr);
     if (encoder->img_cb != NULL) free(encoder->img_cb);
     free(encoder);
+  }
+  if (vlc_encode_lookup != NULL) {
+    free(vlc_encode_lookup);
+    vlc_encode_lookup = NULL;
+  }
+  if (vlc_num_bits_lookup != NULL) {
+    free(vlc_num_bits_lookup);
+    vlc_num_bits_lookup = NULL;
   }
 } /* dv_encoder_free */
 

@@ -1,5 +1,8 @@
+2003-11-17  Dan Dennedy <dan@dennedy.org>
+	* libdv/encode.c: revert change on encoder lookup table allocation.
+
 2003-11-10  Dan Dennedy  <dan@dennedy.org>
-	* libdv/dv.c, encode.dv: bugfix thread safetiness of encoder.
+	* libdv/dv.c, encode.c: bugfix thread safetiness of encoder.
 	  In a threaded environment, one should call dv_init() to setup
 	  libdv properly before dv_decoder_new() or dv_encoder_new().
 
