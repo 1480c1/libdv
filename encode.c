@@ -24,6 +24,8 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
+#include <dv_types.h>
+
 #include <time.h>
 #include <math.h>
 #include <string.h>
@@ -32,6 +34,7 @@
 #include <glib.h>
 
 #include "encode.h"
+#include "dct.h"
 #include "idct_248.h"
 #include "quant.h"
 #include "weighting.h"
@@ -43,6 +46,10 @@
 #include "enc_output.h"
 
 #define BITS_PER_LONG  32
+
+/* FIXME: Just guessed! */
+#define DCT_248_THRESHOLD ((8 * 8 * 8) << DCT_YUV_PRECISION)
+#define DCT_248_THRESMASK ((~63)       << DCT_YUV_PRECISION)
 
 /* FIXME: Just guessed! */
 #define VLC_BITS_ON_FULL_MBLOCK_CYCLE_QUANT_2 750
@@ -765,6 +772,142 @@ inline int classify(dv_coeff_t * bl)
 #endif
 }
 
+
+
+int need_dct_248_transposed(dv_coeff_t * bl)
+{
+	int res = 0;
+	int i,j;
+	
+	for (j = 0; j < 7; j ++) {
+		for (i = 0; i < 8; i++) {
+			int a = bl[i * 8 + j] - bl[i * 8 + j + 1];
+			int b = (a >> 15);
+			a ^= b;
+			a -= b;
+			a &= DCT_248_THRESMASK;
+			res += a;
+		}
+	}
+	return (res > DCT_248_THRESHOLD);
+}
+
+#if ARCH_X86
+extern int need_dct_248_mmx(dv_coeff_t * bl, short* thres_mask);
+
+int need_dct_248_mmx_normal(dv_coeff_t * bl)
+{
+	int res;
+	short thres_mask[4] = {DCT_248_THRESMASK, DCT_248_THRESMASK, 
+			       DCT_248_THRESMASK, DCT_248_THRESMASK };
+	res = need_dct_248_mmx(bl, thres_mask);
+	return (res > DCT_248_THRESHOLD);
+}
+
+extern void transpose_mmx(short * dst);
+extern void copy_y_block_mmx(short * dst, short * src);
+extern void copy_pal_c_block_mmx(short * dst, short * src);
+extern void copy_ntsc_c_block_mmx(short * dst, short * src);
+#endif /* ARCH_X86 */
+
+void build_coeff(short* img_y, short* img_cr, short* img_cb,
+		 dv_macroblock_t *mb, int isPAL)
+{
+	int y = mb->y;
+	int x = mb->x;
+	int b;
+	dv_block_t* bl = mb->b;
+#if !ARCH_X86
+	if (isPAL || mb->x == DV_WIDTH- 16) { /* PAL or rightmost NTSC block */
+		int i,j;
+		for (j = 0; j < 8; j++) {
+			for (i = 0; i < 8; i++) {
+				bl[0].coeffs[8 * i + j] = 
+					img_y[(y + j) * DV_WIDTH +  x + i];
+				bl[1].coeffs[8 * i + j] = 
+					img_y[(y + j) * DV_WIDTH +  x + 8 + i];
+				bl[2].coeffs[8 * i + j] = 
+					img_y[(y + 8 + j) * DV_WIDTH + x + i];
+				bl[3].coeffs[8 * i + j] = 
+					img_y[(y + 8 + j) * DV_WIDTH 
+					     + x + 8 + i];
+				bl[4].coeffs[8 * i + j] = 
+					(img_cr[(y + 2*j) * DV_WIDTH/2 
+					       + x / 2 + i]
+					+ img_cr[(y + 2*j + 1) * DV_WIDTH/2
+						+ x / 2 + i]) >> 1;
+				bl[5].coeffs[8 * i + j] = 
+					(img_cb[(y + 2*j) * DV_WIDTH/2
+					      + x / 2 + i]
+					+ img_cb[(y + 2*j + 1) * DV_WIDTH/2
+						+ x / 2 + i]) >> 1;
+			}
+		}
+	} else {                        /* NTSC */
+		int i,j;
+		for (j = 0; j < 8; j++) {
+			for (i = 0; i < 8; i++) {
+				bl[0].coeffs[8 * i + j] = 
+					img_y[(y + j) * DV_WIDTH +  x + i];
+				bl[1].coeffs[8 * i + j] = 
+					img_y[(y + j) * DV_WIDTH +  x + 8 + i];
+				bl[2].coeffs[8 * i + j] = 
+					img_y[(y + j) * DV_WIDTH + x + 16 + i];
+				bl[3].coeffs[8 * i + j] = 
+					img_y[(y + j) * DV_WIDTH + x + 24 + i];
+				bl[4].coeffs[8 * i + j] = 
+					(img_cr[(y + j) * DV_WIDTH/2
+					       + x / 2 + i*2]
+					 + img_cr[(y + j) * DV_WIDTH/2 
+						 + x / 2 + 1 + i*2]) >> 1;
+				bl[5].coeffs[8 * i + j] = 
+					(img_cb[(y + j) * DV_WIDTH/2
+					       + x / 2 + i*2]
+					 + img_cb[(y + j) * DV_WIDTH/2 
+						 + x / 2 + 1 + i*2]) >> 1;
+			}
+		}
+	}
+	for (b = 0; b < 6; b++) {
+		bl[b].dct_mode = need_dct_248_transposed(bl[b].coeffs) 
+			? DV_DCT_248 : DV_DCT_88;
+	}
+#else
+	if (isPAL || mb->x == DV_WIDTH- 16) { /* PAL or rightmost NTSC block */
+		short* start_y = img_y + y * DV_WIDTH + x;
+		copy_y_block_mmx(bl[0].coeffs, start_y);
+		copy_y_block_mmx(bl[1].coeffs, start_y + 8);
+		copy_y_block_mmx(bl[2].coeffs, start_y + 8 * DV_WIDTH);
+		copy_y_block_mmx(bl[3].coeffs, start_y + 8 * DV_WIDTH + 8);
+		copy_pal_c_block_mmx(bl[4].coeffs,
+				     img_cr+y * DV_WIDTH/2+ x/2);
+		copy_pal_c_block_mmx(bl[5].coeffs,
+				     img_cb+y * DV_WIDTH/2+ x/2);
+	} else {                              /* NTSC */
+		short* start_y = img_y + y * DV_WIDTH + x;
+		copy_y_block_mmx(bl[0].coeffs, start_y);
+		copy_y_block_mmx(bl[1].coeffs, start_y + 8);
+		copy_y_block_mmx(bl[2].coeffs, start_y + 16);
+		copy_y_block_mmx(bl[3].coeffs, start_y + 24);
+		copy_ntsc_c_block_mmx(bl[4].coeffs,
+				      img_cr + y*DV_WIDTH/2 + x/2);
+		copy_ntsc_c_block_mmx(bl[5].coeffs,
+				      img_cb + y*DV_WIDTH/2 + x/2);
+	}
+	for (b = 0; b < 6; b++) {
+		bl[b].dct_mode = need_dct_248_mmx_normal(bl[b].coeffs) 
+			? DV_DCT_248 : DV_DCT_88;
+	}
+	transpose_mmx(bl[0].coeffs);
+	transpose_mmx(bl[1].coeffs);
+	transpose_mmx(bl[2].coeffs);
+	transpose_mmx(bl[3].coeffs);
+	transpose_mmx(bl[4].coeffs);
+	transpose_mmx(bl[5].coeffs);
+	emms();
+#endif
+}
+
 static void do_dct(dv_macroblock_t *mb)
 {
 	guint b;
@@ -805,8 +948,8 @@ static int qnos[4][16] = {
 };
 
 static int quant_2_static_table[2][20] = {
-	{1700, 0, 1500, 2, 1000, 4, 900, 6, 750, 8, 650, 10, 550, 12, 512, 13, 0, 15},
-	{1700, 0, 1400, 2, 1200, 4, 1000,6, 800, 8, 650, 10, 550, 12, 512, 13, 0, 15}
+	{1700, 0, 1500, 2, 1000, 4, 900, 6, 750, 8, 650, 10, 550, 12, 512, 13},
+	{1700, 0, 1400, 2, 1200, 4, 1000,6, 800, 8, 650, 10, 550, 12, 512, 13}
 };
 
 static int qnos_class_combi[16][16];
@@ -882,7 +1025,7 @@ static void quant_1_pass(dv_videosegment_t* videoseg,
 			 dv_vlc_block_t * vblocks, int static_qno)
 {
 	dv_macroblock_t *mb;
-	int m;
+	gint m;
 	int b;
 
 	dv_coeff_t bb[6][64];
@@ -937,13 +1080,20 @@ static void quant_1_pass(dv_videosegment_t* videoseg,
 	}
 }
 
+#if 0
+static int qno_table_min[16];
+static int qno_table_max[16];
+static long long qno_table_mean[16];
+static long long qno_table_variance[16];
+#endif
+
 static void quant_2_passes(dv_videosegment_t* videoseg, 
 			   dv_vlc_block_t * vblocks, int static_qno)
 {
 	dv_macroblock_t *mb;
-	int m;
+	gint m;
 	dv_coeff_t bb[6][64];
-	const int ac_coeff_budget = 4*100+2*68-6*4;
+	const guint ac_coeff_budget = 4*100+2*68-6*4;
 
 	for (m = 0, mb = videoseg->mb; m < 5; m++, mb++) {
 		int b;
@@ -1012,6 +1162,13 @@ static void quant_2_passes(dv_videosegment_t* videoseg,
 			qno = qno_ok;
 #if 0
 			fprintf(stderr, "%d %d\n", bits_used_, qno);
+			if (bits_used_ < qno_table_min[qno]) {
+				qno_table_min[qno] = bits_used_;
+			}
+			if (bits_used_ > qno_table_max[qno]) {
+				qno_table_max[qno] = bits_used_;
+			}
+			qno_table_mean[qno] += bits_used_;
 #endif
 		}
 
@@ -1041,16 +1198,16 @@ static void quant_3_passes(dv_videosegment_t* videoseg,
 			   dv_vlc_block_t * vblocks, int static_qno)
 {
 	dv_macroblock_t *mb;
-	int m;
+	gint m;
 	int b;
 	int smallest_qno[5];
 	int qno_index[5];
 	int class_combi[5];
 	int cycles = 0;
 	dv_coeff_t bb[5][6][64];
-	const int ac_coeff_budget = 5*(4*100+2*68-6*4);
-	int bits_used[5];
-	int bits_used_total;
+	const guint ac_coeff_budget = 5*(4*100+2*68-6*4);
+	guint bits_used[5];
+	guint bits_used_total;
 	for (m = 0; m < 5; m++) {
 		smallest_qno[m] = 15;
 		qno_index[m] = 0;
@@ -1078,20 +1235,7 @@ static void quant_3_passes(dv_videosegment_t* videoseg,
 			bits_used_total-ac_coeff_budget);
 	}
 #endif
-
-	if (static_qno && bits_used_total > ac_coeff_budget) {
-		for (m = 0; m < 5; m++) {
-			int i = 0;
-			while (bits_used[m] <= 
-			       quant_2_static_table[static_qno-1][i])
-				i += 2;
-			smallest_qno[m] =
-				quant_2_static_table[static_qno-1][i+1];
-			if (smallest_qno[m] < 14) {
-				smallest_qno[m] ++; /* just guessed... */
-			}
-		}
-	} else while (bits_used_total > ac_coeff_budget) {
+	while (bits_used_total > ac_coeff_budget) {
 		int m_max = 0;
 		int bits_used_ = 0;
 		int runs = (bits_used_total - ac_coeff_budget) / 
@@ -1159,7 +1303,7 @@ static void quant_3_passes(dv_videosegment_t* videoseg,
 	}
 }
 
-static void process_videosegment(dv_enc_input_filter_t * input,
+static void process_videosegment(short* img_y, short* img_cr, short* img_cb,
 				 dv_videosegment_t* videoseg,
 				 guint8 * vsbuffer, int vlc_encode_passes,
 				 int static_qno)
@@ -1182,7 +1326,7 @@ static void process_videosegment(dv_enc_input_filter_t * input,
 		} else {
 			dv_place_411_macroblock(mb);
 		}
-		input->fill_macroblock(mb, videoseg->isPAL);
+		build_coeff(img_y, img_cr, img_cb, mb, videoseg->isPAL);
 		do_dct(mb);
 		do_classify(mb, static_qno);
 	}
@@ -1234,7 +1378,7 @@ static void process_videosegment(dv_enc_input_filter_t * input,
 	vlc_encode_block_pass_n(vlc_block, vsbuffer, vlc_encode_passes, 3);
 }
 
-static void encode(dv_enc_input_filter_t * input,
+static void encode(short* img_y, short* img_cr, short* img_cb, 
 		   int isPAL, unsigned char* target, int vlc_encode_passes,
 		   int static_qno)
 {
@@ -1279,7 +1423,7 @@ static void encode(dv_enc_input_filter_t * input,
 			videoseg.k = v;
 			videoseg.isPAL = isPAL;
 
-			process_videosegment(input, 
+			process_videosegment(img_y, img_cr, img_cb, 
 					     &videoseg, target + offset,
 					     vlc_encode_passes,
 					     static_qno);
@@ -1289,86 +1433,35 @@ static void encode(dv_enc_input_filter_t * input,
 	} 
 }
 
-int encoder_loop(dv_enc_input_filter_t * input,
-		 dv_enc_audio_input_filter_t * audio_input,
-		 dv_enc_output_filter_t * output,
-		 int start, int end, const char* filename,
-		 const char* audio_filename,
-		 int vlc_encode_passes, int static_qno, int verbose_mode,
-		 int fps)
+void encoder_loop(dv_enc_input_filter_t * input,
+		  dv_enc_output_filter_t * output,
+		  int start, int end, const char* filename,
+		  int vlc_encode_passes, int static_qno)
 {
 	time_t now;
 	int i;
+	short img_y[DV_PAL_HEIGHT * DV_WIDTH];
+	short img_cr[DV_PAL_HEIGHT * DV_WIDTH / 2];
+	short img_cb[DV_PAL_HEIGHT * DV_WIDTH / 2];
 	unsigned char target[144000];
 	unsigned char fbuf[1024];
-	dv_enc_audio_info_t audio_info_;
-	dv_enc_audio_info_t* audio_info;
-	long skip_frames_pal = fps ? fps * 65536 / 25 : 65536;
-	long skip_frames_ntsc = fps ? fps * 65536 / 30 : 65536;
-	long skip_frame_count = 0;
-	int isPAL = -1;
-
-	audio_info = (audio_input != NULL) ? &audio_info_ : NULL;
-
+		
 	now = time(NULL);
 
-	if (audio_input) {
-		if (audio_input->init(audio_filename, audio_info) < 0) {
-			return(-1);
-		}
-		if (verbose_mode) {
-			fprintf(stderr, "Opening audio source with:\n"
-				"Channels: %d\n"
-				"Frequency: %d\n"
-				"Bytes per second: %d\n"
-				"Byte alignment: %d\n"
-				"Bits per sample: %d\n",
-				audio_info->channels, audio_info->frequency, 
-				audio_info->bytespersecond,
-				audio_info->bytealignment, 
-				audio_info->bitspersample);
-		}
-	}
-
-
 	for (i = start; i <= end; i++) {
-		long skip_frame_step;
-		int skipped = 0;
-
+		int isPAL;
 		snprintf(fbuf, 1024, filename, i);
 
-		skip_frame_step = isPAL ? skip_frames_pal : skip_frames_ntsc;
-		skip_frame_count += 65536 - skip_frame_step;
-
-		if (audio_input) {
-			if (audio_input->load(audio_info, isPAL) < 0) {
-				return -1;
-			}
+		if (input->load(fbuf, &isPAL, img_y, img_cr, img_cb) < 0) {
+			return;
 		}
-		if (skip_frame_count < 65536 || isPAL == -1) {
-			if (input->load(fbuf, &isPAL) < 0) {
-				return -1;
-			}
+		encode(img_y, img_cr, img_cb, isPAL, target,
+		       vlc_encode_passes, static_qno);
+		if (output->store(target, isPAL, now) < 0) {
+			return;
 		}
-		if (skip_frame_count < 65536) {
-			encode(input, isPAL, target, vlc_encode_passes, 
-			       static_qno);
-		} else {
-			skip_frame_count -= 65536;
-			skipped = 1;
-		}
-		if (output->store(target, audio_info, isPAL, now) < 0) {
-			return -1;
-		}
-		if (verbose_mode) {
-			if (skipped) {
-				fprintf(stderr, "_%d_ ", i);
-			} else {
-				fprintf(stderr, "[%d] ", i);
-			}
-		}
+		fprintf(stderr, "[%d] ", i);
 	}
-	return 0;
 }
 
 void show_statistics()
@@ -1376,16 +1469,13 @@ void show_statistics()
 	int i = 0;
 	fprintf(stderr, "\n\nFinal statistics:\n"
 		"========================================================\n"
-		"\n  |CYCLES    |RUNS/CYCLE|QNOS     |CLASS    "
-		"|VLC OVERF|DCT\n"
+		"\n  |CYCLES    |RUNS/CYCLE|QNOS     |CLASS    |VLC OVERF|DCT\n"
 		"========================================================\n");
-	fprintf(stderr, "%2d: %8ld |%8ld  |%8ld |%8ld |%8ld "
-		"|%8ld (DCT88)\n", 
+	fprintf(stderr,"%2d: %8ld |%8ld  |%8ld |%8ld |%8ld |%8ld (DCT88)\n", 
 		i, cycles_used[i], runs_used[i], qnos_used[i],
 		classes_used[i], vlc_overflows, dct_used[DV_DCT_88]);
 	i++;
-	fprintf(stderr, "%2d: %8ld |%8ld  |%8ld |%8ld |         "
-		"|%8ld (DCT248)\n", 
+	fprintf(stderr,"%2d: %8ld |%8ld  |%8ld |%8ld |         |%8ld (DCT248)\n", 
 		i, cycles_used[i], runs_used[i], qnos_used[i],
 		classes_used[i], 
 		dct_used[DV_DCT_248]);
@@ -1396,8 +1486,7 @@ void show_statistics()
 			classes_used[i]);
 	}
 	for (;i < 16; i++) {
-		fprintf(stderr, "%2d: %8ld |%8ld  |%8ld |         "
-			"|         |\n", 
+		fprintf(stderr, "%2d: %8ld |%8ld  |%8ld |         |         |\n", 
 			i, cycles_used[i], runs_used[i], qnos_used[i]);
 	}
 }
@@ -1407,14 +1496,12 @@ void show_statistics()
 #define DV_ENCODER_OPT_END_FRAME       2
 #define DV_ENCODER_OPT_WRONG_INTERLACE 3
 #define DV_ENCODER_OPT_ENCODE_PASSES   4
-#define DV_ENCODER_OPT_VERBOSE         5
+#define DV_ENCODER_OPT_STATISTICS      5
 #define DV_ENCODER_OPT_INPUT           6
-#define DV_ENCODER_OPT_AUDIO_INPUT     7
-#define DV_ENCODER_OPT_OUTPUT          8
-#define DV_ENCODER_OPT_AUTOHELP        9
-#define DV_ENCODER_OPT_STATIC_QNO      10
-#define DV_ENCODER_OPT_FPS             11
-#define DV_ENCODER_NUM_OPTS            12
+#define DV_ENCODER_OPT_OUTPUT          7
+#define DV_ENCODER_OPT_AUTOHELP        8
+#define DV_ENCODER_OPT_STATIC_QNO      9
+#define DV_ENCODER_NUM_OPTS            10
 
 int main(int argc, char *argv[])
 {
@@ -1422,19 +1509,14 @@ int main(int argc, char *argv[])
 	unsigned long end = 0xfffffff;
 	int wrong_interlace = 0;
 	const char* filename = NULL;
-	const char* audio_filename = NULL;
 	int vlc_encode_passes = 3;
 	int static_qno = 0;
-	int verbose_mode = 0;
-	const char* audio_input_filter_str = "none";
+	int do_show_statistics = 0;
 	const char* input_filter_str = "ppm";
 	const char* output_filter_str = "raw";
-	dv_enc_audio_input_filter_t * audio_input_filter = NULL;
 	dv_enc_input_filter_t * input_filter;
 	dv_enc_output_filter_t * output_filter;
 	int count = 0;
-	int fps = 0;
-	int err_code;
 
 #if HAVE_LIBPOPT
 	struct poptOption option_table[DV_ENCODER_NUM_OPTS+1]; 
@@ -1442,6 +1524,7 @@ int main(int argc, char *argv[])
 	poptContext optCon; /* context for parsing command-line options */
 	option_table[DV_ENCODER_OPT_VERSION] = (struct poptOption) {
 		longName: "version", 
+		shortName: 'v', 
 		val: 'v', 
 		descrip: "show encode version number"
 	}; /* version */
@@ -1481,35 +1564,27 @@ int main(int argc, char *argv[])
 		"not necessarily slower encoding!"
 	}; /* vlc encoder passes */
 
-	option_table[DV_ENCODER_OPT_VERBOSE] = (struct poptOption) {
-		longName:   "verbose", 
-		shortName:  'v', 
-		arg:        &verbose_mode,
-		descrip:    "show encoder statistics / status information"
-	}; /* verbose mode */
+	option_table[DV_ENCODER_OPT_STATISTICS] = (struct poptOption) {
+		longName:   "show-statistics", 
+		shortName:  't', 
+		arg:        &do_show_statistics,
+		descrip:    "show encoder statistics "
+	}; /* statistics */
 
 	option_table[DV_ENCODER_OPT_INPUT] = (struct poptOption) {
 		longName:   "input", 
 		shortName:  'i', 
 		arg:        &input_filter_str,
 		argInfo:    POPT_ARG_STRING, 
-		descrip:    "choose input-filter [>ppm<, pgm, video]"
+		descrip:    "choose input-filter [ppm, pgm, video] "
 	}; /* input */
-
-	option_table[DV_ENCODER_OPT_AUDIO_INPUT] = (struct poptOption) {
-		longName:   "audio-input", 
-		shortName:  'a', 
-		arg:        &audio_input_filter_str,
-		argInfo:    POPT_ARG_STRING, 
-		descrip:    "choose audio-input-filter [>none<, wav, dsp]"
-	}; /* audio input */
 
 	option_table[DV_ENCODER_OPT_OUTPUT] = (struct poptOption) {
 		longName:   "output", 
 		shortName:  'o', 
 		arg:        &output_filter_str,
 		argInfo:    POPT_ARG_STRING, 
-		descrip:    "choose output-filter [>raw<]"
+		descrip:    "choose output-filter [raw] "
 	}; /* output */
 
 	option_table[DV_ENCODER_OPT_STATIC_QNO] = (struct poptOption) {
@@ -1522,14 +1597,6 @@ int main(int argc, char *argv[])
 		"-q [1,2] -p 2"
 	}; /* start qno */
 
-	option_table[DV_ENCODER_OPT_FPS] = (struct poptOption) {
-		longName:   "fps", 
-		shortName:  'f', 
-		arg:        &fps,
-		argInfo:    POPT_ARG_INT, 
-		descrip:    "set frames per second (default: use all frames)"
-	}; /* fps */
-
 	option_table[DV_ENCODER_OPT_AUTOHELP] = (struct poptOption) {
 		argInfo: POPT_ARG_INCLUDE_TABLE,
 		arg:     poptHelpOptions,
@@ -1541,8 +1608,7 @@ int main(int argc, char *argv[])
 
 	optCon = poptGetContext(NULL, argc, 
 				(const char **)argv, option_table, 0);
-	poptSetOtherOptionHelp(optCon, "<filename pattern or - for stdin>"
-		" [<audio input>]");
+	poptSetOtherOptionHelp(optCon, "<filename pattern or - for stdin>");
 
 	while ((rc = poptGetNextOpt(optCon)) > 0) {
 		switch (rc) {
@@ -1566,16 +1632,13 @@ int main(int argc, char *argv[])
 	}
 
 	filename = poptGetArg(optCon);
-	if(filename == NULL) {
+	if((filename == NULL) || !(poptPeekArg(optCon) == NULL)) {
 		poptPrintUsage(optCon, stderr, 0);
 		fprintf(stderr, 
 			"\nSpecify a single <filename pattern> argument; "
-			"e.g. pond%%05d.ppm or - for stdin\n"
-			"(For audio input specify additionally "
-			"the audio source.)");
+			"e.g. pond%%05d.ppm or - for stdin\n");
 		exit(-1);
 	}
-	audio_filename = poptGetArg(optCon);
 	poptFreeContext(optCon);
 
 #else
@@ -1603,35 +1666,6 @@ int main(int argc, char *argv[])
 		return(-1);
 	}
 
-	if (strcmp(audio_input_filter_str, "none") != 0) {
-		get_dv_enc_audio_input_filters(&audio_input_filter, &count);
-		while (count 
-		       && strcmp(audio_input_filter->filter_name, 
-				 audio_input_filter_str) != 0) {
-			audio_input_filter++;
-			count--;
-		}
-		if (!count) {
-			fprintf(stderr, 
-				"Unknown audio input filter selected: %s!\n"
-				"The following filters are supported:\n",
-				audio_input_filter_str);
-			get_dv_enc_audio_input_filters(&audio_input_filter, 
-						       &count);
-			while (count--) {
-				fprintf(stderr, "%s\n", 
-					audio_input_filter->filter_name);
-				audio_input_filter++;
-			}
-			return(-1);
-		}
-		if (!audio_filename) {
-			fprintf(stderr, "Audio input selected but no filename "
-				"or device given!\n");
-			return(-1);
-		}
-	}
-
 	get_dv_enc_output_filters(&output_filter, &count);
 	while (count && 
 	       strcmp(output_filter->filter_name, output_filter_str) != 0) {
@@ -1657,9 +1691,9 @@ int main(int argc, char *argv[])
 			"\nIf you want to add some more, go ahead ;-)\n");
 		exit(-1);
 	}
-	if (static_qno && vlc_encode_passes == 1) {
+	if (static_qno && vlc_encode_passes != 2) {
 		fprintf(stderr, "Warning! static_qno enabled but "
-			"vlc_passes == 1.\n"
+			"vlc_passes != 2.\n"
 			"This won't gain you anything for now !!!\n");
 	}
 	weight_init();  
@@ -1680,28 +1714,42 @@ int main(int argc, char *argv[])
 	memset(dct_used,0,sizeof(dct_used));
 	vlc_overflows = 0;
 
-	if (input_filter->init(wrong_interlace) < 0) {
-		return -1;
-	}
-	if (output_filter->init() < 0) {
-		return -1;
-	}
-	/* audio_input_filter->init() is in encoder_loop! */
+#if 0
+	memset(qno_table_min, 99, sizeof(qno_table_min));
+	memset(qno_table_max, 0, sizeof(qno_table_max));
+	memset(qno_table_mean, 0, sizeof(qno_table_mean));
+	memset(qno_table_variance, 0, sizeof(qno_table_variance));
+#endif
+	input_filter->init(wrong_interlace);
+	output_filter->init();
 
-	err_code = encoder_loop(input_filter,audio_input_filter, output_filter,
-				start, end, filename, audio_filename,
-				vlc_encode_passes, static_qno,
-				verbose_mode, fps);
+	encoder_loop(input_filter, output_filter,
+		     start, end, filename, vlc_encode_passes, static_qno);
 
 	input_filter->finish();
-	if (audio_input_filter) {
-		audio_input_filter->finish();
-	}
 	output_filter->finish();
   
-	if (verbose_mode) {
+	if (do_show_statistics) {
 		show_statistics();
 	}
+#if 0
+	{
+		int i = 0;
+		long last = 0;
+		for (i = 0; i < 16; i++) {
+			if (qnos_used[i] != 0) {
+				fprintf(stderr, "%d: %d %d -- %lld %lld %lld\n", i, 
+					qno_table_min[i], 
+					qno_table_max[i],
+					qno_table_mean[i] / qnos_used[i],
+					last - qno_table_mean[i]/ qnos_used[i],
+					qno_table_mean[i] / qnos_used[i]
+					+ (last - qno_table_mean[i]/ qnos_used[i]) / 2);
+				last = qno_table_mean[i] / qnos_used[i];
+			}
+		}
+	}
+#endif
 	return 0;
 }
 

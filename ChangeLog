@@ -1,36 +1,3 @@
-2001-04-07  Peter Schlaile <udbz@rz.uni-karlsruhe.de>
-	* VLC encoder improvements: static qno tables for 3 passes
-	* audio support for the encoder (plugin system with wav and /dev/dsp
-	  support)
-	* renamed build_coeff to fill_macroblock and moved it into the
-	  input filter. Wrote specialized mmx copy routines. 
-	  -> now we _are_ realtime on an Athlon 800 even with 3 VLC passes 
-	  (static qno tables!) It's time to throw the video recorder away ;-)
-	* New option: --fps : select frames per second if your machine isn't
-	  fast enough for the full bandwidth
-	* Interface changes: -t renamed to -v since it gives additional
-	  verbose output now.
-	* pgm support for mpeg2dec
-
-2001-03-30  Stefan Lucke <Stefan.Lucke@snafu.de>
-	* New options (available for Xv only):
-		--aspect ([w|wide|n|normal])
-		--size (10 .. 100)
-
-	* Reenabled scaling with Xv. Aspect ratio is keept constant when
-	  --aspect option is specified. This depends on used window
-	  manager too. KDE :-(( , fvwm, enlightment :-)
-
-	* Changed all render functions to have the same paramerlist
-
-	* Bug fixes:
-	  According to SDL linux FAQ: Applications which support
-	  SDL should have an sdl.m4 file in their config.
-	
-	  Assembler error messages with encode_x86.S
-	  my one does not like div operations with defines.
-	  replaced DV_WIDTH/2 by DV_WIDTH_2	
-		
 2001-03-29  Peter Schlaile <udbz@rz.uni-karlsruhe.de>
 	* VLC encoder improvements: Now it's more correct for 3 passes (but
 	  also slower...), faster for 2 passes. Implemented turbo mode 

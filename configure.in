@@ -15,11 +15,9 @@ dnl Checks for programs.
 AC_SUBST(CFLAGS)
 AC_PROG_CC
 
-CFLAGS="$CFLAGS -I .."
-
 dnl Add -Wall if gcc
 if test "$GCC" = "yes"; then
-   CFLAGS="$CFLAGS -Wall -O2"
+   CFLAGS="-Wall -O2"
 fi
 
 
@@ -165,7 +163,7 @@ fi
 dnl Checks for header files.
 AC_PATH_X
 AC_HEADER_STDC
-AC_CHECK_HEADERS(fcntl.h sys/time.h unistd.h linux/videodev.h sys/soundcard.h)
+AC_CHECK_HEADERS(fcntl.h sys/time.h unistd.h linux/videodev.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST

@@ -26,8 +26,6 @@
 #ifndef DV_ENC_INPUT_H
 #define DV_ENC_INPUT_H
 
-#include "dv_types.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -36,11 +34,8 @@ extern "C" {
 	typedef struct dv_enc_input_filter_s {
 		int (*init)(int wrong_interlace);
 		void (*finish)();
-		int (*load)(const char* filename, int * isPAL);
-		int (*skip)(const char* filename, int * isPAL);
-		/* fills macroblock, determines dct_mode and
-		   transposes dv_blocks */
-		void (*fill_macroblock)(dv_macroblock_t *mb, int isPAL);
+		int (*load)(const char* filename, int * isPAL,
+			    short* img_y, short* img_cr, short* img_cb);
 
 		const char* filter_name;
 	} dv_enc_input_filter_t;
@@ -48,6 +43,13 @@ extern "C" {
 	extern void dv_enc_register_input_filter(dv_enc_input_filter_t filter);
 	extern int get_dv_enc_input_filters(dv_enc_input_filter_t ** filters,
 					    int * count);
+
+	extern void dv_enc_rgb_to_ycb(unsigned char* img_rgb, int height,
+				      short* img_y, short* img_cr, 
+				      short* img_cb);
+	extern void dv_enc_yuv_to_ycb(unsigned char* img_yuv, int height,
+				      short* img_y, short* img_cr, 
+				      short* img_cb);
 
 #ifdef __cplusplus
 }

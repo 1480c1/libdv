@@ -23,11 +23,10 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#define	DV_WIDTH	720*2
-#define DV_WIDTH_2	720
+#define	DV_WIDTH 720*2
 
 .data
-ALLONE:		.word 1,1,1,1
+ALLONE:	.word 1,1,1,1
 VLCADDMASK:	.byte 255,0,0,0,255,0,0,0
 		
 .text
@@ -218,8 +217,8 @@ vlc_encode_block_pass_1_x86_loop:
 	cmpl	%esi, %edi
 	jnz	vlc_encode_block_pass_1_x86_loop
 	
-	xorl	%ecx, %ecx
 	addl	$4, %esi
+	xorl	%ecx, %ecx
 	
 vlc_encode_block_pass1_x86_out:
 	subl	$4, %esi
@@ -407,14 +406,10 @@ copy_pal_c_block_mmx:
 	movl    8(%ebp), %edi          # dest
 	movl    12(%ebp), %esi         # src
 
-	movl	$4, %ebx	
-
-copy_pal_c_block_mmx_loop:	
-	
 	movq	          (%esi), %mm0
-	movq	DV_WIDTH_2(%esi), %mm1
+	movq	DV_WIDTH/2(%esi), %mm1
 	movq               8(%esi), %mm2
-	movq	DV_WIDTH_2+8(%esi), %mm3
+	movq	DV_WIDTH/2+8(%esi), %mm3
 
 	paddw	%mm0, %mm1
 	paddw	%mm2, %mm3
@@ -428,9 +423,9 @@ copy_pal_c_block_mmx_loop:
 	addl	$16, %edi
 
 	movq	          (%esi), %mm0
-	movq	DV_WIDTH_2(%esi), %mm1
+	movq	DV_WIDTH/2(%esi), %mm1
 	movq               8(%esi), %mm2
-	movq	DV_WIDTH_2+8(%esi), %mm3
+	movq	DV_WIDTH/2+8(%esi), %mm3
 
 	paddw	%mm0, %mm1
 	paddw	%mm2, %mm3
@@ -443,9 +438,99 @@ copy_pal_c_block_mmx_loop:
 	addl	$DV_WIDTH, %esi
 	addl	$16, %edi
 
-	decl	%ebx
-	jnz	copy_pal_c_block_mmx_loop
-				
+	movq	          (%esi), %mm0
+	movq	DV_WIDTH/2(%esi), %mm1
+	movq               8(%esi), %mm2
+	movq	DV_WIDTH/2+8(%esi), %mm3
+
+	paddw	%mm0, %mm1
+	paddw	%mm2, %mm3
+	psraw	$1, %mm1
+	psraw	$1, %mm3
+
+	movq	%mm1, 0*8(%edi)
+	movq	%mm3, 1*8(%edi)
+
+	addl	$DV_WIDTH, %esi
+	addl	$16, %edi
+
+	movq	          (%esi), %mm0
+	movq	DV_WIDTH/2(%esi), %mm1
+	movq               8(%esi), %mm2
+	movq	DV_WIDTH/2+8(%esi), %mm3
+
+	paddw	%mm0, %mm1
+	paddw	%mm2, %mm3
+	psraw	$1, %mm1
+	psraw	$1, %mm3
+
+	movq	%mm1, 0*8(%edi)
+	movq	%mm3, 1*8(%edi)
+
+	addl	$DV_WIDTH, %esi
+	addl	$16, %edi
+
+	movq	          (%esi), %mm0
+	movq	DV_WIDTH/2(%esi), %mm1
+	movq               8(%esi), %mm2
+	movq	DV_WIDTH/2+8(%esi), %mm3
+
+	paddw	%mm0, %mm1
+	paddw	%mm2, %mm3
+	psraw	$1, %mm1
+	psraw	$1, %mm3
+
+	movq	%mm1, 0*8(%edi)
+	movq	%mm3, 1*8(%edi)
+
+	addl	$DV_WIDTH, %esi
+	addl	$16, %edi
+
+	movq	          (%esi), %mm0
+	movq	DV_WIDTH/2(%esi), %mm1
+	movq               8(%esi), %mm2
+	movq	DV_WIDTH/2+8(%esi), %mm3
+
+	paddw	%mm0, %mm1
+	paddw	%mm2, %mm3
+	psraw	$1, %mm1
+	psraw	$1, %mm3
+
+	movq	%mm1, 0*8(%edi)
+	movq	%mm3, 1*8(%edi)
+
+	addl	$DV_WIDTH, %esi
+	addl	$16, %edi
+
+	movq	          (%esi), %mm0
+	movq	DV_WIDTH/2(%esi), %mm1
+	movq               8(%esi), %mm2
+	movq	DV_WIDTH/2+8(%esi), %mm3
+
+	paddw	%mm0, %mm1
+	paddw	%mm2, %mm3
+	psraw	$1, %mm1
+	psraw	$1, %mm3
+
+	movq	%mm1, 0*8(%edi)
+	movq	%mm3, 1*8(%edi)
+
+	addl	$DV_WIDTH, %esi
+	addl	$16, %edi
+
+	movq	          (%esi), %mm0
+	movq	DV_WIDTH/2(%esi), %mm1
+	movq               8(%esi), %mm2
+	movq	DV_WIDTH/2+8(%esi), %mm3
+
+	paddw	%mm0, %mm1
+	paddw	%mm2, %mm3
+	psraw	$1, %mm1
+	psraw	$1, %mm3
+
+	movq	%mm1, 0*8(%edi)
+	movq	%mm3, 1*8(%edi)
+
 	pop	%ebx
 	pop	%edi
 	pop	%esi
@@ -481,7 +566,7 @@ copy_ntsc_c_block_mmx_loop:
 	movq	%mm1, 0*8(%edi)
 	movq	%mm3, 1*8(%edi)
 
-	addl	$DV_WIDTH_2, %esi
+	addl	$DV_WIDTH/2, %esi
 	addl	$16, %edi
 
 	movq	(%esi), %mm0
@@ -497,7 +582,7 @@ copy_ntsc_c_block_mmx_loop:
 	movq	%mm1, 0*8(%edi)
 	movq	%mm3, 1*8(%edi)
 
-	addl	$DV_WIDTH_2, %esi
+	addl	$DV_WIDTH/2, %esi
 	addl	$16, %edi
 
 	decl	%ebx

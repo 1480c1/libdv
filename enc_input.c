@@ -23,16 +23,15 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
  
-#include <stdio.h>
-#include <stdlib.h>
-#include <signal.h>
-#include <string.h>
-
 #include "enc_input.h"
 #include "encode.h"
 #include "dct.h"
 #include "dv_types.h"
 #include "mmx.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
 
 #if HAVE_LINUX_VIDEODEV_H
 #define HAVE_DEV_VIDEO  1
@@ -48,8 +47,6 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #endif
-
-// #define ARCH_X86 0
 
 #if !ARCH_X86
 inline gint f2b(float f)
@@ -159,53 +156,54 @@ void dv_enc_rgb_to_ycb(unsigned char* img_rgb, int height,
 #endif
 }
 
+extern void yuvtoycb_mmx(unsigned char* inPtr, int rows, int columns,
+			 short* outyPtr, short* outuPtr, short* outvPtr);
+
+void dv_enc_yuv_to_ycb(unsigned char* img_yuv, int height,
+		       short* img_y, short* img_cr, short* img_cb)
+{
+#if !ARCH_X86
+	/* to be written */
+#else
+	yuvtoycb_mmx(img_yuv, height, DV_WIDTH, (short*) img_y,
+		     (short*) img_cr, (short*) img_cb);
+	emms();
+#endif
+}
+
+extern void ycbtoycb_mmx(unsigned char* inPtr, int rows, int columns,
+			 short* outyPtr, short* outuPtr, short* outvPtr);
+
+static void dv_enc_ycb_to_ycb(unsigned char* img_ycb, int height,
+			      short* img_y, short* img_cr, short* img_cb)
+{
+#if !ARCH_X86
+	long count = height * DV_WIDTH;
+	unsigned char* p = img_ycb;
+
+	while (count--) {
+		/* FIXME: - 128 + 16 doesn't work? */
+		*img_y++ = (*p++ - 128) << DCT_YUV_PRECISION; 
+	}
+
+	count = height * DV_WIDTH / 2;
+	while (count--) {
+		*img_cb++ = (*p++ - 128) << DCT_YUV_PRECISION;
+	}
+
+	count = height * DV_WIDTH / 2;
+	while (count--) {
+		*img_cr++ = (*p++ - 128) << DCT_YUV_PRECISION;
+	}
+#else
+	ycbtoycb_mmx(img_ycb, height, DV_WIDTH, (short*) img_y,
+		     (short*) img_cr, (short*) img_cb);
+	emms();
+#endif
+}
 
 static unsigned char* readbuf = NULL;
-static unsigned char* real_readbuf = 0; /* for wrong interlacing */
-
-static short* img_y = NULL; /* [DV_PAL_HEIGHT * DV_WIDTH]; */
-static short* img_cr = NULL; /* [DV_PAL_HEIGHT * DV_WIDTH / 2]; */
-static short* img_cb = NULL; /* [DV_PAL_HEIGHT * DV_WIDTH / 2]; */
-
-#if !ARCH_X86
-
-int need_dct_248_transposed(dv_coeff_t * bl)
-{
-	int res = 0;
-	int i,j;
-	
-	for (j = 0; j < 7; j ++) {
-		for (i = 0; i < 8; i++) {
-			int a = bl[i * 8 + j] - bl[i * 8 + j + 1];
-			int b = (a >> 15);
-			a ^= b;
-			a -= b;
-			a &= DCT_248_THRESMASK;
-			res += a;
-		}
-	}
-	return (res > DCT_248_THRESHOLD);
-}
-
-#else
-
-extern int need_dct_248_mmx(dv_coeff_t * bl, short* thres_mask);
-
-int need_dct_248_mmx_normal(dv_coeff_t * bl)
-{
-	int res;
-	short thres_mask[4] = {DCT_248_THRESMASK, DCT_248_THRESMASK, 
-			       DCT_248_THRESMASK, DCT_248_THRESMASK };
-	res = need_dct_248_mmx(bl, thres_mask);
-	return (res > DCT_248_THRESHOLD);
-}
-
-extern void transpose_mmx(short * dst);
-extern void ppm_copy_y_block_mmx(short * dst, short * src);
-extern void ppm_copy_pal_c_block_mmx(short * dst, short * src);
-extern void ppm_copy_ntsc_c_block_mmx(short * dst, short * src);
-
-#endif /* ARCH_X86 */
+static int wrong_interlace = 0;
 
 static int read_ppm_stream(FILE* f, int * isPAL, int * height_)
 {
@@ -241,17 +239,10 @@ static int read_ppm_stream(FILE* f, int * isPAL, int * height_)
 	return 0;
 }
 
-static int ppm_init(int wrong_interlace) 
+static int ppm_init(int wrong_interlace_) 
 {
+	wrong_interlace = wrong_interlace_;
 	readbuf = (unsigned char*) calloc(DV_WIDTH * (DV_PAL_HEIGHT + 1), 3);
-	real_readbuf = readbuf;
-	if (wrong_interlace) {
-		real_readbuf += DV_WIDTH * 3;
-	}
-
-	img_y = (short*) calloc(DV_PAL_HEIGHT * DV_WIDTH, sizeof(short));
-	img_cr = (short*) calloc(DV_PAL_HEIGHT * DV_WIDTH / 2, sizeof(short));
-	img_cb = (short*) calloc(DV_PAL_HEIGHT * DV_WIDTH / 2, sizeof(short));
 
 	return 0;
 }
@@ -259,15 +250,14 @@ static int ppm_init(int wrong_interlace)
 static void ppm_finish()
 {
 	free(readbuf);
-	free(img_y);
-	free(img_cr);
-	free(img_cb);
 }
 
-static int ppm_load(const char* filename, int * isPAL)
+static int ppm_load(const char* filename, int * isPAL, 
+		    short* img_y, short * img_cr, short * img_cb)
 {
 	FILE* ppm_in = NULL;
 	int rval = -1;
+	unsigned char* rbuf = readbuf;
 	int height;
 
 	if (strcmp(filename, "-") == 0) {
@@ -284,328 +274,12 @@ static int ppm_load(const char* filename, int * isPAL)
 		fclose(ppm_in);
 	}
 	if (rval != -1) {
-		dv_enc_rgb_to_ycb(real_readbuf, height, img_y, img_cr, img_cb);
+		if (wrong_interlace) {
+			rbuf += DV_WIDTH * 3;
+		}
+		dv_enc_rgb_to_ycb(rbuf, height, img_y, img_cr, img_cb);
 	}
 	return rval;
-}
-
-static int ppm_skip(const char* filename, int * isPAL)
-{
-	return 0;
-}
-
-static void ppm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
-{
-	int y = mb->y;
-	int x = mb->x;
-	int b;
-	dv_block_t* bl = mb->b;
-#if !ARCH_X86
-	if (isPAL || mb->x == DV_WIDTH- 16) { /* PAL or rightmost NTSC block */
-		int i,j;
-		for (j = 0; j < 8; j++) {
-			for (i = 0; i < 8; i++) {
-				bl[0].coeffs[8 * i + j] = 
-					img_y[(y + j) * DV_WIDTH +  x + i];
-				bl[1].coeffs[8 * i + j] = 
-					img_y[(y + j) * DV_WIDTH +  x + 8 + i];
-				bl[2].coeffs[8 * i + j] = 
-					img_y[(y + 8 + j) * DV_WIDTH + x + i];
-				bl[3].coeffs[8 * i + j] = 
-					img_y[(y + 8 + j) * DV_WIDTH 
-					     + x + 8 + i];
-				bl[4].coeffs[8 * i + j] = 
-					(img_cr[(y + 2*j) * DV_WIDTH/2 
-					       + x / 2 + i]
-					+ img_cr[(y + 2*j + 1) * DV_WIDTH/2
-						+ x / 2 + i]) >> 1;
-				bl[5].coeffs[8 * i + j] = 
-					(img_cb[(y + 2*j) * DV_WIDTH/2
-					      + x / 2 + i]
-					+ img_cb[(y + 2*j + 1) * DV_WIDTH/2
-						+ x / 2 + i]) >> 1;
-			}
-		}
-	} else {                        /* NTSC */
-		int i,j;
-		for (j = 0; j < 8; j++) {
-			for (i = 0; i < 8; i++) {
-				bl[0].coeffs[8 * i + j] = 
-					img_y[(y + j) * DV_WIDTH +  x + i];
-				bl[1].coeffs[8 * i + j] = 
-					img_y[(y + j) * DV_WIDTH +  x + 8 + i];
-				bl[2].coeffs[8 * i + j] = 
-					img_y[(y + j) * DV_WIDTH + x + 16 + i];
-				bl[3].coeffs[8 * i + j] = 
-					img_y[(y + j) * DV_WIDTH + x + 24 + i];
-				bl[4].coeffs[8 * i + j] = 
-					(img_cr[(y + j) * DV_WIDTH/2
-					       + x / 2 + i*2]
-					 + img_cr[(y + j) * DV_WIDTH/2 
-						 + x / 2 + 1 + i*2]) >> 1;
-				bl[5].coeffs[8 * i + j] = 
-					(img_cb[(y + j) * DV_WIDTH/2
-					       + x / 2 + i*2]
-					 + img_cb[(y + j) * DV_WIDTH/2 
-						 + x / 2 + 1 + i*2]) >> 1;
-			}
-		}
-	}
-	for (b = 0; b < 6; b++) {
-		bl[b].dct_mode = need_dct_248_transposed(bl[b].coeffs) 
-			? DV_DCT_248 : DV_DCT_88;
-	}
-#else
-	if (isPAL || mb->x == DV_WIDTH- 16) { /* PAL or rightmost NTSC block */
-		short* start_y = img_y + y * DV_WIDTH + x;
-		ppm_copy_y_block_mmx(bl[0].coeffs, start_y);
-		ppm_copy_y_block_mmx(bl[1].coeffs, start_y + 8);
-		ppm_copy_y_block_mmx(bl[2].coeffs, start_y + 8 * DV_WIDTH);
-		ppm_copy_y_block_mmx(bl[3].coeffs, start_y + 8 * DV_WIDTH + 8);
-		ppm_copy_pal_c_block_mmx(bl[4].coeffs,
-					 img_cr+y * DV_WIDTH/2+ x/2);
-		ppm_copy_pal_c_block_mmx(bl[5].coeffs,
-					 img_cb+y * DV_WIDTH/2+ x/2);
-	} else {                              /* NTSC */
-		short* start_y = img_y + y * DV_WIDTH + x;
-		ppm_copy_y_block_mmx(bl[0].coeffs, start_y);
-		ppm_copy_y_block_mmx(bl[1].coeffs, start_y + 8);
-		ppm_copy_y_block_mmx(bl[2].coeffs, start_y + 16);
-		ppm_copy_y_block_mmx(bl[3].coeffs, start_y + 24);
-		ppm_copy_ntsc_c_block_mmx(bl[4].coeffs,
-					  img_cr + y*DV_WIDTH/2 + x/2);
-		ppm_copy_ntsc_c_block_mmx(bl[5].coeffs,
-					  img_cb + y*DV_WIDTH/2 + x/2);
-	}
-	for (b = 0; b < 6; b++) {
-		bl[b].dct_mode = need_dct_248_mmx_normal(bl[b].coeffs) 
-			? DV_DCT_248 : DV_DCT_88;
-	}
-	transpose_mmx(bl[0].coeffs);
-	transpose_mmx(bl[1].coeffs);
-	transpose_mmx(bl[2].coeffs);
-	transpose_mmx(bl[3].coeffs);
-	transpose_mmx(bl[4].coeffs);
-	transpose_mmx(bl[5].coeffs);
-	emms();
-#endif
-}
-
-
-static int read_pgm_stream(FILE* f, int * isPAL, int * height_)
-{
-	int height, width;
-	char line[200];
-	fgets(line, sizeof(line), f);
-	if (feof(f)) {
-		return -1;
-	}
-	do {
-		fgets(line, sizeof(line), f); /* P5 */
-	} while ((line[0] == '#'||(line[0] == '\n')) && !feof(f));
-	if (sscanf(line, "%d %d\n", &width, &height) != 2) {
-		fprintf(stderr, "Bad PGM file!\n");
-		return -1;
-	}
-	height = height / 3 * 2;
-	if (width != DV_WIDTH || 
-	    (height != DV_PAL_HEIGHT && height != DV_NTSC_HEIGHT)) {
-		fprintf(stderr, "Invalid picture size! (%d, %d)\n"
-			"Allowed sizes are 720x864 for PAL and "
-			"720x720 for NTSC\n"
-			"Probably you should try ppms and ppmqscale...\n" 
-			"(Or write pgmqscale and include it in libdv ;-)\n",
-			width, height);
-		return -1;
-	}
-	fgets(line, sizeof(line), f);	/* 255 */
-	
-	fread(readbuf, 1, DV_WIDTH * height * 3 / 2, f);
-
-	*height_ = height;
-	*isPAL = (height == DV_PAL_HEIGHT);
-
-	return 0;
-}
-
-static int pgm_init(int wrong_interlace) 
-{
-	readbuf = (unsigned char*) calloc(DV_WIDTH * (DV_PAL_HEIGHT + 1), 3);
-	real_readbuf = readbuf;
-	if (wrong_interlace) {
-		real_readbuf += DV_WIDTH;
-	}
-
-	return 0;
-}
-
-static void pgm_finish()
-{
-	free(readbuf);
-}
-
-static int pgm_load(const char* filename, int * isPAL)
-{
-	FILE* pgm_in = NULL;
-	int rval = -1;
-	int height;
-
-	if (strcmp(filename, "-") == 0) {
-		pgm_in = stdin;
-	} else {
-		pgm_in = fopen(filename, "r");
-		if (pgm_in == NULL) {
-			return -1;
-		}
-	}
-
-	rval = read_pgm_stream(pgm_in, isPAL, &height);
-	if (pgm_in != stdin) {
-		fclose(pgm_in);
-	}
-	return rval;
-}
-
-static int pgm_skip(const char* filename, int * isPAL)
-{
-	return 0;
-}
-
-#if !ARCH_X86
-static inline short pgm_get_y(int y, int x)
-{
-	return (((short) real_readbuf[y * DV_WIDTH + x]) - 128 + 16)
-		<< DCT_YUV_PRECISION;
-}
-
-static inline short pgm_get_cr_pal(int y, int x)
-{
-	return (real_readbuf[DV_PAL_HEIGHT * DV_WIDTH + DV_WIDTH/2  
-			    + y * DV_WIDTH + x] 
-		- 128) << DCT_YUV_PRECISION;
-
-}
-
-static inline short pgm_get_cb_pal(int y, int x)
-{
-	return (real_readbuf[DV_PAL_HEIGHT * DV_WIDTH +
-			    + y * DV_WIDTH + x] - 128) << DCT_YUV_PRECISION;
-
-}
-
-static inline short pgm_get_cr_ntsc(int y, int x)
-{
-	return ((((short) real_readbuf[DV_NTSC_HEIGHT * DV_WIDTH+ DV_WIDTH/2
-				      + y * DV_WIDTH + x]) - 128)
-		+ (((short) real_readbuf[DV_NTSC_HEIGHT * DV_WIDTH+DV_WIDTH/2
-					+ y * DV_WIDTH + x + 1]) - 128))
-						<< (DCT_YUV_PRECISION - 1);
-}
-
-static inline short pgm_get_cb_ntsc(int y, int x)
-{
-	return ((((short) real_readbuf[DV_NTSC_HEIGHT * DV_WIDTH
-				      + y * DV_WIDTH + x]) - 128)
-		+ (((short) real_readbuf[DV_NTSC_HEIGHT * DV_WIDTH
-					+ y * DV_WIDTH + x + 1]) - 128))
-						<< (DCT_YUV_PRECISION - 1);
-}
-
-#else
-extern void pgm_copy_y_block_mmx(short * dst, unsigned char * src);
-extern void pgm_copy_pal_c_block_mmx(short * dst, unsigned char * src);
-extern void pgm_copy_ntsc_c_block_mmx(short * dst, unsigned char * src);
-#endif
-
-static void pgm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
-{
-	int y = mb->y;
-	int x = mb->x;
-	int b;
-	dv_block_t* bl = mb->b;
-#if !ARCH_X86
-	if (isPAL || mb->x == DV_WIDTH- 16) { /* PAL or rightmost NTSC block */
-		int i,j;
-		for (j = 0; j < 8; j++) {
-			for (i = 0; i < 8; i++) {
-				bl[0].coeffs[8*i + j] = pgm_get_y(y+j,x+i);
-				bl[1].coeffs[8*i + j] = pgm_get_y(y+j,x+8+i);
-				bl[2].coeffs[8*i + j] = pgm_get_y(y+8+j,x+i);
-				bl[3].coeffs[8*i + j] = pgm_get_y(y+8+j,x+8+i);
-				bl[4].coeffs[8*i + j] = 
-					pgm_get_cr_pal(y/2+j, x/2+i);
-				bl[5].coeffs[8*i + j] = 
-					pgm_get_cb_pal(y/2+j, x/2+i);
-			}
-		}
-	} else {                        /* NTSC */
-		int i,j;
-		for (i = 0; i < 8; i++) {
-			for (j = 0; j < 8; j++) {
-				bl[0].coeffs[8*i + j] = pgm_get_y(y+j,x+i);
-				bl[1].coeffs[8*i + j] = pgm_get_y(y+j,x+8+i);
-				bl[2].coeffs[8*i + j] = pgm_get_y(y+j,x+16+i);
-				bl[3].coeffs[8*i + j] = pgm_get_y(y+j,x+24+i);
-			}
-			for (j = 0; j < 4; j++) {
-				bl[4].coeffs[8*i + j*2] = 
-					bl[4].coeffs[8*i + j*2 + 1] = 
-					pgm_get_cr_ntsc(y + j, x/2 + i * 2);
-				bl[5].coeffs[8*i + j*2] = 
-					bl[5].coeffs[8*i + j*2 + 1] = 
-					pgm_get_cb_ntsc(y + j, x/2 + i * 2);
-			}
-		}
-	}
-	for (b = 0; b < 6; b++) {
-		bl[b].dct_mode = need_dct_248_transposed(bl[b].coeffs) 
-			? DV_DCT_248 : DV_DCT_88;
-	}
-#else
-	if (isPAL || mb->x == DV_WIDTH- 16) { /* PAL or rightmost NTSC block */
-		unsigned char* start_y = real_readbuf + y * DV_WIDTH + x;
-		unsigned char* img_cr = real_readbuf 
-			+ (isPAL ? (DV_WIDTH * DV_PAL_HEIGHT)
-			   : (DV_WIDTH * DV_NTSC_HEIGHT)) + DV_WIDTH / 2;
-		unsigned char* img_cb = real_readbuf 
-			+ (isPAL ? (DV_WIDTH * DV_PAL_HEIGHT) 
-			   : (DV_WIDTH * DV_NTSC_HEIGHT));
-
-		pgm_copy_y_block_mmx(bl[0].coeffs, start_y);
-		pgm_copy_y_block_mmx(bl[1].coeffs, start_y + 8);
-		pgm_copy_y_block_mmx(bl[2].coeffs, start_y + 8 * DV_WIDTH);
-		pgm_copy_y_block_mmx(bl[3].coeffs, start_y + 8 * DV_WIDTH + 8);
-		pgm_copy_pal_c_block_mmx(bl[4].coeffs,
-					 img_cr + y * DV_WIDTH / 2 + x / 2);
-		pgm_copy_pal_c_block_mmx(bl[5].coeffs,
-					 img_cb + y * DV_WIDTH / 2 + x / 2);
-	} else {                              /* NTSC */
-		unsigned char* start_y = real_readbuf + y * DV_WIDTH + x;
-		unsigned char* img_cr = real_readbuf 
-			+ DV_WIDTH * DV_NTSC_HEIGHT + DV_WIDTH / 2;
-		unsigned char* img_cb = real_readbuf 
-			+ DV_WIDTH * DV_NTSC_HEIGHT;
-		pgm_copy_y_block_mmx(bl[0].coeffs, start_y);
-		pgm_copy_y_block_mmx(bl[1].coeffs, start_y + 8);
-		pgm_copy_y_block_mmx(bl[2].coeffs, start_y + 16);
-		pgm_copy_y_block_mmx(bl[3].coeffs, start_y + 24);
-		pgm_copy_ntsc_c_block_mmx(bl[4].coeffs,
-					  img_cr + y * DV_WIDTH / 2 + x / 2);
-		pgm_copy_ntsc_c_block_mmx(bl[5].coeffs,
-					  img_cb + y * DV_WIDTH / 2 + x / 2);
-	}
-	for (b = 0; b < 6; b++) {
-		bl[b].dct_mode = need_dct_248_mmx_normal(bl[b].coeffs) 
-			? DV_DCT_248 : DV_DCT_88;
-	}
-	transpose_mmx(bl[0].coeffs);
-	transpose_mmx(bl[1].coeffs);
-	transpose_mmx(bl[2].coeffs);
-	transpose_mmx(bl[3].coeffs);
-	transpose_mmx(bl[4].coeffs);
-	transpose_mmx(bl[5].coeffs);
-	emms();
-#endif
 }
 
 
@@ -692,188 +366,48 @@ static void video_finish()
 	close_capture();
 }
 
-static int fnumber = -1;
-
-static int video_load(const char* filename, int * isPAL)
+static int video_load(const char* filename, int * isPAL, 
+		       short* img_y, short * img_cr, short * img_cb)
 {
+	int fnumber;
+
 	if (vid_in == -1) {
 		if (init_vid_device(filename) < 0) {
 			return -1;
 		}
-	} else {
-		ioerror("VIDIOCMCAPTURE",
-			ioctl(vid_in, VIDIOCMCAPTURE, &gb_frames[fnumber]));
 	}
 
 	fnumber = (frame_counter++) % gb_buffers.frames;
 
 	ioerror("VIDIOCSYNC", ioctl(vid_in, VIDIOCSYNC, &gb_frames[fnumber]));
 	
-	real_readbuf = vid_map + gb_buffers.offsets[fnumber];
-
+	dv_enc_ycb_to_ycb(vid_map + gb_buffers.offsets[fnumber],
+			  DV_PAL_HEIGHT, img_y, img_cr, img_cb);
 	*isPAL = 1;
 
+	ioerror("VIDIOCMCAPTURE",
+		ioctl(vid_in, VIDIOCMCAPTURE, &gb_frames[fnumber]));
 	return 0;
-}
-
-#if !ARCH_X86
-static inline short video_get_y(int y, int x)
-{
-	return (((short) real_readbuf[y * DV_WIDTH + x]) - 128)
-		<< DCT_YUV_PRECISION;
-}
-
-static inline short video_get_cr_pal(int y, int x)
-{
-	return ((((short) real_readbuf[DV_PAL_HEIGHT * DV_WIDTH
-				      + y * DV_WIDTH + x]) - 128)
-		+ (((short) real_readbuf[DV_PAL_HEIGHT * DV_WIDTH
-					+ y * DV_WIDTH + DV_WIDTH / 2+ x]) 
-		   - 128)) << (DCT_YUV_PRECISION - 1);
-}
-
-static inline short video_get_cb_pal(int y, int x)
-{
-	return ((((short) real_readbuf[DV_PAL_HEIGHT * DV_WIDTH * 3/2
-				      + y * DV_WIDTH + x]) - 128)
-		+ (((short) real_readbuf[DV_PAL_HEIGHT * DV_WIDTH * 3/2
-					+ y * DV_WIDTH + DV_WIDTH / 2+ x]) 
-		   - 128)) << (DCT_YUV_PRECISION - 1);
-}
-
-static inline short video_get_cr_ntsc(int y, int x)
-{
-	return ((((short) real_readbuf[DV_NTSC_HEIGHT * DV_WIDTH
-				      + y * DV_WIDTH + x]) - 128)
-		+ (((short) real_readbuf[DV_NTSC_HEIGHT * DV_WIDTH
-					+ y * DV_WIDTH + x + 1]) - 128))
-						<< (DCT_YUV_PRECISION - 1);
-}
-
-static inline short video_get_cb_ntsc(int y, int x)
-{
-	return ((((short) real_readbuf[DV_NTSC_HEIGHT * DV_WIDTH*3/2
-				      + y * DV_WIDTH + x]) - 128)
-		+ (((short) real_readbuf[DV_NTSC_HEIGHT * DV_WIDTH*3/2
-					+ y * DV_WIDTH + x + 1]) - 128))
-						<< (DCT_YUV_PRECISION - 1);
-}
-
-
-#else
-extern void video_copy_y_block_mmx(short * dst, unsigned char * src);
-extern void video_copy_pal_c_block_mmx(short * dst, unsigned char * src);
-extern void video_copy_ntsc_c_block_mmx(short * dst, unsigned char * src);
-#endif
-
-
-static void video_fill_macroblock(dv_macroblock_t *mb, int isPAL)
-{
-	int y = mb->y;
-	int x = mb->x;
-	int b;
-	dv_block_t* bl = mb->b;
-#if !ARCH_X86
-	if (isPAL || mb->x == DV_WIDTH- 16) { /* PAL or rightmost NTSC block */
-		int i,j;
-		for (j = 0; j < 8; j++) {
-			for (i = 0; i < 8; i++) {
-				bl[0].coeffs[8*i + j] = video_get_y(y+j,x+i);
-				bl[1].coeffs[8*i + j] = video_get_y(y+j,x+8+i);
-				bl[2].coeffs[8*i + j]=video_get_y(y+8+j,x+i);
-				bl[3].coeffs[8*i + j]=video_get_y(y+8+j,x+8+i);
-				bl[4].coeffs[8*i + j] = 
-					video_get_cr_pal(y/2+j, x/2+i);
-				bl[5].coeffs[8*i + j] = 
-					video_get_cb_pal(y/2+j, x/2+i);
-			}
-		}
-	} else {                        /* NTSC */
-		int i,j;
-		for (i = 0; i < 8; i++) {
-			for (j = 0; j < 8; j++) {
-				bl[0].coeffs[8*i + j] = video_get_y(y+j,x+i);
-				bl[1].coeffs[8*i + j] = video_get_y(y+j,x+8+i);
-				bl[2].coeffs[8*i + j]= video_get_y(y+j,x+16+i);
-				bl[3].coeffs[8*i + j]= video_get_y(y+j,x+24+i);
-				bl[4].coeffs[8*i + j] = 
-					video_get_cr_ntsc(y/2+j, x/2+i);
-				bl[5].coeffs[8*i + j] = 
-					video_get_cb_ntsc(y/2+j, x/2+i);
-			}
-		}
-	}
-	for (b = 0; b < 6; b++) {
-		bl[b].dct_mode = need_dct_248_transposed(bl[b].coeffs) 
-			? DV_DCT_248 : DV_DCT_88;
-	}
-#else
-	if (isPAL || mb->x == DV_WIDTH- 16) { /* PAL or rightmost NTSC block */
-		unsigned char* start_y = real_readbuf + y * DV_WIDTH + x;
-		unsigned char* img_cr = real_readbuf 
-			+ (isPAL ? DV_WIDTH * DV_PAL_HEIGHT * 3/2  
-			   : DV_WIDTH * DV_NTSC_HEIGHT * 3/2);
-		unsigned char* img_cb = real_readbuf 
-			+ (isPAL ? DV_WIDTH * DV_PAL_HEIGHT
-			   : DV_WIDTH * DV_NTSC_HEIGHT);
-
-		video_copy_y_block_mmx(bl[0].coeffs, start_y);
-		video_copy_y_block_mmx(bl[1].coeffs, start_y + 8);
-		video_copy_y_block_mmx(bl[2].coeffs, start_y + 8 * DV_WIDTH);
-		video_copy_y_block_mmx(bl[3].coeffs, start_y + 8 * DV_WIDTH+8);
-		video_copy_pal_c_block_mmx(bl[4].coeffs,
-					 img_cr + y * DV_WIDTH / 2 + x / 2);
-		video_copy_pal_c_block_mmx(bl[5].coeffs,
-					 img_cb + y * DV_WIDTH / 2 + x / 2);
-	} else {                              /* NTSC */
-		unsigned char* start_y = real_readbuf + y * DV_WIDTH + x;
-		unsigned char* img_cr = real_readbuf 
-			+ DV_WIDTH * DV_NTSC_HEIGHT * 3 / 2;
-		unsigned char* img_cb = real_readbuf 
-			+ DV_WIDTH * DV_NTSC_HEIGHT;
-		video_copy_y_block_mmx(bl[0].coeffs, start_y);
-		video_copy_y_block_mmx(bl[1].coeffs, start_y + 8);
-		video_copy_y_block_mmx(bl[2].coeffs, start_y + 16);
-		video_copy_y_block_mmx(bl[3].coeffs, start_y + 24);
-		video_copy_ntsc_c_block_mmx(bl[4].coeffs,
-					  img_cr + y * DV_WIDTH / 2 + x / 2);
-		video_copy_ntsc_c_block_mmx(bl[5].coeffs,
-					  img_cb + y * DV_WIDTH / 2 + x / 2);
-	}
-	for (b = 0; b < 6; b++) {
-		bl[b].dct_mode = need_dct_248_mmx_normal(bl[b].coeffs) 
-			? DV_DCT_248 : DV_DCT_88;
-	}
-	transpose_mmx(bl[0].coeffs);
-	transpose_mmx(bl[1].coeffs);
-	transpose_mmx(bl[2].coeffs);
-	transpose_mmx(bl[3].coeffs);
-	transpose_mmx(bl[4].coeffs);
-	transpose_mmx(bl[5].coeffs);
-	emms();
-#endif
 }
 
 #endif
 
 
 static dv_enc_input_filter_t filters[DV_ENC_MAX_INPUT_FILTERS] = {
-	{ ppm_init, ppm_finish, ppm_load, ppm_skip, 
-	  ppm_fill_macroblock, "ppm" },
+	{ ppm_init, ppm_finish, ppm_load, "ppm" },
 #if HAVE_DEV_VIDEO
-	{ video_init, video_finish, video_load, video_load, 
-	  video_fill_macroblock,"video" },
+	{ video_init, video_finish, video_load, "video" },
 #endif
-	{ pgm_init, pgm_finish, pgm_load, pgm_skip, 
-	  pgm_fill_macroblock, "pgm" },
+#if 0
+	{ pgm_init, pgm_finish, pgm_load, "pgm" },
+#endif
 	{ NULL, NULL, NULL, NULL }};
 
 void dv_enc_register_input_filter(dv_enc_input_filter_t filter)
 {
 	dv_enc_input_filter_t * p = filters;
 	while (p->filter_name) p++;
-	*p++ = filter;
-	p->filter_name = NULL;
+	*p = filter;
 }
 
 int get_dv_enc_input_filters(dv_enc_input_filter_t ** filters_,

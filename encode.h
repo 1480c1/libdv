@@ -26,14 +26,8 @@
 #ifndef DV_ENCODE_H
 #define DV_ENCODE_H
 
-#include "dct.h"
-
 #define DV_WIDTH       720
 #define DV_PAL_HEIGHT  576
 #define DV_NTSC_HEIGHT 480
-
-/* FIXME: Just guessed! */
-#define DCT_248_THRESHOLD ((8 * 8 * 8) << DCT_YUV_PRECISION)
-#define DCT_248_THRESMASK ((~63)       << DCT_YUV_PRECISION)
 
 #endif

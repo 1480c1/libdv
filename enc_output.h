@@ -27,7 +27,6 @@
 #define DV_ENC_OUTPUT_H
 
 #include <time.h>
-#include "enc_audio_input.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,7 +37,6 @@ extern "C" {
 		int (*init)();
 		void (*finish)();
 		int (*store)(unsigned char* encoded_data, 
-			     dv_enc_audio_info_t* audio_data,/* may be null */
 			     int isPAL, time_t now);
 
 		const char* filter_name;

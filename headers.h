@@ -32,8 +32,8 @@
 extern "C" {
 #endif
 
-extern void write_meta_data(unsigned char* target, int frame, int isPAL,
-			    time_t * now);
+extern void write_info_blocks(unsigned char* target, int frame, int isPAL,
+			      time_t * now);
 
 #ifdef __cplusplus
 }

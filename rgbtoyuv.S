@@ -36,9 +36,6 @@
 #define PRECISION  1
 #define FIXPSHIFT  CONSTSHIFT-PRECISION
 	
-#define	DV_WIDTH2 720*2
-#define	DV_WIDTH  720
-	
 .global rgbtoycb_mmx
 .global yuvtoycb_mmx
 
@@ -369,505 +366,39 @@ rgbtoycb_mmx_loop:
 
 	ret     
 
-.global ppm_copy_y_block_mmx
-ppm_copy_y_block_mmx:
+yuvtoycb_mmx:
 
+	ret	
+
+.global ycbtoycb_mmx
+	
+ycbtoycb_mmx:
 	pushl   %ebp
 	movl    %esp, %ebp
+	pushl   %eax
+	pushl   %ebx
+	pushl   %ecx
+	pushl   %edx
 	pushl   %esi
-	pushl	%edi
+	pushl   %edi
+
+	movl    _rows(%ebp), %eax
+	movl    _columns(%ebp), %ebx
+	mull    %ebx            #number pixels
+	movl    %eax, %edi      #loop counter in edi
+	shrl	$4, %edi
+
+	movl	%edi, %ecx
 	
-	movl    8(%ebp), %edi          # dest
-	movl    12(%ebp), %esi         # src
-	
-	movq	(%esi), %mm0
-	movq	8(%esi), %mm1
-	movq	%mm0, 0*8(%edi)
-	movq	%mm1, 1*8(%edi) 
-	movq	DV_WIDTH2(%esi), %mm2
-	movq	DV_WIDTH2+8(%esi), %mm3
-	movq	%mm2, 2*8(%edi)
-	movq	%mm3, 3*8(%edi) 
-	movq	DV_WIDTH2*2(%esi), %mm4
-	movq	DV_WIDTH2*2+8(%esi), %mm5
-	movq	%mm4, 4*8(%edi)
-	movq	%mm5, 5*8(%edi) 
-	movq	DV_WIDTH2*3(%esi), %mm6
-	movq	DV_WIDTH2*3+8(%esi), %mm7
-	movq	%mm6, 6*8(%edi)
-	movq	%mm7, 7*8(%edi) 
-
-	movq	DV_WIDTH2*4(%esi), %mm0
-	movq	DV_WIDTH2*4+8(%esi), %mm1
-	movq	%mm0, 8*8(%edi)
-	movq	%mm1, 9*8(%edi) 
-	movq	DV_WIDTH2*5(%esi), %mm2
-	movq	DV_WIDTH2*5+8(%esi), %mm3
-	movq	%mm2, 10*8(%edi)
-	movq	%mm3, 11*8(%edi) 
-	movq	DV_WIDTH2*6(%esi), %mm4
-	movq	DV_WIDTH2*6+8(%esi), %mm5
-	movq	%mm4, 12*8(%edi)
-	movq	%mm5, 13*8(%edi) 
-	movq	DV_WIDTH2*7(%esi), %mm6
-	movq	DV_WIDTH2*7+8(%esi), %mm7
-	movq	%mm6, 14*8(%edi)
-	movq	%mm7, 15*8(%edi) 
-	
-	pop	%edi
-	pop	%esi
-	pop	%ebp
-	ret
-
-.global pgm_copy_y_block_mmx
-pgm_copy_y_block_mmx:
-
-	pushl   %ebp
-	movl    %esp, %ebp
-	pushl   %esi
-	pushl	%edi
-	
-	movl    8(%ebp), %edi          # dest
-	movl    12(%ebp), %esi         # src
-
-	movq	OFFSETY, %mm7
-	pxor	%mm6, %mm6
-	
-	movq	(%esi), %mm0
-	movq	DV_WIDTH(%esi), %mm1
-
-	movq	%mm0, %mm2
-	movq	%mm1, %mm3
-
-	punpcklbw %mm6, %mm0
-	punpcklbw %mm6, %mm1
-
-	punpckhbw %mm6, %mm2
-	punpckhbw %mm6, %mm3
-	
-#if PRECISION > 0	
-	psllw	$PRECISION, %mm0
-	psllw	$PRECISION, %mm1
-	psllw	$PRECISION, %mm2
-	psllw	$PRECISION, %mm3
-#endif
-		
-	paddw	%mm7, %mm0
-	paddw	%mm7, %mm1
-	paddw	%mm7, %mm2
-	paddw	%mm7, %mm3
-
-	movq	%mm0, (%edi)
-	movq	%mm2, 8(%edi)
-	movq	%mm1, 16(%edi)
-	movq	%mm3, 24(%edi)
-
-	addl	$2*DV_WIDTH, %esi
-	addl	$32, %edi
-
-	movq	(%esi), %mm0
-	movq	DV_WIDTH(%esi), %mm1
-
-	movq	%mm0, %mm2
-	movq	%mm1, %mm3
-
-	punpcklbw %mm6, %mm0
-	punpcklbw %mm6, %mm1
-
-	punpckhbw %mm6, %mm2
-	punpckhbw %mm6, %mm3
-	
-#if PRECISION > 0	
-	psllw	$PRECISION, %mm0
-	psllw	$PRECISION, %mm1
-	psllw	$PRECISION, %mm2
-	psllw	$PRECISION, %mm3
-#endif
-
-	paddw	%mm7, %mm0
-	paddw	%mm7, %mm1
-	paddw	%mm7, %mm2
-	paddw	%mm7, %mm3
-		
-	movq	%mm0, (%edi)
-	movq	%mm2, 8(%edi)
-	movq	%mm1, 16(%edi)
-	movq	%mm3, 24(%edi)
-
-	addl	$2*DV_WIDTH, %esi
-	addl	$32, %edi
-
-	movq	(%esi), %mm0
-	movq	DV_WIDTH(%esi), %mm1
-
-	movq	%mm0, %mm2
-	movq	%mm1, %mm3
-
-	punpcklbw %mm6, %mm0
-	punpcklbw %mm6, %mm1
-
-	punpckhbw %mm6, %mm2
-	punpckhbw %mm6, %mm3
-	
-#if PRECISION > 0	
-	psllw	$PRECISION, %mm0
-	psllw	$PRECISION, %mm1
-	psllw	$PRECISION, %mm2
-	psllw	$PRECISION, %mm3
-#endif
-	paddw	%mm7, %mm0
-	paddw	%mm7, %mm1
-	paddw	%mm7, %mm2
-	paddw	%mm7, %mm3
-		
-	movq	%mm0, (%edi)
-	movq	%mm2, 8(%edi)
-	movq	%mm1, 16(%edi)
-	movq	%mm3, 24(%edi)
-
-	addl	$2*DV_WIDTH, %esi
-	addl	$32, %edi
-
-	movq	(%esi), %mm0
-	movq	DV_WIDTH(%esi), %mm1
-
-	movq	%mm0, %mm2
-	movq	%mm1, %mm3
-
-	punpcklbw %mm6, %mm0
-	punpcklbw %mm6, %mm1
-
-	punpckhbw %mm6, %mm2
-	punpckhbw %mm6, %mm3
-	
-#if PRECISION > 0	
-	psllw	$PRECISION, %mm0
-	psllw	$PRECISION, %mm1
-	psllw	$PRECISION, %mm2
-	psllw	$PRECISION, %mm3
-#endif
-	paddw	%mm7, %mm0
-	paddw	%mm7, %mm1
-	paddw	%mm7, %mm2
-	paddw	%mm7, %mm3
-		
-	movq	%mm0, (%edi)
-	movq	%mm2, 8(%edi)
-	movq	%mm1, 16(%edi)
-	movq	%mm3, 24(%edi)
-
-	pop	%edi
-	pop	%esi
-	pop	%ebp
-	ret
-
-.global video_copy_y_block_mmx
-video_copy_y_block_mmx:
-
-	pushl   %ebp
-	movl    %esp, %ebp
-	pushl   %esi
-	pushl	%edi
-	
-	movl    8(%ebp), %edi          # dest
-	movl    12(%ebp), %esi         # src
-
-	movq	OFFSETBX, %mm7
-	pxor	%mm6, %mm6
-	
-	movq	(%esi), %mm0
-	movq	DV_WIDTH(%esi), %mm1
-
-	movq	%mm0, %mm2
-	movq	%mm1, %mm3
-
-	punpcklbw %mm6, %mm0
-	punpcklbw %mm6, %mm1
-
-	punpckhbw %mm6, %mm2
-	punpckhbw %mm6, %mm3
-	
-	psubw	%mm7, %mm0
-	psubw	%mm7, %mm1
-	psubw	%mm7, %mm2
-	psubw	%mm7, %mm3
-
-#if PRECISION > 0	
-	psllw	$PRECISION, %mm0
-	psllw	$PRECISION, %mm1
-	psllw	$PRECISION, %mm2
-	psllw	$PRECISION, %mm3
-#endif
-		
-	movq	%mm0, (%edi)
-	movq	%mm2, 8(%edi)
-	movq	%mm1, 16(%edi)
-	movq	%mm3, 24(%edi)
-
-	addl	$2*DV_WIDTH, %esi
-	addl	$32, %edi
-
-	movq	(%esi), %mm0
-	movq	DV_WIDTH(%esi), %mm1
-
-	movq	%mm0, %mm2
-	movq	%mm1, %mm3
-
-	punpcklbw %mm6, %mm0
-	punpcklbw %mm6, %mm1
-
-	punpckhbw %mm6, %mm2
-	punpckhbw %mm6, %mm3
-	
-	psubw	%mm7, %mm0
-	psubw	%mm7, %mm1
-	psubw	%mm7, %mm2
-	psubw	%mm7, %mm3
-
-#if PRECISION > 0	
-	psllw	$PRECISION, %mm0
-	psllw	$PRECISION, %mm1
-	psllw	$PRECISION, %mm2
-	psllw	$PRECISION, %mm3
-#endif
-		
-	movq	%mm0, (%edi)
-	movq	%mm2, 8(%edi)
-	movq	%mm1, 16(%edi)
-	movq	%mm3, 24(%edi)
-
-	addl	$2*DV_WIDTH, %esi
-	addl	$32, %edi
-
-	movq	(%esi), %mm0
-	movq	DV_WIDTH(%esi), %mm1
-
-	movq	%mm0, %mm2
-	movq	%mm1, %mm3
-
-	punpcklbw %mm6, %mm0
-	punpcklbw %mm6, %mm1
-
-	punpckhbw %mm6, %mm2
-	punpckhbw %mm6, %mm3
-	
-	psubw	%mm7, %mm0
-	psubw	%mm7, %mm1
-	psubw	%mm7, %mm2
-	psubw	%mm7, %mm3
-
-#if PRECISION > 0	
-	psllw	$PRECISION, %mm0
-	psllw	$PRECISION, %mm1
-	psllw	$PRECISION, %mm2
-	psllw	$PRECISION, %mm3
-#endif
-		
-	movq	%mm0, (%edi)
-	movq	%mm2, 8(%edi)
-	movq	%mm1, 16(%edi)
-	movq	%mm3, 24(%edi)
-
-	addl	$2*DV_WIDTH, %esi
-	addl	$32, %edi
-
-	movq	(%esi), %mm0
-	movq	DV_WIDTH(%esi), %mm1
-
-	movq	%mm0, %mm2
-	movq	%mm1, %mm3
-
-	punpcklbw %mm6, %mm0
-	punpcklbw %mm6, %mm1
-
-	punpckhbw %mm6, %mm2
-	punpckhbw %mm6, %mm3
-	
-	psubw	%mm7, %mm0
-	psubw	%mm7, %mm1
-	psubw	%mm7, %mm2
-	psubw	%mm7, %mm3
-
-#if PRECISION > 0	
-	psllw	$PRECISION, %mm0
-	psllw	$PRECISION, %mm1
-	psllw	$PRECISION, %mm2
-	psllw	$PRECISION, %mm3
-#endif
-		
-	movq	%mm0, (%edi)
-	movq	%mm2, 8(%edi)
-	movq	%mm1, 16(%edi)
-	movq	%mm3, 24(%edi)
-
-	pop	%edi
-	pop	%esi
-	pop	%ebp
-	ret
-	
-		
-.global ppm_copy_pal_c_block_mmx
-ppm_copy_pal_c_block_mmx:
-				
-	pushl   %ebp
-	movl    %esp, %ebp
-	pushl   %esi
-	pushl	%edi
-	pushl	%ebx
-	
-	movl    8(%ebp), %edi          # dest
-	movl    12(%ebp), %esi         # src
-
-	movq	          (%esi), %mm0
-	movq	DV_WIDTH2/2(%esi), %mm1
-	movq               8(%esi), %mm2
-	movq	DV_WIDTH2/2+8(%esi), %mm3
-
-	paddw	%mm0, %mm1
-	paddw	%mm2, %mm3
-	psraw	$1, %mm1
-	psraw	$1, %mm3
-
-	movq	%mm1, 0*8(%edi)
-	movq	%mm3, 1*8(%edi)
-
-	addl	$DV_WIDTH2, %esi
-	addl	$16, %edi
-
-	movq	          (%esi), %mm0
-	movq	DV_WIDTH2/2(%esi), %mm1
-	movq               8(%esi), %mm2
-	movq	DV_WIDTH2/2+8(%esi), %mm3
-
-	paddw	%mm0, %mm1
-	paddw	%mm2, %mm3
-	psraw	$1, %mm1
-	psraw	$1, %mm3
-
-	movq	%mm1, 0*8(%edi)
-	movq	%mm3, 1*8(%edi)
-
-	addl	$DV_WIDTH2, %esi
-	addl	$16, %edi
-
-	movq	          (%esi), %mm0
-	movq	DV_WIDTH2/2(%esi), %mm1
-	movq               8(%esi), %mm2
-	movq	DV_WIDTH2/2+8(%esi), %mm3
-
-	paddw	%mm0, %mm1
-	paddw	%mm2, %mm3
-	psraw	$1, %mm1
-	psraw	$1, %mm3
-
-	movq	%mm1, 0*8(%edi)
-	movq	%mm3, 1*8(%edi)
-
-	addl	$DV_WIDTH2, %esi
-	addl	$16, %edi
-
-	movq	          (%esi), %mm0
-	movq	DV_WIDTH2/2(%esi), %mm1
-	movq               8(%esi), %mm2
-	movq	DV_WIDTH2/2+8(%esi), %mm3
-
-	paddw	%mm0, %mm1
-	paddw	%mm2, %mm3
-	psraw	$1, %mm1
-	psraw	$1, %mm3
-
-	movq	%mm1, 0*8(%edi)
-	movq	%mm3, 1*8(%edi)
-
-	addl	$DV_WIDTH2, %esi
-	addl	$16, %edi
-
-	movq	          (%esi), %mm0
-	movq	DV_WIDTH2/2(%esi), %mm1
-	movq               8(%esi), %mm2
-	movq	DV_WIDTH2/2+8(%esi), %mm3
-
-	paddw	%mm0, %mm1
-	paddw	%mm2, %mm3
-	psraw	$1, %mm1
-	psraw	$1, %mm3
-
-	movq	%mm1, 0*8(%edi)
-	movq	%mm3, 1*8(%edi)
-
-	addl	$DV_WIDTH2, %esi
-	addl	$16, %edi
-
-	movq	          (%esi), %mm0
-	movq	DV_WIDTH2/2(%esi), %mm1
-	movq               8(%esi), %mm2
-	movq	DV_WIDTH2/2+8(%esi), %mm3
-
-	paddw	%mm0, %mm1
-	paddw	%mm2, %mm3
-	psraw	$1, %mm1
-	psraw	$1, %mm3
-
-	movq	%mm1, 0*8(%edi)
-	movq	%mm3, 1*8(%edi)
-
-	addl	$DV_WIDTH2, %esi
-	addl	$16, %edi
-
-	movq	          (%esi), %mm0
-	movq	DV_WIDTH2/2(%esi), %mm1
-	movq               8(%esi), %mm2
-	movq	DV_WIDTH2/2+8(%esi), %mm3
-
-	paddw	%mm0, %mm1
-	paddw	%mm2, %mm3
-	psraw	$1, %mm1
-	psraw	$1, %mm3
-
-	movq	%mm1, 0*8(%edi)
-	movq	%mm3, 1*8(%edi)
-
-	addl	$DV_WIDTH2, %esi
-	addl	$16, %edi
-
-	movq	          (%esi), %mm0
-	movq	DV_WIDTH2/2(%esi), %mm1
-	movq               8(%esi), %mm2
-	movq	DV_WIDTH2/2+8(%esi), %mm3
-
-	paddw	%mm0, %mm1
-	paddw	%mm2, %mm3
-	psraw	$1, %mm1
-	psraw	$1, %mm3
-
-	movq	%mm1, 0*8(%edi)
-	movq	%mm3, 1*8(%edi)
-
-	pop	%ebx
-	pop	%edi
-	pop	%esi
-	pop	%ebp
-	ret
-
-.global pgm_copy_pal_c_block_mmx
-pgm_copy_pal_c_block_mmx:
-				
-	pushl   %ebp
-	movl    %esp, %ebp
-	pushl   %esi
-	pushl	%edi
-	pushl	%ebx
-	
-	movl    8(%ebp), %edi          # dest
-	movl    12(%ebp), %esi         # src
-
+	movl    _inPtr(%ebp), %eax
+	movl    _outyPtr(%ebp), %ebx
 
 	movq	OFFSETBX, %mm7
 	pxor	%mm6, %mm6
 
-	
-	movq	(%esi), %mm0
-	movq	DV_WIDTH(%esi), %mm1
+ycbtoycb_mmx_loop_y:
+	movq	(%eax), %mm0
+	movq	8(%eax), %mm1
 
 	movq	%mm0, %mm2
 	movq	%mm1, %mm3
@@ -883,23 +414,29 @@ pgm_copy_pal_c_block_mmx:
 	psubw	%mm7, %mm2
 	psubw	%mm7, %mm3
 
-#if PRECISION > 0	
 	psllw	$PRECISION, %mm0
 	psllw	$PRECISION, %mm1
 	psllw	$PRECISION, %mm2
 	psllw	$PRECISION, %mm3
-#endif
-		
-	movq	%mm0, (%edi)
-	movq	%mm2, 8(%edi)
-	movq	%mm1, 16(%edi)
-	movq	%mm3, 24(%edi)
+	
+	movq	%mm0, (%ebx)
+	movq	%mm2, 8(%ebx)
+	movq	%mm1, 16(%ebx)
+	movq	%mm3, 24(%ebx)
 
-	addl	$2*DV_WIDTH, %esi
-	addl	$32, %edi
-
-	movq	(%esi), %mm0
-	movq	DV_WIDTH(%esi), %mm1
+	addl	$16, %eax
+	addl	$32, %ebx
+	
+	decl	%edi
+	jnz	ycbtoycb_mmx_loop_y	
+	
+	movl    _outvPtr(%ebp), %ebx
+	shrl	$1, %ecx
+	movl	%ecx, %edi
+	
+ycbtoycb_mmx_loop_v:
+	movq	(%eax), %mm0
+	movq	8(%eax), %mm1
 
 	movq	%mm0, %mm2
 	movq	%mm1, %mm3
@@ -915,23 +452,28 @@ pgm_copy_pal_c_block_mmx:
 	psubw	%mm7, %mm2
 	psubw	%mm7, %mm3
 
-#if PRECISION > 0	
 	psllw	$PRECISION, %mm0
 	psllw	$PRECISION, %mm1
 	psllw	$PRECISION, %mm2
 	psllw	$PRECISION, %mm3
-#endif
-		
-	movq	%mm0, (%edi)
-	movq	%mm2, 8(%edi)
-	movq	%mm1, 16(%edi)
-	movq	%mm3, 24(%edi)
+	
+	movq	%mm0, (%ebx)
+	movq	%mm2, 8(%ebx)
+	movq	%mm1, 16(%ebx)
+	movq	%mm3, 24(%ebx)
 
-	addl	$2*DV_WIDTH, %esi
-	addl	$32, %edi
+	addl	$16, %eax
+	addl	$32, %ebx
+	
+	decl	%edi
+	jnz	ycbtoycb_mmx_loop_v
 
-	movq	(%esi), %mm0
-	movq	DV_WIDTH(%esi), %mm1
+	movl    _outuPtr(%ebp), %ebx
+	movl	%ecx, %edi
+	
+ycbtoycb_mmx_loop_u:
+	movq	(%eax), %mm0
+	movq	8(%eax), %mm1
 
 	movq	%mm0, %mm2
 	movq	%mm1, %mm3
@@ -947,466 +489,31 @@ pgm_copy_pal_c_block_mmx:
 	psubw	%mm7, %mm2
 	psubw	%mm7, %mm3
 
-#if PRECISION > 0	
 	psllw	$PRECISION, %mm0
 	psllw	$PRECISION, %mm1
 	psllw	$PRECISION, %mm2
 	psllw	$PRECISION, %mm3
-#endif
-		
-	movq	%mm0, (%edi)
-	movq	%mm2, 8(%edi)
-	movq	%mm1, 16(%edi)
-	movq	%mm3, 24(%edi)
-
-	addl	$2*DV_WIDTH, %esi
-	addl	$32, %edi
-
-	movq	(%esi), %mm0
-	movq	DV_WIDTH(%esi), %mm1
-
-	movq	%mm0, %mm2
-	movq	%mm1, %mm3
-
-	punpcklbw %mm6, %mm0
-	punpcklbw %mm6, %mm1
-
-	punpckhbw %mm6, %mm2
-	punpckhbw %mm6, %mm3
 	
-	psubw	%mm7, %mm0
-	psubw	%mm7, %mm1
-	psubw	%mm7, %mm2
-	psubw	%mm7, %mm3
+	movq	%mm0, (%ebx)
+	movq	%mm2, 8(%ebx)
+	movq	%mm1, 16(%ebx)
+	movq	%mm3, 24(%ebx)
 
-#if PRECISION > 0	
-	psllw	$PRECISION, %mm0
-	psllw	$PRECISION, %mm1
-	psllw	$PRECISION, %mm2
-	psllw	$PRECISION, %mm3
-#endif
-		
-	movq	%mm0, (%edi)
-	movq	%mm2, 8(%edi)
-	movq	%mm1, 16(%edi)
-	movq	%mm3, 24(%edi)
-
-	pop	%ebx
-	pop	%edi
-	pop	%esi
-	pop	%ebp
-	ret
-
-.global video_copy_pal_c_block_mmx
-video_copy_pal_c_block_mmx:
-				
-	pushl   %ebp
-	movl    %esp, %ebp
-	pushl   %esi
-	pushl	%edi
-	pushl	%ebx
+	addl	$16, %eax
+	addl	$32, %ebx
 	
-	movl    8(%ebp), %edi          # dest
-	movl    12(%ebp), %esi         # src
-
-	movq	OFFSETBX, %mm7
-	paddw	%mm7, %mm7
-	pxor	%mm6, %mm6
-
-	movl	$4, %ebx
-	
-video_copy_pal_c_block_mmx_loop:	
-	
-	movq	(%esi), %mm0
-	movq    DV_WIDTH/2(%esi), %mm2
-
-	movq	%mm0, %mm1
-	movq	%mm2, %mm3
-
-	punpcklbw %mm6, %mm0
-	punpcklbw %mm6, %mm2
-
-	punpckhbw %mm6, %mm1
-	punpckhbw %mm6, %mm3
-	
-	paddw	%mm0, %mm2
-	paddw	%mm1, %mm3
-
-	psubw	%mm7, %mm2
-	psubw	%mm7, %mm3
-	
-#if PRECISION == 0	
-	psraw	$1, %mm2
-	psraw	$1, %mm3
-#else	
-#if PRECISION > 1
-	psllw	$PRECISION-1, %mm2
-	psllw	$PRECISION-1, %mm3
-#endif
-#endif
-	movq	%mm2, 0*8(%edi)
-	movq	%mm3, 1*8(%edi)
-
-	addl	$DV_WIDTH, %esi
-	addl	$16, %edi
-
-	movq	(%esi), %mm0
-	movq    DV_WIDTH/2(%esi), %mm2
-
-	movq	%mm0, %mm1
-	movq	%mm2, %mm3
-
-	punpcklbw %mm6, %mm0
-	punpcklbw %mm6, %mm2
-
-	punpckhbw %mm6, %mm1
-	punpckhbw %mm6, %mm3
-	
-	paddw	%mm0, %mm2
-	paddw	%mm1, %mm3
-
-	psubw	%mm7, %mm2
-	psubw	%mm7, %mm3
-	
-#if PRECISION == 0	
-	psraw	$1, %mm2
-	psraw	$1, %mm3
-#else	
-#if PRECISION > 1
-	psllw	$PRECISION-1, %mm2
-	psllw	$PRECISION-1, %mm3
-#endif
-#endif
-	movq	%mm2, 0*8(%edi)
-	movq	%mm3, 1*8(%edi)
-
-	addl	$DV_WIDTH, %esi
-	addl	$16, %edi
-
-	decl	%ebx
-	jnz	video_copy_pal_c_block_mmx_loop
-
-	pop	%ebx
-	pop	%edi
-	pop	%esi
-	pop	%ebp
-	ret
-	
-.global ppm_copy_ntsc_c_block_mmx
-ppm_copy_ntsc_c_block_mmx:
-				
-	pushl   %ebp
-	movl    %esp, %ebp
-	pushl   %esi
-	pushl	%edi
-	pushl	%ebx
-	
-	movl    8(%ebp), %edi          # dest
-	movl    12(%ebp), %esi         # src
-
-	movl	$4, %ebx	
-
-ppm_copy_ntsc_c_block_mmx_loop:	
-	
-	movq	(%esi), %mm0
-	movq    8(%esi), %mm1
-	movq	16(%esi), %mm2
-	movq	24(%esi), %mm3
-
-	paddw	%mm0, %mm1
-	paddw	%mm2, %mm3
-	psraw	$1, %mm1
-	psraw	$1, %mm3
-
-	movq	%mm1, 0*8(%edi)
-	movq	%mm3, 1*8(%edi)
-
-	addl	$DV_WIDTH/2, %esi
-	addl	$16, %edi
-
-	movq	(%esi), %mm0
-	movq    8(%esi), %mm1
-	movq	16(%esi), %mm2
-	movq	24(%esi), %mm3
-
-	paddw	%mm0, %mm1
-	paddw	%mm2, %mm3
-	psraw	$1, %mm1
-	psraw	$1, %mm3
-
-	movq	%mm1, 0*8(%edi)
-	movq	%mm3, 1*8(%edi)
-
-	addl	$DV_WIDTH/2, %esi
-	addl	$16, %edi
-
-	decl	%ebx
-	jnz	ppm_copy_ntsc_c_block_mmx_loop
-				
-	pop	%ebx
-	pop	%edi
-	pop	%esi
-	pop	%ebp
-	ret
-
-.global pgm_copy_ntsc_c_block_mmx
-pgm_copy_ntsc_c_block_mmx:
-				
-	pushl   %ebp
-	movl    %esp, %ebp
-	pushl   %esi
-	pushl	%edi
-	
-	movl    8(%ebp), %edi          # dest
-	movl    12(%ebp), %esi         # src
-
-	movq	OFFSETBX, %mm7
-	paddw	%mm7, %mm7
-	pxor	%mm6, %mm6
-
-	movq	(%esi), %mm0
-	movq    8(%esi), %mm2
-
-	movq	%mm0, %mm1
-	movq	%mm2, %mm3
-
-	punpcklbw %mm6, %mm0
-	punpcklbw %mm6, %mm2
-
-	punpckhbw %mm6, %mm1
-	punpckhbw %mm6, %mm3
-	
-	paddw	%mm0, %mm1
-	paddw	%mm2, %mm3
-
-	psubw	%mm7, %mm1
-	psubw	%mm7, %mm3
-	
-#if PRECISION == 0	
-	psraw	$1, %mm1
-	psraw	$1, %mm3
-#else	
-#if PRECISION > 1
-	psllw	$PRECISION-1, %mm1
-	psllw	$PRECISION-1, %mm3
-#endif
-#endif
-	movq	%mm1, 0*8(%edi)
-	movq	%mm3, 1*8(%edi)
-	movq	%mm1, 2*8(%edi)
-	movq	%mm3, 3*8(%edi)
-
-	addl	$DV_WIDTH, %esi
-	addl	$32, %edi
-
-	movq	(%esi), %mm0
-	movq    8(%esi), %mm2
-
-	movq	%mm0, %mm1
-	movq	%mm2, %mm3
-
-	punpcklbw %mm6, %mm0
-	punpcklbw %mm6, %mm2
-
-	punpckhbw %mm6, %mm1
-	punpckhbw %mm6, %mm3
-	
-	paddw	%mm0, %mm1
-	paddw	%mm2, %mm3
-
-	psubw	%mm7, %mm1
-	psubw	%mm7, %mm3
-	
-#if PRECISION == 0	
-	psraw	$1, %mm1
-	psraw	$1, %mm3
-#else	
-#if PRECISION > 1
-	psllw	$PRECISION-1, %mm1
-	psllw	$PRECISION-1, %mm3
-#endif
-#endif
-	movq	%mm1, 0*8(%edi)
-	movq	%mm3, 1*8(%edi)
-	movq	%mm1, 2*8(%edi)
-	movq	%mm3, 3*8(%edi)
-
-	addl	$DV_WIDTH, %esi
-	addl	$32, %edi
-
-	movq	(%esi), %mm0
-	movq    8(%esi), %mm2
-
-	movq	%mm0, %mm1
-	movq	%mm2, %mm3
-
-	punpcklbw %mm6, %mm0
-	punpcklbw %mm6, %mm2
-
-	punpckhbw %mm6, %mm1
-	punpckhbw %mm6, %mm3
-	
-	paddw	%mm0, %mm1
-	paddw	%mm2, %mm3
-
-	psubw	%mm7, %mm1
-	psubw	%mm7, %mm3
-	
-#if PRECISION == 0	
-	psraw	$1, %mm1
-	psraw	$1, %mm3
-#else	
-#if PRECISION > 1
-	psllw	$PRECISION-1, %mm1
-	psllw	$PRECISION-1, %mm3
-#endif
-#endif
-	movq	%mm1, 0*8(%edi)
-	movq	%mm3, 1*8(%edi)
-	movq	%mm1, 2*8(%edi)
-	movq	%mm3, 3*8(%edi)
-
-	addl	$DV_WIDTH, %esi
-	addl	$32, %edi
-
-	movq	(%esi), %mm0
-	movq    8(%esi), %mm2
-
-	movq	%mm0, %mm1
-	movq	%mm2, %mm3
-
-	punpcklbw %mm6, %mm0
-	punpcklbw %mm6, %mm2
-
-	punpckhbw %mm6, %mm1
-	punpckhbw %mm6, %mm3
-	
-	paddw	%mm0, %mm1
-	paddw	%mm2, %mm3
-
-	psubw	%mm7, %mm1
-	psubw	%mm7, %mm3
-	
-#if PRECISION == 0	
-	psraw	$1, %mm1
-	psraw	$1, %mm3
-#else	
-#if PRECISION > 1
-	psllw	$PRECISION-1, %mm1
-	psllw	$PRECISION-1, %mm3
-#endif
-#endif
-	movq	%mm1, 0*8(%edi)
-	movq	%mm3, 1*8(%edi)
-	movq	%mm1, 2*8(%edi)
-	movq	%mm3, 3*8(%edi)
-
-	pop	%edi
-	pop	%esi
-	pop	%ebp
-	ret
-
-.global video_copy_ntsc_c_block_mmx
-video_copy_ntsc_c_block_mmx:
-				
-	pushl   %ebp
-	movl    %esp, %ebp
-	pushl   %esi
-	pushl	%edi
-	pushl	%ebx
-	
-	movl    8(%ebp), %edi          # dest
-	movl    12(%ebp), %esi         # src
-
-	movq	OFFSETBX, %mm7
-	paddw	%mm7, %mm7
-	pxor	%mm6, %mm6
-
-	movl	$4, %ebx
-	
-video_copy_ntsc_c_block_mmx_loop:	
-	
-	movq	(%esi), %mm0
-	movq    8(%esi), %mm2
-
-	movq	%mm0, %mm1
-	movq	%mm2, %mm3
-
-	punpcklbw %mm6, %mm0
-	punpcklbw %mm6, %mm2
-
-	punpckhbw %mm6, %mm1
-	punpckhbw %mm6, %mm3
-	
-	paddw	%mm0, %mm1
-	paddw	%mm2, %mm3
-
-	psubw	%mm7, %mm1
-	psubw	%mm7, %mm3
-	
-#if PRECISION == 0	
-	psraw	$1, %mm1
-	psraw	$1, %mm3
-#else	
-#if PRECISION > 1
-	psllw	$PRECISION-1, %mm1
-	psllw	$PRECISION-1, %mm3
-#endif
-#endif
-	movq	%mm1, 0*8(%edi)
-	movq	%mm3, 1*8(%edi)
-
-	addl	$DV_WIDTH/2, %esi
-	addl	$16, %edi
-
-	movq	(%esi), %mm0
-	movq    8(%esi), %mm2
-
-	movq	%mm0, %mm1
-	movq	%mm2, %mm3
-
-	punpcklbw %mm6, %mm0
-	punpcklbw %mm6, %mm2
-
-	punpckhbw %mm6, %mm1
-	punpckhbw %mm6, %mm3
-	
-	paddw	%mm0, %mm1
-	paddw	%mm2, %mm3
-
-	psubw	%mm7, %mm1
-	psubw	%mm7, %mm3
-	
-#if PRECISION == 0	
-	psraw	$1, %mm1
-	psraw	$1, %mm3
-#else	
-#if PRECISION > 1
-	psllw	$PRECISION-1, %mm1
-	psllw	$PRECISION-1, %mm3
-#endif
-#endif
-	movq	%mm1, 0*8(%edi)
-	movq	%mm3, 1*8(%edi)
-
-	addl	$DV_WIDTH/2, %esi
-	addl	$16, %edi
-
-	decl	%ebx
-	jnz	video_copy_ntsc_c_block_mmx_loop
-
-
-	pop	%ebx
-	pop	%edi
-	pop	%esi
-	pop	%ebp
-	ret
-
-
-
-
-
-
+	decl	%edi
+	jnz	ycbtoycb_mmx_loop_u
+
+	popl    %edi
+	popl    %esi
+	popl    %edx
+	popl    %ecx
+	popl    %ebx
+	popl    %eax
+	popl    %ebp
+
+	ret     
 
 
 
