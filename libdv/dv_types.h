@@ -420,6 +420,12 @@ typedef struct {
                    sample_failure,
                    real_samples_this_frame,
                    fail_samples_this_frame;
+  /* -------------------------------------------------------------------------
+   * memorize deemphasis values
+   */
+  short            lastin [4];
+  double           lastout [4];
+
   FILE             *error_log;
   dv_decoder_tp    dv_decoder;
 #if HAVE_LIBPOPT

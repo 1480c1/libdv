@@ -586,11 +586,7 @@ dv_decode_full_audio(dv_decoder_t *dv, const uint8_t *buffer, int16_t **outbufs)
     dv_audio_correct_errors (dv -> audio, outbufs);
   }
 
-  if(dv->audio->emphasis) {
-    for(ch=0; ch< dv->audio->raw_num_channels; ch++) {
-      dv_audio_deemphasis(dv->audio, outbufs[ch]);
-    } /* for  */
-  } /* if */
+  dv_audio_deemphasis (dv -> audio, outbufs);
 
   dv_audio_mix4ch (dv -> audio, outbufs);
 

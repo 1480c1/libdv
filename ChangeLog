@@ -1,3 +1,7 @@
+2003-09-23 Stefan Lucke <stefan@lucke.in-berlin.de>
+        * keep deemphasis filter state across frame boundaries
+	* extend audio frequency table with additional undefined entries.
+
 2003-08-20 Dan Dennedy <dan@dennedy.org>
 	* headers.c: correct target[3] that indicates NTSC/PAL to 
 	  correct values based upon my SMPTE 314M spec and data samples

@@ -89,8 +89,8 @@ static int max_samples[2][3] = {
   { 1944, 1786, 1296 }, /* 50 fields (PAL) */
 };
 
-static int frequency[3] = {
-  48000, 44100, 32000
+static int frequency[8] = {
+  48000, 44100, 32000, -3, -4, -5, -6, -7
 };
 
 
@@ -523,37 +523,49 @@ dv_update_num_samples(dv_audio_t *dv_audio, const uint8_t *inbuf) {
 /* This code originates from cdda2wav, by way of Giovanni Iachello <g.iachello@iol.it>
    to Arne Schirmacher <arne@schirmacher.de>. */
 void
-dv_audio_deemphasis(dv_audio_t *audio, int16_t *outbuf)
+dv_audio_deemphasis(dv_audio_t *audio, int16_t **outbuf)
 {
-  int i;
-  /* this implements an attenuation treble shelving filter
-     to undo the effect of pre-emphasis. The filter is of
-     a recursive first order */
-  /* static */ short lastin[2] = { 0, 0 };
-  /* static */ double lastout[2] = { 0.0, 0.0 };
-  short *pmm;
-  /* See deemphasis.gnuplot */
-  double V0	= 0.3365;
-  double OMEGAG = (1./19e-6);
-  double T	= (1./audio->frequency);
-  double H0	= (V0-1.);
-  double B	= (V0*tan((OMEGAG * T)/2.0));
-  double a1	= ((B - 1.)/(B + 1.));
-  double b0 = (1.0 + (1.0 - a1) * H0/2.0);
-  double b1 = (a1 + (a1 - 1.0) * H0/2.0);
+    int i, ch;
+    /* this implements an attenuation treble shelving filter
+       to undo the effect of pre-emphasis. The filter is of
+       a recursive first order */
+    short lastin;
+    double lastout;
+    short *pmm;
+    /* See deemphasis.gnuplot */
+    double V0     = 0.3365;
+    double OMEGAG = (1./19e-6);
+    double T  = (1./audio->frequency);
+    double H0 = (V0-1.);
+    double B  = (V0*tan((OMEGAG * T)/2.0));
+    double a1 = ((B - 1.)/(B + 1.));
+    double b0 = (1.0 + (1.0 - a1) * H0/2.0);
+    double b1 = (a1 + (a1 - 1.0) * H0/2.0);
 
-  /* For 48Khz: a1= -0.659065 b0= 0.449605 b1= -0.108670
-   * For 44.1Khz: a1=-0.62786881719628784282  b0=	0.45995451989513153057 b1=-0.08782333709141937339
-   * For 32kHZ ? */
-
-  for (pmm = (short *)outbuf, i=0;
-       i < audio->raw_samples_this_frame [0]; /* TODO: check for second channel */
-       i++) {
-    lastout[0] = *pmm * b0 + lastin[0] * b1 - lastout[0] * a1;
-    lastin[0] = *pmm;
-    *pmm++ = lastout[0] > 0.0 ? lastout[0] + 0.5 : lastout[0] - 0.5;
-  } /* for */
-
+  if (audio->emphasis) {
+    for (ch=0; ch< audio->raw_num_channels; ch++) {
+      /* ---------------------------------------------------------------------
+       * For 48Khz:   a1=-0.659065
+       *              b0= 0.449605
+       *              b1=-0.108670
+       * For 44.1Khz: a1=-0.62786881719628784282
+       *              b0= 0.45995451989513153057
+       *              b1=-0.08782333709141937339
+       * For 32kHZ ?
+       */
+      lastin = audio->lastin [ch];
+      lastout = audio->lastout [ch];
+      for (pmm = (short *)outbuf [ch], i=0;
+           i < audio->raw_samples_this_frame [0]; /* TODO: check for second channel */
+           i++) {
+        lastout = *pmm * b0 + lastin * b1 - lastout * a1;
+        lastin = *pmm;
+        *pmm++ = (lastout > 0.0) ? lastout + 0.5 : lastout - 0.5;
+      } /* for (pmn = .. */
+      audio->lastout [ch] = lastout;
+      audio->lastin [ch] = lastin;
+    } /* for (ch = .. */
+  } /* if (audio -> .. */
 } /* dv_audio_deemphasis */
 
 /* ---------------------------------------------------------------------------
