@@ -34,6 +34,8 @@
 #include "dv_types.h"
 #if ARCH_X86
 #include "mmx.h"
+#else
+#include <math.h>
 #endif
 
 #if HAVE_LINUX_VIDEODEV_H
@@ -406,10 +408,12 @@ static void ppm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 		}
 	}
 	if (force_dct != -1) {
+		int b;
 		for (b = 0; b < 6; b++) {
 			bl[b].dct_mode = force_dct;
 		}
 	} else {
+		int b;
 		for (b = 0; b < 6; b++) {
 			bl[b].dct_mode = need_dct_248_transposed(bl[b].coeffs) 
 				? DV_DCT_248 : DV_DCT_88;
@@ -626,10 +630,12 @@ static void pgm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 		}
 	}
 	if (force_dct != -1) {
+		int b;
 		for (b = 0; b < 6; b++) {
 			bl[b].dct_mode = force_dct;
 		}
 	} else {
+		int b;
 		for (b = 0; b < 6; b++) {
 			bl[b].dct_mode = need_dct_248_transposed(bl[b].coeffs) 
 				? DV_DCT_248 : DV_DCT_88;
@@ -847,10 +853,12 @@ static void video_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 		}
 	}
 	if (force_dct != -1) {
+		int b;
 		for (b = 0; b < 6; b++) {
 			bl[b].dct_mode = force_dct;
 		}
 	} else {
+		int b;
 		for (b = 0; b < 6; b++) {
 			bl[b].dct_mode = need_dct_248_transposed(bl[b].coeffs) 
 				? DV_DCT_248 : DV_DCT_88;

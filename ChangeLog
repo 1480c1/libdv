@@ -1,3 +1,7 @@
+2001-06-24  Daniel Kobras <kobras@tat.physik.uni-tuebingen.de> 
+
+	* Fix enc_input.c with non-asm.
+
 2001-06-24  <zybi@users.sourceforge.net>
 
 	* Important bugfix.  RedHat 7.1 gcc was generating invalid code
