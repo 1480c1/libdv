@@ -186,6 +186,12 @@ if $use_xv; then
 	  $GTK_LIBS)
 fi
 
+dnl *********************************************************************
+dnl Check for the pthread lib
+dnl
+AC_SUBST(PTHREAD_LIBS)
+AC_CHECK_LIB(pthread, pthread_create, [ PTHREAD_LIBS="-lpthread" ],,)
+
 AC_CHECK_LIB(m, sqrt)
 
 dnl Don't bother with popt on non-gcc build, because we make heavy use of 

@@ -74,7 +74,7 @@ static int32_t *table_1_596;
 static int32_t real_ylut[768], *ylut;
 static int32_t real_ylut_setup[768], *ylut_setup;
 
-/* rgb lookup - clamps values in range -256 .. 512 to 0 .. 255 */
+/* rgb lookup - clamps values in range -256 .. 511 to 0 .. 255 */
 static uint8_t real_rgblut[768], *rgblut;
 
 /* ---------------------------------------------------------------------------
@@ -156,8 +156,8 @@ dv_mb411_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_s
 
         for (k = 0; k < 4; ++k) { // 4-pixel span
           int32_t y = (add_ntsc_setup == TRUE) ?
-	  		ylut_setup[clamp (-256, *Ytmp++, 512)] :
-				ylut[clamp (-256, *Ytmp++, 512)];
+	  		ylut_setup[clamp (-256, *Ytmp++, 511)] :
+				ylut[clamp (-256, *Ytmp++, 511)];
           int32_t r = (y + ro) >> COLOR_FRACTION_BITS;
           int32_t g = (y - go) >> COLOR_FRACTION_BITS;
           int32_t b = (y + bo) >> COLOR_FRACTION_BITS;
@@ -211,8 +211,8 @@ dv_mb411_right_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_
           for (k = 0; k < 4; ++k) { // 4x1 pixels
 
             int32_t y = (add_ntsc_setup == TRUE) ?
-	    			ylut_setup[clamp (-256, *Ytmp++, 512)] :
-					ylut[clamp (-256, *Ytmp++, 512)];
+	    			ylut_setup[clamp (-256, *Ytmp++, 511)] :
+					ylut[clamp (-256, *Ytmp++, 511)];
             int32_t r = (y + ro) >> COLOR_FRACTION_BITS;
             int32_t g = (y - go) >> COLOR_FRACTION_BITS;
             int32_t b = (y + bo) >> COLOR_FRACTION_BITS;
@@ -270,7 +270,7 @@ dv_mb420_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
 	  int bo =                   table_2_018[cb];
 
           for (k = 0; k < 2; ++k) { // 2x2 pixel
-            int32_t y = ylut[clamp (-256, *Ytmp0++, 512)];
+            int32_t y = ylut[clamp (-256, *Ytmp0++, 511)];
             int32_t r = (y + ro) >> COLOR_FRACTION_BITS;
             int32_t g = (y - go) >> COLOR_FRACTION_BITS;
             int32_t b = (y + bo) >> COLOR_FRACTION_BITS;
@@ -278,7 +278,7 @@ dv_mb420_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
 	    *pwrgb0++ = rgblut[g];
 	    *pwrgb0++ = rgblut[b];
 
-            y = ylut[clamp (-256, *Ytmp1++, 512)];
+            y = ylut[clamp (-256, *Ytmp1++, 511)];
             r = (y + ro) >> COLOR_FRACTION_BITS;
             g = (y - go) >> COLOR_FRACTION_BITS;
             b = (y + bo) >> COLOR_FRACTION_BITS;
@@ -327,8 +327,8 @@ dv_mb411_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_
 
         for (k = 0; k < 4; ++k) { // 4-pixel span
           int32_t y = (add_ntsc_setup == TRUE) ?
-	  		ylut_setup[clamp (-256, *Ytmp++, 512)] :
-				ylut[clamp (-256, *Ytmp++, 512)];
+	  		ylut_setup[clamp (-256, *Ytmp++, 511)] :
+				ylut[clamp (-256, *Ytmp++, 511)];
           int32_t r = (y + ro) >> COLOR_FRACTION_BITS;
           int32_t g = (y - go) >> COLOR_FRACTION_BITS;
           int32_t b = (y + bo) >> COLOR_FRACTION_BITS;
@@ -383,8 +383,8 @@ dv_mb411_right_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add
           for (k = 0; k < 4; ++k) { // 4x1 pixels
 
             int32_t y = (add_ntsc_setup == TRUE) ?
-	    			ylut_setup[clamp (-256, *Ytmp++, 512)] :
-					ylut[clamp (-256, *Ytmp++, 512)];
+	    			ylut_setup[clamp (-256, *Ytmp++, 511)] :
+					ylut[clamp (-256, *Ytmp++, 511)];
             int32_t r = (y + ro) >> COLOR_FRACTION_BITS;
             int32_t g = (y - go) >> COLOR_FRACTION_BITS;
             int32_t b = (y + bo) >> COLOR_FRACTION_BITS;
@@ -443,7 +443,7 @@ dv_mb420_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
 	  int bo =                   table_2_018[cb];
 
           for (k = 0; k < 2; ++k) { // 2x2 pixel
-            int32_t y = ylut[clamp (-256, *Ytmp0++, 512)];
+            int32_t y = ylut[clamp (-256, *Ytmp0++, 511)];
             int32_t r = (y + ro) >> COLOR_FRACTION_BITS;
             int32_t g = (y - go) >> COLOR_FRACTION_BITS;
             int32_t b = (y + bo) >> COLOR_FRACTION_BITS;
@@ -452,7 +452,7 @@ dv_mb420_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
 	    *pwrgb0++ = rgblut[r];
 	    *pwrgb0++ = 0;
 
-            y = ylut[clamp (-256, *Ytmp1++, 512)];
+            y = ylut[clamp (-256, *Ytmp1++, 511)];
             r = (y + ro) >> COLOR_FRACTION_BITS;
             g = (y - go) >> COLOR_FRACTION_BITS;
             b = (y + bo) >> COLOR_FRACTION_BITS;

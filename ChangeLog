@@ -1,3 +1,7 @@
+2002-05-26  Stefan Lucke <Stefan.Lucke1@epost.de>
+	* apply portability patch of Steven M. Schultz
+	* fix off by one in rgb.c array bounds check
+	
 2002-05-23  Stefan Lucke <Stefan.Lucke1@epost.de>
 	* bugfix for #440048, compile playdv with gtk support
 

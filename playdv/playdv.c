@@ -40,6 +40,18 @@
 #include "display.h"
 #include "oss.h"
 
+#ifndef        timersub
+# define timersub(a, b, result)                          \
+  do {                                                   \
+    (result)->tv_sec = (a)->tv_sec - (b)->tv_sec;        \
+    (result)->tv_usec = (a)->tv_usec - (b)->tv_usec;     \
+    if ((result)->tv_usec < 0) {                         \
+      --(result)->tv_sec;                                \
+      (result)->tv_usec += 1000000;                      \
+    }                                                    \
+  } while (0)
+#endif
+
 #define DV_PLAYER_OPT_VERSION         0
 #define DV_PLAYER_OPT_DISABLE_AUDIO   1
 #define DV_PLAYER_OPT_DISABLE_VIDEO   2

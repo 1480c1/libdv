@@ -38,6 +38,10 @@
 
 static const char *default_device = "/dev/dsp";
 
+#ifndef        O_LARGEFILE
+#define        O_LARGEFILE 0
+#endif
+
 dv_oss_t *
 dv_oss_new(void)
 {

@@ -1,4 +1,4 @@
-/* 
+/*
  *  encode.c
  *
  *     Copyright (C) James Bowman  - July 2000
@@ -1575,7 +1575,7 @@ int dv_encode_videosegment( dv_encoder_t *dv_enc,
 			"specified: %d!\n", dv_enc->vlc_encode_passes);
 		exit(-1);
 	}
-		
+
 	for (m = 0, mb = videoseg->mb; m < 5; m++, mb++) {
 		put_bits(vsbuffer, (8 * (80 * m)) + 28, 4, mb->qno);
 		
@@ -1746,7 +1746,7 @@ int dv_encode_full_frame(dv_encoder_t *dv_enc, uint8_t **in,
 		   the VLC data */
 		/* Loop through video segments */
 		for (v = 0; v < 27; v++) {
-			/* skip audio block - 
+			/* skip audio block -
 			   interleaved before every 3rd video segment
 			*/
 
@@ -1772,8 +1772,9 @@ int dv_encode_full_frame(dv_encoder_t *dv_enc, uint8_t **in,
 	return 0;
 }
 
-void swab(void*, void*, ssize_t);
-
+#ifdef __linux__
+void swab(const void*, void*, ssize_t);
+#endif
 
 /** @brief Encode signed 16-bit integer PCM audio data into a frame of DV video.
  *

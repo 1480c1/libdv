@@ -29,7 +29,7 @@ steal_header_SOURCES = steal_header.c
 ppmqscale_SOURCES = ppmqscale.c
 
 dvconnect_SOURCES = dvconnect.c
-dvconnect_LDADD = -lpthread
+dvconnect_LDADD = $(PTHREAD_LIBS)
 
 dvavi_SOURCES = dvavi.c
 dvavi_LDADD= ../libdv/libdv.la

@@ -47,6 +47,8 @@
 #include <popt.h>
 #endif
 
+static dv_display_t *_dv_dpy;
+
 static int      dv_display_SDL_init(dv_display_t *dv_dpy, gchar *w_name, gchar   *i_name           );
 static gboolean dv_display_gdk_init(dv_display_t *dv_dpy, gint  *argc,   gchar ***argv             );
 
@@ -667,12 +669,12 @@ dv_display_SDL_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name) {
 
 #endif /* HAVE_SDL */
 
+/* ---------------------------------------------------------------------------
+ */
 static void
-dv_display_exit_handler(int code, void *arg)
+dv_display_exit_handler (void)
 {
-  if(code && arg) {
-    dv_display_exit(arg);
-  } /* if */
+  dv_display_exit (_dv_dpy);
 } /* dv_display_exit_handler */
 
 
@@ -804,7 +806,8 @@ dv_display_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv, gint width, gin
   fprintf(stderr, " Using gtk for display\n");
 
  ok:
-  on_exit(dv_display_exit_handler, dv_dpy);
+  _dv_dpy = dv_dpy;
+  atexit(dv_display_exit_handler);
   return(TRUE);
 
  fail:
