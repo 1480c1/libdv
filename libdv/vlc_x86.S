@@ -9,6 +9,7 @@ dv_decode_vlc:
 	/* Args are at 8(%esp). */
 	movl  8(%esp),%eax		/* %eax is bits */
 	movl  12(%esp),%ebx		/* %ebx is maxbits */
+	andl  $0x3f,%ebx		/* limit index range STL*/
 
 	movl  dv_vlc_class_index_mask(,%ebx,4),%edx
 	andl  %eax,%edx

@@ -1,4 +1,4 @@
-/* 
+/*
  *  vlc.c
  *
  *     Copyright (C) Charles 'Buck' Krasic - April 2000
@@ -132,66 +132,16 @@ int8_t dv_vlc_class_lookup5[128] = {
 #endif /* ! __GNUC__ */
 
 /* Indexed by number of bits available */
-#ifdef __GNUC__
-const int8_t *dv_vlc_classes[17] = {
-  [0  ...  2] = &dv_vlc_class_broken[0],
-  [3  ...  6] = &dv_vlc_class_lookup1[0],
-  [7  ... 10] = &dv_vlc_class_lookup2[0],
-  [11 ... 12] = &dv_vlc_class_lookup3[0],
-  [13 ... 15] = &dv_vlc_class_lookup4[0],
-  [16       ] = &dv_vlc_class_lookup5[0],
-}; /* dv_vlc_classes */
-#else /* ! __GNUC__ */
-const int8_t *dv_vlc_classes[17] = {
-   &dv_vlc_class_broken[0],
-   &dv_vlc_class_broken[0],
-   &dv_vlc_class_broken[0],
-   &dv_vlc_class_lookup1[0],
-   &dv_vlc_class_lookup1[0],
-   &dv_vlc_class_lookup1[0],
-   &dv_vlc_class_lookup1[0],
-   &dv_vlc_class_lookup2[0],
-   &dv_vlc_class_lookup2[0],
-   &dv_vlc_class_lookup2[0],
-   &dv_vlc_class_lookup2[0],
-   &dv_vlc_class_lookup3[0],
-   &dv_vlc_class_lookup3[0],
-   &dv_vlc_class_lookup4[0],
-   &dv_vlc_class_lookup4[0],
-   &dv_vlc_class_lookup4[0],
-   &dv_vlc_class_lookup5[0],
-}; /* dv_vlc_classes */
-#endif /* ! __GNUC__ */
 
-/* bitmask to extract class index, given x bits of left-aligned input 
+/* bitmask to extract class index, given x bits of left-aligned input
  * the class index is derived from y prefix bits */
-#ifdef __GNUC__
-const int dv_vlc_class_index_mask[17] = {
-  [ 0 ...  6] = 0x0000,
-  [ 7 ... 10] = 0xc000,
-  [11 ... 16] = 0xfe00,
-}; /* class_index_mask  */
-#else /* ! __GNUC__ */
-const int dv_vlc_class_index_mask[17] = {
-   0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-   0xc000, 0xc000, 0xc000, 0xc000,
-   0xfe00, 0xfe00, 0xfe00, 0xfe00, 0xfe00, 0xfe00,
-}; /* class_index_mask */
-#endif /* ! __GNUC__ */
 
-#ifdef __GNUC__
-const int dv_vlc_class_index_rshift[17] = {
-  [ 0 ...  6] = 0,
-  [ 7 ... 10] = 14,
-  [11 ... 16] = 9,
-}; /* class_index_mask  */
-#else /* ! __GNUC__ */
-const int dv_vlc_class_index_rshift[17] = {
-   0, 0, 0, 0, 0, 0, 0,
-   14, 14, 14, 14,
-   9, 9, 9, 9, 9, 9,
-}; /* class_index_mask */
-#endif /* ! __GNUC__ */
+/* ---------------------------------------------------------------------------
+ * now initialized at runtime STL
+ */
+int8_t	*dv_vlc_classes[64];
+int	dv_vlc_class_index_mask[64];
+int	dv_vlc_class_index_rshift[64];
 
 #ifdef __GNUC__
 const dv_vlc_tab_t dv_vlc_broken[1] = { [0] = {run: -1, amp: -1, len: VLC_NOBITS} };
@@ -738,7 +688,42 @@ const int sign_rshift[17] = {
 
 void dv_construct_vlc_table() {
   int i;
-      
+
+  /* -------------------------------------------------------------------------
+   * converted some static initialisations to run time, BUG #231580 STL
+   */
+  /* Indexed by number of bits available */
+  for (i = 0; i <= 2; ++i)
+    dv_vlc_classes [i] = &dv_vlc_class_broken [0];
+  for (i = 3; i <= 6; ++i)
+    dv_vlc_classes [i] = &dv_vlc_class_lookup1 [0];
+  for (i = 7; i <= 10; ++i)
+    dv_vlc_classes [i] = &dv_vlc_class_lookup2 [0];
+  for (i = 11; i <= 12; ++i)
+    dv_vlc_classes [i] = &dv_vlc_class_lookup3 [0];
+  for (i = 13; i <= 15; ++i)
+    dv_vlc_classes [i] = &dv_vlc_class_lookup4 [0];
+  for (i = 16; i <= 63; ++i)
+    dv_vlc_classes [i] = &dv_vlc_class_lookup5 [0];
+
+  /* -------------------------------------------------------------------------
+   * bitmask to extract class index, given x bits of left-aligned input
+   * the class index is derived from y prefix bits
+   */
+  for (i = 0; i <= 6; i++) {
+    dv_vlc_class_index_mask [i] = 0x0000;
+    dv_vlc_class_index_rshift [i] = 0;
+  }
+  for (i = 7; i <= 10; i++) {
+    dv_vlc_class_index_mask [i] = 0xC000;
+    dv_vlc_class_index_rshift [i] = 14;
+  }
+  for (i = 11; i <= 63; i++) {
+    dv_vlc_class_index_mask [i] = 0xFE00;
+    dv_vlc_class_index_rshift [i] = 9;
+  }
+
+
   for(i=6; i<62; i++) {
     dv_vlc_lookup4[i].run = i;
     dv_vlc_lookup4[i].amp = 0;
@@ -792,7 +777,7 @@ void dv_decode_vlc(int bits,int maxbits, dv_vlc_t *result) {
 #endif /* ! __GNUC__ */
   dv_vlc_t *results[2] = { &vlc_broken, result };
   int klass, has_sign, amps[2];
-  
+
   /* note that BITS is left aligned */
   klass = dv_vlc_classes[maxbits][(bits & (dv_vlc_class_index_mask[maxbits])) >> (dv_vlc_class_index_rshift[maxbits])];
   *result = dv_vlc_lookups[klass][(bits & (dv_vlc_index_mask[klass])) >> (dv_vlc_index_rshift[klass])];
@@ -809,7 +794,7 @@ void dv_decode_vlc(int bits,int maxbits, dv_vlc_t *result) {
 
 void __dv_decode_vlc(int bits, dv_vlc_t *result) {
   int klass, has_sign, amps[2];
-  
+
   klass = dv_vlc_classes[16][(bits & (dv_vlc_class_index_mask[16])) >> (dv_vlc_class_index_rshift[16])];
   *result = dv_vlc_lookups[klass][(bits & (dv_vlc_index_mask[klass])) >> (dv_vlc_index_rshift[klass])];
   amps[1] = -(amps[0] = result->amp);

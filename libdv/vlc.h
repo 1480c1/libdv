@@ -1,4 +1,4 @@
-/* 
+/*
  *  vlc.h
  *
  *     Copyright (C) Charles 'Buck' Krasic - April 2000
@@ -52,9 +52,9 @@ typedef struct dv_vlc_tab_s {
 extern "C" {
 #endif
 
-extern const int8_t *dv_vlc_classes[17];
-extern const int dv_vlc_class_index_mask[17];
-extern const int dv_vlc_class_index_rshift[17];
+extern int8_t *dv_vlc_classes[];
+extern int dv_vlc_class_index_mask[];
+extern int dv_vlc_class_index_rshift[];
 extern const dv_vlc_tab_t dv_vlc_broken[1];
 extern const dv_vlc_tab_t *dv_vlc_lookups[6];
 extern const int dv_vlc_index_mask[6];
