@@ -8,13 +8,21 @@ LDFLAGS += $(shell glib-config --libs) $(shell gtk-config --libs) -lm
 sources = playdv.c dct.c weighting.c quant.c vlc.c place.c parse.c bitstream.c ycrcb_to_rgb32.c
 asm = idct_block_mmx.S vlc_x86.S
 objects= $(sources:.c=.o) $(asm:.S=.o)
-deps=$(sources:.c=.d)
+auxsources=gasmoff.c
+deps=$(sources:.c=.d) $(asm:.S=.d) $(auxsources:.c=.d)
 
 %.d: %.c
 	@echo Making $@
 	@$(SHELL) -ec '$(CC) -M $(CPPFLAGS) $< \
                            | sed '\''s/\($*\)\.o[ :]*/\1.o $@ : /g'\'' > $@; \
                            [ -s $@ ] || rm -f $@'
+
+%.d: %.S
+	@echo Making $@
+	@$(SHELL) -ec '$(CC) -M $(CPPFLAGS) $< \
+                           | sed '\''s/\($*\)\.o[ :]*/\1.o $@ : /g'\'' > $@; \
+                           [ -s $@ ] || rm -f $@'
+
 
 playdv: $(objects)
 	$(CC) -o $@ $(CFLAGS) $(objects) $(LDFLAGS)
@@ -25,8 +33,19 @@ dovlc: dovlc.o bitstream.o vlc.o
 testvlc: testvlc.o vlc.o vlc_x86.o bitstream.o
 	$(CC) -o $@ $(CFLAGS) testvlc.o vlc.o vlc_x86.o bitstream.o $(LDFLAGS)
 
+testbitstream: testbitstream.o bitstream.o
+	$(CC) -o $@ $(CFLAGS) testbitstream.o bitstream.o $(LDFLAGS)
+
+asmoff.h: gasmoff
+	./gasmoff > asmoff.h
+
+gasmoff: gasmoff.o bitstream.o
+
 clean:
-	rm -f playdv *.o *.d
+	rm -f playdv gasmoff asmoff.h *.o *.d 
+
+test:
+	echo $(deps)
 
 ifneq ($(MAKECMDGOALS),clean)
 -include $(deps)
