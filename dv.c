@@ -220,6 +220,38 @@ dv_render_video_segment_rgb(dv_decoder_t *dv, dv_videosegment_t *seg, guchar *pi
   } // for   
 } /* dv_render_video_segment_rgb */
 
+static inline void
+dv_render_macroblock_bgr0(dv_decoder_t *dv, dv_macroblock_t *mb, guchar *pixels, gint pitch ) {
+  if(dv->sampling == e_dv_sample_411) {
+    if(mb->x >= 704) {
+      dv_mb411_right_bgr0(mb, pixels, pitch); // Right edge are 16x16
+    } else {
+      dv_mb411_bgr0(mb, pixels, pitch);
+    } // else
+  } else {
+    dv_mb420_bgr0(mb, pixels, pitch);
+  } // else
+} // dv_render_macroblock_bgr0
+
+void
+dv_render_video_segment_bgr0(dv_decoder_t *dv, dv_videosegment_t *seg, guchar *pixels, gint pitch ) {
+  dv_macroblock_t *mb;
+  gint m;
+  for (m=0,mb = seg->mb;
+       m<5;
+       m++,mb++) {
+    if(dv->sampling == e_dv_sample_411) {
+      if(mb->x >= 704) {
+	dv_mb411_right_bgr0(mb, pixels, pitch); // Right edge are 16x16
+      } else {
+	dv_mb411_bgr0(mb, pixels, pitch);
+      } // else
+    } else {
+      dv_mb420_bgr0(mb, pixels, pitch);
+    } // else
+  } // for   
+} /* dv_render_video_segment_bgr0 */
+
 #if ARCH_X86
 
 static inline void
@@ -372,7 +404,8 @@ dv_decode_full_frame(dv_decoder_t *dv, guchar *buffer,
       dif+=5;
       seg->i = ds;
       seg->k = v;
-      if(color_space == e_dv_color_yuv) {
+      switch(color_space) {
+      case e_dv_color_yuv:
 	for (m=0,mb = seg->mb;
 	     m<5;
 	     m++,mb++) {
@@ -380,7 +413,17 @@ dv_decode_full_frame(dv_decoder_t *dv, guchar *buffer,
 	  dv_place_macroblock(dv, seg, mb, m);
 	  dv_render_macroblock_yuv(dv, mb, pixels, pitches);
 	} // for m
-      } else {
+	break;
+      case e_dv_color_bgr0:
+	for (m=0,mb = seg->mb;
+	     m<5;
+	     m++,mb++) {
+	  dv_decode_macroblock(dv, mb, dv->quality);
+	  dv_place_macroblock(dv, seg, mb, m);
+	  dv_render_macroblock_bgr0(dv, mb, pixels[0], pitches[0]);
+	} // for m
+        break;
+      case e_dv_color_rgb:
 	for (m=0,mb = seg->mb;
 	     m<5;
 	     m++,mb++) {
@@ -391,7 +434,8 @@ dv_decode_full_frame(dv_decoder_t *dv, guchar *buffer,
 #endif
 	  dv_render_macroblock_rgb(dv, mb, pixels[0], pitches[0]);
 	} // for m
-      } // else color_space
+	break;
+      } // switch
     } // for v
   } // ds
 #if RANGE_CHECKING

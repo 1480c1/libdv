@@ -95,7 +95,8 @@ static const gint frame_size_625_50 = 12 * 150 * 80;
 
 typedef enum color_space_e { 
   e_dv_color_yuv, 
-  e_dv_color_rgb 
+  e_dv_color_rgb, 
+  e_dv_color_bgr0, 
 } dv_color_space_t;
 
 typedef enum sample_e { 

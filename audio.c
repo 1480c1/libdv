@@ -33,6 +33,7 @@
 
 #include <math.h>
 #include "dv_types.h"
+#include "util.h"
 #include "audio.h"
 
 /*

@@ -1,4 +1,8 @@
 2001-01-14  Charles 'Buck' Krasic  <krasic@acm.org>
+
+	* Add bgr0 support for kino submitted by Arne Schirmacher
+	  <arne@schirmacher.de>.
+
 	* Add command line option interface to playdv, using popt.
 
 	* Add more audio code structure; pre-emphasis, speed detection
