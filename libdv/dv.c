@@ -36,6 +36,7 @@
  */
 
 #include <string.h>
+#include <pthread.h>
 
 #include "dv.h"
 #include "encode.h"
@@ -66,6 +67,7 @@
 #define MAX(a,b) ((a)<(b)?(b):(a))
 
 int dv_use_mmx;
+pthread_mutex_t dv_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 #if HAVE_LIBPOPT
 static void
@@ -437,7 +439,7 @@ void
 dv_decode_full_frame(dv_decoder_t *dv, uint8_t *buffer, 
 		     dv_color_space_t color_space, uint8_t **pixels, int *pitches) {
 
-  dv_videosegment_t vs;
+  static dv_videosegment_t vs;
   dv_videosegment_t *seg = &vs;
   dv_macroblock_t *mb;
   int ds, v, m;
@@ -450,6 +452,7 @@ dv_decode_full_frame(dv_decoder_t *dv, uint8_t *buffer,
   } /* if */
   seg->isPAL = (dv->system == e_dv_system_625_50);
 
+  pthread_mutex_lock(&dv_mutex);
   /* each DV frame consists of a sequence of DIF segments  */
   for (ds=0; ds < dv->num_dif_seqs; ds++) {
     /** Each DIF segment conists of 150 dif blocks, 135 of which are video blocks
@@ -514,6 +517,7 @@ dv_decode_full_frame(dv_decoder_t *dv, uint8_t *buffer,
     } /* for v */
 
   } /* ds */
+  pthread_mutex_unlock(&dv_mutex);
 
 #if RANGE_CHECKING
   for(i=0;i<6;i++) {
