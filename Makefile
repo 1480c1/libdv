@@ -6,10 +6,13 @@ CFLAGS += -mcpu=i686 -g -O -fstrict-aliasing -Wall  $(CPPFLAGS) # for debugging
 LDFLAGS += $(shell glib-config --libs) $(shell gtk-config --libs) -lm
 
 CPPFLAGS += -DUSE_MMX_ASM=1
-asm += vlc_x86.S quant_x86.S idct_block_mmx.S
+asm = vlc_x86.S quant_x86.S idct_block_mmx.S
 
-sources = playdv.c dct.c idct_248.c weighting.c quant.c vlc.c place.c parse.c bitstream.c ycrcb_to_rgb32.c
-objects= $(sources:.c=.o) $(asm:.S=.o)
+gensources=dct.c idct_248.c weighting.c quant.c vlc.c place.c parse.c bitstream.c ycrcb_to_rgb32.c
+genobjects=$(gensources:.c=.o) $(asm:.S=.o)
+
+sources = playdv.c $(gensources)
+objects= playdv.o $(genobjects)
 auxsources=gasmoff.c
 deps=$(sources:.c=.d) $(asm:.S=.d) $(auxsources:.c=.d)
 
@@ -37,6 +40,10 @@ testvlc: testvlc.o vlc.o vlc_x86.o bitstream.o
 
 testbitstream: testbitstream.o bitstream.o
 	$(CC) -o $@ $(CFLAGS) testbitstream.o bitstream.o $(LDFLAGS)
+
+encode: encode.o $(genobjects)
+	@echo $(genobjects)
+	$(CC) -o $@ $(CFLAGS) encode.o $(genobjects) $(LDFLAGS)
 
 vlc_x86.d: asmoff.h
 
