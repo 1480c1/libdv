@@ -5,7 +5,7 @@
  *     Copyright (C) Erik Walthinsen - April 2000
  *
  *  This file is part of libdv, a free DV (IEC 61834/SMPTE 314M)
- *  decoder.
+ *  codec.
  *
  *  libdv is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU General Public License as published by
@@ -28,6 +28,10 @@
 #include <dv_types.h>
 
 #include <math.h>
+
+#if ARCH_X86
+#include "mmx.h"
+#endif
 
 #include "quant.h"
 
@@ -123,35 +127,35 @@ guint8 dv_quant_shifts[22][4] = {
 
 guint8 dv_quant_offset[4] = { 6,3,0,1 };
 
-void quant_88(dv_coeff_t *block,int qno,int class) 
+extern void quant_x86(dv_coeff_t *block,int qno,int class);
+
+void quant(dv_coeff_t *block,int qno,int class) 
 {
+#if !ARCH_X86
 	int i;
 	guint8 *pq;			/* pointer to the four quantization
 					   factors that we'll use */
-	dv_coeff_t dc;
-
-	dc = block[0];
 	pq = dv_quant_shifts[qno+dv_quant_offset[class]];
-	for (i = 0; i < 64; i++) {
-		block[i] >>= pq[dv_88_areas[i]];
+	for (i = 1; i < 1+2+3; i++) {
+		block[i] >>= pq[0];
 	}
+	for (; i < 1+2+3+4+5+6; i++) {
+		block[i] >>= pq[1];
+	}
+	for (; i < 1+2+3+4+5+6+7+8+7; i++) {
+		block[i] >>= pq[2];
+	}
+	for (; i < 64; i++) {
+		block[i] >>= pq[3];
+	}
+
 	if(class == 3) { 
 		for (i=1;i<64;i++) block[i] /= 2; 
 	}
-	block[0] = dc;
-}
-
-void quant_248(dv_coeff_t *block,int qno,int class) {
-  int i;
-  dv_coeff_t dc;
-
-  dc = block[0];
-  for (i=0;i<64;i++) {
-    block[i] >>=
-      dv_quant_shifts[qno+dv_quant_offset[class]][dv_248_areas[i]];
-  }
-  if(class==3) { for (i=0;i<64;i++) block[i] /= 2; }
-  block[0] = dc;
+#else
+	quant_x86(block, qno, class);
+	emms();
+#endif
 }
 
 void quant_88_inverse(dv_coeff_t *block,int qno,int class) {

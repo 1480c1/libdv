@@ -4,7 +4,7 @@
  *     Copyright (C) Charles 'Buck' Krasic - January 2001
  *
  *  This file is part of libdv, a free DV (IEC 61834/SMPTE 314M)
- *  decoder.
+ *  codec.
  *
  *  libdv is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU General Public License as published by

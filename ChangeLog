@@ -1,3 +1,26 @@
+2001-02-06  Charles 'Buck' Krasic  <krasic@acm.org>
+
+	* Change license banner to read "a free DV codec" instead of "a
+	  free decoder".
+
+	* Add the banner to files that didn't have it.
+
+2001-02-03  Peter Schlaile <udbz@rz.uni-karlsruhe.de>
+
+        * Additional encoder speedups and improvements it now also uses
+	  popt, can read ppm-streams, can correct wrongly interlaced input
+	  pictures.  Speedups: we are between 4 and 5 times away from
+	  realtime on my AMD K6/400 ;-) slowest part is now the RGB to YUV
+	  conversion.	
+	
+	* added new program
+	  - ppmqscale           quality (and quick) ppm scaler.Use it like this
+	                        cat *.ppm |ppmqscale 720 576 |encode -- -
+	                        does linear interpolation, next thing is
+				MMX optimization for it.
+	
+	* playdv can now write ppm-streams  
+	  
 2001-01-20  Charles 'Buck' Krasic  <krasic@acm.org>
 
 	* version 0.3

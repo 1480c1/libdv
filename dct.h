@@ -5,7 +5,7 @@
  *     Copyright (C) Erik Walthinsen - April 2000
  *
  *  This file is part of libdv, a free DV (IEC 61834/SMPTE 314M)
- *  decoder.
+ *  codec.
  *
  *  libdv is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU General Public License as published by
@@ -29,9 +29,10 @@
 
 #include <dv_types.h>
 
-#define DCT_YUV_PRECISION 2        /* means fixpoint with YUV_PRECISION bits 
+#define DCT_YUV_PRECISION 1        /* means fixpoint with YUV_PRECISION bits 
 				      after the point (if you change this,
-				      change rgbtoyuv.S accordingly) */
+				      change rgbtoyuv.S and dct_block_mmx.S
+				      accordingly) */
 
 #ifdef __cplusplus
 extern "C" {

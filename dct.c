@@ -5,7 +5,7 @@
  *     Copyright (C) Erik Walthinsen - April 2000
  *
  *  This file is part of libdv, a free DV (IEC 61834/SMPTE 314M)
- *  decoder.
+ *  codec.
  *
  *  libdv is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU General Public License as published by
@@ -79,7 +79,7 @@ void dct_init(void) {
 
 void idct_block_mmx(gint16 *block);
 void dct_block_mmx(gint16* in_block, gint16* out_block);
-
+void dct_block_mmx_postscale(gint16* block, gint16* postscale_matrix);
 typedef short var;
 
 #if 0
@@ -179,7 +179,7 @@ static void dct_aan_line(short* in, short* out)
   out[7] = v56;
 }
 
-static inline void postscale(var v[64])
+void postscale(var v[64])
 {
   int i;
   int factor = pow(2, 16 + DCT_YUV_PRECISION);
@@ -245,8 +245,8 @@ void dct_88(dv_coeff_t *block, dv_coeff_t *block_out) {
 
 #else
   dct_block_mmx(block, block_out);
+  dct_block_mmx_postscale(block_out, postSC);
   emms();
-  postscale(block_out);
 #endif
 }
 

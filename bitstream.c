@@ -6,7 +6,7 @@
  *      Modified by Charles 'Buck' Krasic - April 2000
  *
  *  This file is part of libdv, a free DV (IEC 61834/SMPTE 314M)
- *  decoder.
+ *  codec.
  *
  *  This file was originally part of mpeg2dec, a free MPEG-2 video
  *  decoder.

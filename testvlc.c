@@ -1,11 +1,11 @@
 /* 
- *  place.h
+ *  testvlc.c
  *
  *     Copyright (C) Charles 'Buck' Krasic - April 2000
  *     Copyright (C) Erik Walthinsen - April 2000
  *
  *  This file is part of libdv, a free DV (IEC 61834/SMPTE 314M)
- *  decoder.
+ *  codec.
  *
  *  libdv is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU General Public License as published by

@@ -6,7 +6,8 @@
 # israelh. 11/11/97 removed emms. moved to stub
 # MMX implementation. Using MMX transpose 
 
-
+#define YUV_PRECISION  1
+	
 #define NSHIFT     15
 #define PRESHIFT   1
 #define WA4_SHIFT  (NSHIFT-1)
@@ -23,6 +24,8 @@ WA3: .word 23171,23171,23171,23171  /* 0.70711 * 32768 */
 WA4: .word 21407,21407,21407,21407  /* 1.30658 * 16384 */
 WA5: .word 25079,25079,25079,25079  /* 0.38268 * 65536 */
 
+allone:		.word 1,1,1,1
+	
 scratch1:       .quad 0
 scratch2:       .quad 0
 scratch3:       .quad 0
@@ -550,8 +553,6 @@ popl %ebp
 ret     $0
 
 transpose: 
-
-
                 pushl %ebx
                 pushl %ecx
                 pushl %edx
@@ -726,6 +727,63 @@ all_done_ready_to_exit:
 
 
                 jmp cont
+
+.global dct_block_mmx_postscale
+dct_block_mmx_postscale:
+
+	pushl	 %ebp
+	movl	 %esp,%ebp
+	pushl	 %esi
+	pushl	 %edi
+
+	movl	 8(%ebp),%esi		/* source matrix */
+	movl    12(%ebp), %edi          /* postscale matrix */
+
+	movq	allone, %mm7
+
+	movl    $8, %ecx	
+dct_block_mmx_postscale_loop:
+	movq	(%esi), %mm0
+	movq	8(%esi), %mm1
+
+	movq	%mm0, %mm2
+	movq	%mm1, %mm3
+	psrlw	$0xf, %mm2
+	psrlw	$0xf, %mm3
+	
+	movq	%mm7, %mm5
+	psllw	$0x1, %mm2
+	movq	%mm7, %mm6
+	psllw	$0x1, %mm3
+
+	psubw	%mm2, %mm5
+	psubw	%mm3, %mm6
+
+	pmullw	%mm5, %mm0
+	pmullw	%mm6, %mm1
+	
+	pmulhw	(%edi), %mm0
+	pmulhw	8(%edi), %mm1
+	
+	psraw   $YUV_PRECISION, %mm0
+	psraw   $YUV_PRECISION, %mm1
+
+	pmullw  %mm5, %mm0
+	pmullw  %mm6, %mm1
+	
+	movq	%mm0, (%esi)
+	movq	%mm1, 8(%esi)
+	
+	addl	$16, %esi
+	addl	$16, %edi
+	
+	decl	 %ecx
+	jne	dct_block_mmx_postscale_loop
+	
+	popl	 %edi
+	popl	 %esi
+	popl	 %ebp
+	ret
 
 
 #_dct8x8aan_mmx ENDP

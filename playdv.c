@@ -5,7 +5,7 @@
  *     Copyright (C) Erik Walthinsen - April 2000
  *
  *  This file is part of libdv, a free DV (IEC 61834/SMPTE 314M)
- *  decoder.
+ *  codec.
  *
  *  libdv is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU General Public License as published by
@@ -34,6 +34,7 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <fcntl.h>
+#include <string.h>
 
 #include "dv.h"
 #include "display.h"
@@ -67,7 +68,7 @@ typedef struct {
   gint             arg_disable_audio;
   gint             arg_disable_video;
   gint             arg_num_frames;
-  gint             arg_dump_frames;
+  char*            arg_dump_frames;
 #if HAVE_LIBPOPT
   struct poptOption option_table[DV_PLAYER_NUM_OPTS+1]; 
 #endif // HAVE_LIBPOPT
@@ -114,8 +115,11 @@ dv_player_new(void)
 
   result->option_table[DV_PLAYER_OPT_DUMP_FRAMES] = (struct poptOption) {
     longName:   "dump-frames", 
+    argInfo:    POPT_ARG_STRING,
     arg:        &result->arg_dump_frames,
-    descrip:    "dump all frames to capture0000?.ppm"
+    argDescrip: "pattern",
+    descrip:    "dump all frames to file pattern like capture%05d.ppm "
+    "(or - for stdout)"
   }; // dump all frames
 
   result->option_table[DV_PLAYER_OPT_OSS_INCLUDE] = (struct poptOption) {
@@ -249,7 +253,8 @@ main(int argc,char *argv[])
   if (dv_format_normal (dv_player->decoder))
     fprintf (stderr, "format 4:3\n");
 
-  printf("Audio is %.1f kHz, %d bits quantization, %d channels, emphasis %s\n",
+  fprintf(stderr, "Audio is %.1f kHz, %d bits quantization, "
+	  "%d channels, emphasis %s\n",
 	 (float)dv_player->decoder->audio->frequency / 1000.0,
 	 dv_player->decoder->audio->quantization,
 	 dv_player->decoder->audio->num_channels,
@@ -276,7 +281,7 @@ main(int argc,char *argv[])
 
   dv_player->decoder->prev_frame_decoded = 0;
   for(offset=0;
-      offset <= eof;
+      offset <= eof; 
       offset += dv_player->decoder->frame_size) {
 
     // Map the frame's data into memory
@@ -308,15 +313,22 @@ main(int argc,char *argv[])
 			     dv_player->display->pitches);
 	if(dv_player->arg_dump_frames) {
 		FILE* fp;
-		char fname[255];
-		sprintf(fname, "capture%05d.ppm", frame_count);
-		fp = fopen(fname, "w");
+		char fname[4096];
+		if (strcmp(dv_player->arg_dump_frames, "-") == 0) {
+			fp = stdout;
+		} else {
+			snprintf(fname, 4096, dv_player->arg_dump_frames, 
+				 frame_count);
+			fp = fopen(fname, "w");
+		}
 		fprintf(fp, "P6\n# CREATOR: playdv\n%d %d\n255\n", 
 			dv_player->display->width, dv_player->display->height);
 		fwrite(dv_player->display->pixels[0], 
 		       3, dv_player->display->width 
 		       * dv_player->display->height, fp);
-		fclose(fp);
+		if (fp != stdout) {
+			fclose(fp);
+		}
 	}
 	dv_player->decoder->prev_frame_decoded = 1;
       } else {

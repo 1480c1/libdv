@@ -5,7 +5,7 @@
  *                   Peter Schlaile - Jan 2001
  *
  *  This file is part of libdv, a free DV (IEC 61834/SMPTE 314M)
- *  decoder.
+ *  codec.
  *
  *  libdv is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <gtk/gtk.h>
 
 #include "dct.h"
@@ -47,11 +48,6 @@
 
 #define MODE_STATISTICS 0
 #define YUV_TESTING     0
-#define DO_BLUR         0
-
-#if DO_BLUR
-#warning pictures will be blurred...
-#endif
 
 /* #include "ycrcb_to_rgb32.h" */
 
@@ -112,40 +108,46 @@ dv_place_411_macroblock(dv_macroblock_t *mb)
 static inline void 
 dv_place_420_macroblock(dv_macroblock_t *mb) 
 {
-	gint mb_num; // mb number withing the 6 x 5 zig-zag pattern 
-	gint mb_num_mod_3, mb_num_div_3; // temporaries
-	gint mb_row;    // mb row within sb (de-zigzag)
-	gint mb_col;    // mb col within sb (de-zigzag)
-	// Column offset of superblocks in macroblocks.  
+	gint mb_num; /* mb number withing the 6 x 5 zig-zag pattern */
+	gint mb_num_mod_3, mb_num_div_3; /* temporaries */
+	gint mb_row;    /* mb row within sb (de-zigzag) */
+	gint mb_col;    /* mb col within sb (de-zigzag) */
+	/* Column offset of superblocks in macroblocks. */
 	static const guint column_offset[] = {0, 9, 18, 27, 36};  
 	
-	// Consider the area spanned super block as 30 element macroblock
-	// grid (6 rows x 5 columns).  The macroblocks are laid out in a in
-	// a zig-zag down and up the columns of the grid.  Of course,
-	// superblocks are not perfect rectangles, since there are only 27
-	// blocks.  The missing three macroblocks are either at the start
-	// or end depending on the superblock column.
+	/* Consider the area spanned super block as 30 element macroblock
+	   grid (6 rows x 5 columns).  The macroblocks are laid out in a in
+	   a zig-zag down and up the columns of the grid.  Of course,
+	   superblocks are not perfect rectangles, since there are only 27
+	   blocks.  The missing three macroblocks are either at the start
+	   or end depending on the superblock column. */
 	
-	// Within a superblock, the macroblocks start at the topleft corner
-	// for even-column superblocks, and 3 down for odd-column
-	// superblocks.
+	/* Within a superblock, the macroblocks start at the topleft corner
+	   for even-column superblocks, and 3 down for odd-column
+	   superblocks. */
 	mb_num = mb->k;  
 	mb_num_mod_3 = mb_num % 3;
 	mb_num_div_3 = mb_num / 3;
-	// Compute superblock-relative row position (de-zigzag)
-	mb_row = ((mb_num_div_3 % 2) == 0) ? mb_num_mod_3 : (2 - mb_num_mod_3); 
-	// Compute macroblock's frame-relative column position (in blocks)
+	/* Compute superblock-relative row position (de-zigzag) */
+	mb_row = ((mb_num_div_3 % 2) == 0) ? mb_num_mod_3 : (2- mb_num_mod_3); 
+	/* Compute macroblock's frame-relative column position (in blocks) */
 	mb_col = mb_num_div_3 + column_offset[mb->j];
-	// Compute frame-relative byte offset of macroblock's top-left corner
-	// Convert from superblock-relative row position to frame relative (in blocks).
-	mb_row += (mb->i * 3); // each right-edge macroblock is 2 blocks high, and each superblock is 6 blocks high
+	/* Compute frame-relative byte offset of macroblock's top-left corner
+	   Convert from superblock-relative row position to frame relative 
+	   (in blocks). */
+	mb_row += (mb->i * 3); /* each right-edge macroblock is 
+				  2 blocks high, and each superblock is 
+				  6 blocks high */
 	mb->x = mb_col * 16;
 	mb->y = mb_row * 16;
-} // dv_place_420_macroblock
+} /* dv_place_420_macroblock */
 
-static guint put_bits(unsigned char *s, guint offset, guint len, guint value)
+static inline guint put_bits(unsigned char *s, guint offset, 
+			     guint len, guint value)
 {
+#if !ARCH_X86
 	s += (offset >> 3);
+	
 	value <<= (24 - len);
 	value &= 0xffffff;
 	value >>= (offset & 7);
@@ -153,6 +155,15 @@ static guint put_bits(unsigned char *s, guint offset, guint len, guint value)
 	s[1] |= (value >> 8) & 0xff;
 	s[2] |= value & 0xff;
 	return offset + len;
+#else
+	s += (offset >> 3);
+	value <<= 32 - len - (offset & 7);
+	__asm__("bswap %0" : "=r" (value) : "0" (value));
+
+	*((unsigned long*) s) |= value;
+	return offset + len;
+
+#endif
 }
 
 inline gint f2b(float f)
@@ -309,7 +320,34 @@ static inline dv_vlc_encode_t * find_vlc_entry(int run, int amp)
 	}
 }
 
-static guint vlc_encode(unsigned char *vsbuffer, guint bit_offset,
+static inline guint vlc_encode_r(unsigned char *vsbuffer, guint bit_offset,
+			int run, int amp, int sign)
+{
+	dv_vlc_encode_t *hit = find_vlc_entry(run, amp);
+	
+	if (hit != NULL) {
+		/* 1111110 */
+		bit_offset = put_bits(vsbuffer, bit_offset,hit->len,hit->val);
+		
+		if (amp != 0)
+			bit_offset = put_bits(vsbuffer, bit_offset, 1, sign);
+	} else {
+		if ((6 <= run) && (run <= 61) && (amp == 0)) {
+			/* 1111110 */
+			bit_offset = put_bits(vsbuffer, bit_offset, 7, 0x7e); 
+			bit_offset = put_bits(vsbuffer, bit_offset, 6, run);
+		} else if ((23 <= amp) && (amp <= 255) && (run == 0)) {
+			/* 1111111 */
+			bit_offset = put_bits(vsbuffer, bit_offset, 7, 0x7f); 
+			bit_offset = put_bits(vsbuffer, bit_offset, 8, amp);
+			bit_offset = put_bits(vsbuffer, bit_offset, 1, sign);
+		}
+	}
+	return bit_offset;
+}
+
+
+static inline guint vlc_encode(unsigned char *vsbuffer, guint bit_offset,
 			int run, int amp, int sign)
 {
 	dv_vlc_encode_t *hit = find_vlc_entry(run, amp);
@@ -322,9 +360,10 @@ static guint vlc_encode(unsigned char *vsbuffer, guint bit_offset,
 			bit_offset = put_bits(vsbuffer, bit_offset, 1, sign);
 	} else {
 		if ((62 <= run) && (run <= 63) && (amp == 0)) {
-			bit_offset = vlc_encode(vsbuffer, bit_offset, 1, 0, 0);
-			bit_offset = vlc_encode(vsbuffer, bit_offset, 
-						run - 2, 0, 0);
+			bit_offset = vlc_encode_r(vsbuffer, bit_offset, 
+						  1, 0, 0);
+			bit_offset = vlc_encode_r(vsbuffer, bit_offset, 
+						  run - 2, 0, 0);
 		} else if ((6 <= run) && (run <= 61) && (amp == 0)) {
 			/* 1111110 */
 			bit_offset = put_bits(vsbuffer, bit_offset, 7, 0x7e); 
@@ -335,16 +374,16 @@ static guint vlc_encode(unsigned char *vsbuffer, guint bit_offset,
 			bit_offset = put_bits(vsbuffer, bit_offset, 8, amp);
 			bit_offset = put_bits(vsbuffer, bit_offset, 1, sign);
 		} else {
-			bit_offset = vlc_encode(vsbuffer, bit_offset, 
-						run - 1, 0, 0);
-			bit_offset = vlc_encode(vsbuffer, bit_offset, 
-						0, amp, sign);
+			bit_offset = vlc_encode_r(vsbuffer, bit_offset, 
+						  run - 1, 0, 0);
+			bit_offset = vlc_encode_r(vsbuffer, bit_offset, 
+						  0, amp, sign);
 		}
 	}
 	return bit_offset;
 }
 
-static inline guint vlc_num_bits(int run, int amp, int sign)
+static guint vlc_num_bits_orig(int run, int amp, int sign)
 {
 	dv_vlc_encode_t *hit;
 	
@@ -356,21 +395,42 @@ static inline guint vlc_num_bits(int run, int amp, int sign)
 		return (hit->len + ((amp != 0) ? 1 : 0));
 	} else {
 		if ((62 <= run) && (run <= 63) && (amp == 0)) {
-			return    vlc_num_bits(1, 0, 0) 
-				+ vlc_num_bits(run - 2, 0, 0);
+			return    vlc_num_bits_orig(1, 0, 0) 
+				+ vlc_num_bits_orig(run - 2, 0, 0);
 		} else if ((6 <= run) && (run <= 61) && (amp == 0)) {
 			return (7 + 6);
 		} else if ((23 <= amp) && (amp <= 255) && (run == 0)) {
 			return (7 + 8 + 1);
 		} else {
-			return    vlc_num_bits(run - 1, 0, 0) 
-				+ vlc_num_bits(0, amp, sign);
+			return    vlc_num_bits_orig(run - 1, 0, 0) 
+				+ vlc_num_bits_orig(0, amp, sign);
 		}
 	}
 }
 
+static unsigned char * vlc_num_bits_lookup;
 
-static const int reorder_88[64] = {
+static void init_vlc_num_bits_lookup()
+{
+	int run,amp,sign;
+	vlc_num_bits_lookup = (unsigned char*) malloc(32768);
+	for (sign = 0; sign <= 1; sign++) {
+		for (run = 0; run < 63; run++) {
+			for (amp = 0; amp < 255; amp++) {
+				vlc_num_bits_lookup[amp | (run << 8) 
+						   | (sign << (8+6))] =
+					vlc_num_bits_orig(run, amp, sign);
+			}
+		}
+	}
+}
+
+static inline guint vlc_num_bits(int run, int amp, int sign)
+{
+	return vlc_num_bits_lookup[amp | (run << 8) | (sign << (8+6))];
+}
+
+static int reorder_88[64] = {
 	1, 2, 6, 7,15,16,28,29,
 	3, 5, 8,14,17,27,30,43,
 	4, 9,13,18,26,31,42,44,
@@ -380,7 +440,7 @@ static const int reorder_88[64] = {
 	22,35,38,48,51,57,60,62,
 	36,37,49,50,58,59,63,64
 };
-static const int reorder_248[64] = {
+static int reorder_248[64] = {
 	1, 3, 7,19,21,35,37,51,
 	5, 9,17,23,33,39,49,53,
 	11,15,25,31,41,47,55,61,
@@ -392,53 +452,73 @@ static const int reorder_248[64] = {
 	14,28,30,44,46,58,60,64
 };
 
-guint vlc_encode_block(unsigned char *vsbuffer, guint bit_offset, 
-		       dv_block_t *bl, guint bit_budget)
+static void prepare_reorder_tables()
 {
-	const int *reorder;
-	dv_coeff_t zigzag[64];
 	int i;
-	int run, amp, sign;
-	guint start_offset;
-	gint bits_left = bit_budget;
-	
-	start_offset = bit_offset;
-	
+	for (i = 0; i < 64; i++) {
+ 		reorder_88[i]--;
+ 		reorder_88[i] *= 2;
+		reorder_248[i]--;
+		reorder_248[i] *= 2;
+	}
+}
+
+void reorder_block(dv_block_t *bl)
+{
+	dv_coeff_t zigzag[64];
+	const int *reorder;
+	int i;
+
 	if (bl->dct_mode == DV_DCT_88)
 		reorder = reorder_88;
 	else
 		reorder = reorder_248;
 	
-	for (i = 0; i < 64; i++)
-		zigzag[reorder[i] - 1] = bl->coeffs[i];
+	for (i = 0; i < 64; i++) {
+		*(unsigned short*) ((char*) zigzag + reorder[i])=bl->coeffs[i];
+	}
+	memcpy(bl->coeffs, zigzag, 64 * sizeof(dv_coeff_t));
+}
+
+guint vlc_encode_block(unsigned char *vsbuffer, guint bit_offset, 
+		       dv_block_t *bl, guint bit_budget)
+{
+	dv_coeff_t * z = bl->coeffs + 1; /* First AC coeff */
+	dv_coeff_t * z_end = bl->coeffs + 64;
+	int run, amp, sign;
+	guint start_offset;
+	gint bits_left = bit_budget;
 	
-	i = 1;			/* first AC coeff */
-	
+	start_offset = bit_offset;
+
 	do {
 		run = 0;
-		while ((zigzag[i] == 0) && (i < 64)) {
-			i++;
-			run++;
-		}
-		if (i < 64) {
-			if (zigzag[i] < 0) {
-				amp = -zigzag[i];
-				sign = 1;
-			} else {
-				amp = zigzag[i];
-				sign = 0;
+		if (*z == 0) {
+			z++; run++;
+			while (*z == 0 && z != z_end) {
+				z++;
+				run++;
 			}
-			i++;
-			
-			//printf("run=%d, amp=%d, sign=%d\n", run, amp, sign);
-			bits_left -= vlc_num_bits(run, amp, sign);
-			if (bits_left < 4)
+			if (z == z_end) {
 				break;
-			
-			bit_offset = vlc_encode(vsbuffer, bit_offset, 
-						run, amp, sign);
+			}
 		}
-	} while (i < 64);
+		amp = *z++;
+		sign = 0;
+		if (amp < 0) {
+			amp = -amp;
+			sign = 1;
+		}
+
+		//printf("run=%d, amp=%d, sign=%d\n", run, amp, sign);
+		bits_left -= vlc_num_bits(run, amp, sign);
+		if (bits_left < 4) {
+			break;
+		}
+
+		bit_offset = vlc_encode(vsbuffer, bit_offset, 
+					run, amp, sign);
+	} while (z != z_end);
 	
 	bit_offset = put_bits(vsbuffer, bit_offset, 4, 0x6); /* EOB */
 	
@@ -450,90 +530,99 @@ guint vlc_encode_block(unsigned char *vsbuffer, guint bit_offset,
 
 guint vlc_num_bits_block(dv_block_t *bl)
 {
-	const int *reorder;
-	dv_coeff_t zigzag[64];
-	int i;
+	dv_coeff_t * z = bl->coeffs + 1; /* First AC coeff */
+	dv_coeff_t * z_end = bl->coeffs + 64;
 	int run, amp, sign;
 	guint num_bits = 0;
-	
-	if (bl->dct_mode == DV_DCT_88)
-		reorder = reorder_88;
-	else
-		reorder = reorder_248;
-	
-	for (i = 0; i < 64; i++)
-		zigzag[reorder[i] - 1] = bl->coeffs[i];
-	
-	i = 1;			/* first AC coeff */
-	
+
 	do {
 		run = 0;
-		while ((zigzag[i] == 0) && (i < 64)) {
-			i++;
-			run++;
-		}
-		if (i < 64) {
-			if (zigzag[i] < 0) {
-				amp = -zigzag[i];
-				sign = 1;
-			} else {
-				amp = zigzag[i];
-				sign = 0;
+		amp = *z;
+		if (amp == 0) {
+			z++; run++;
+			while (*z == 0 && z != z_end) {
+				z++;
+				run++;
 			}
-			i++;
-			
-			num_bits += vlc_num_bits(run, amp, sign);
+			if (z == z_end) {
+				break;
+			}
+			amp = *z;
 		}
-	} while (i < 64);
+		z++;
+		sign = 0;
+		if (amp < 0) {
+			amp = -amp;
+			sign = 1;
+		}
+			
+		num_bits += vlc_num_bits(run, amp, sign);
+	} while (z != z_end);
 	
 	return num_bits;
 }
 
-static int maxamp(dv_block_t *bl)
+extern int amp_valid_mmx(dv_coeff_t * a);
+
+inline int amp_valid(dv_block_t *bl)
 {
-	int i;
-	int a, max = 0;
-	
-	for (i = 0; i < 64; i++) {
-		a = abs(bl->coeffs[i]);
-		if (a > max)
-			max = a;
+#if ARCH_X86
+	int rval = !amp_valid_mmx(bl->coeffs);
+	emms();
+	return rval;
+#else
+	int a;
+	dv_coeff_t* p = bl->coeffs;
+	dv_coeff_t* p_end = p + 64;
+
+	while (p != p_end) {
+		a = *p++;
+		if (a <= -256 || a >= 256) {
+			return 0;
+		}
 	}
-	return max;
+	return 1;
+#endif
+}
+
+void read_ppm_stream(FILE* f, unsigned char* readbuf, int * isPAL,
+		     int * height_)
+{
+	int height, width;
+	char line[200];
+	fgets(line, sizeof(line), f);
+	do {
+		fgets(line, sizeof(line), f); /* P6 */
+	} while ((line[0] == '#') && !feof(f));
+	if (sscanf(line, "%d %d\n", &width, &height) != 2) {
+		fprintf(stderr, "Bad PPM file!\n");
+		exit(1);
+	}
+	if (width != DV_WIDTH || height > DV_PAL_HEIGHT) {
+		fprintf(stderr, "width != DV_WIDTH "
+			"|| height > DV_PAL_HEIGHT!\n");
+		exit(1);
+	}
+	fgets(line, sizeof(line), f);	/* 255 */
+	
+	fread(readbuf, 1, 3 * DV_WIDTH * height, f);
+
+	*height_ = height;
+	*isPAL = (height == DV_PAL_HEIGHT);
 }
 
 void read_ppm(const char* filename, unsigned char* readbuf, int * isPAL,
 	      int * height_)
 {
 	FILE *f;
-	int height, width;
-	char line[200];
 	/* Read the PPM */
 	f = fopen(filename, "r");
 	if (f == NULL) {
 		perror(filename);
 		exit(1);
 	}
-	fgets(line, sizeof(line), f);
-	do {
-		fgets(line, sizeof(line), f); /* P6 */
-	} while ((line[0] == '#') && !feof(f));
-	if (sscanf(line, "%d %d\n", &width, &height) != 2) {
-		fprintf(stderr, "%s: Bad PPM file\n", filename);
-		exit(1);
-	}
-	if (width != DV_WIDTH || height > DV_PAL_HEIGHT) {
-		fprintf(stderr, "%s: width != DV_WIDTH "
-			"|| height > DV_PAL_HEIGHT!\n", filename);
-		exit(1);
-	}
-	fgets(line, sizeof(line), f);	/* 255 */
-	
-	fread(readbuf, 1, 3 * DV_WIDTH * height, f);
+	read_ppm_stream(f, readbuf, isPAL, height_);
 	fclose(f);
-
-	*height_ = height;
-	*isPAL = (height == DV_PAL_HEIGHT);
 }
 
 static inline void do_blur(unsigned char* src, unsigned char* dst, 
@@ -713,52 +802,53 @@ static void convert_to_yuv(unsigned char* img_rgb, int height,
 #endif
 }
 
-static void build_coeff(short* img_y, short* img_cr, short* img_cb,
-			       dv_macroblock_t *mb)
+extern void transpose_mmx(short * dst);
+extern void copy_y_block_mmx(short * dst, short * src);
+extern void copy_c_block_mmx(short * dst, short * src, int src_width);
+
+void build_coeff(short* img_y, short* img_cr, short* img_cb,
+		 dv_macroblock_t *mb)
 {
-	int i,j;
 	int y = mb->y;
 	int x = mb->x;
 
-	for (j = 0; j < 8; j++)
-		for (i = 0; i < 8; i++) {
-			mb->b[0].coeffs[8 * i + j] = 
-				img_y[(y + j) * DV_WIDTH +  x + i];
-			mb->b[1].coeffs[8 * i + j] = 
-				img_y[(y + j) * DV_WIDTH +  x + 8 + i];
-			mb->b[2].coeffs[8 * i + j] = 
-				img_y[(y + 8 + j) * DV_WIDTH + x + i];
-			mb->b[3].coeffs[8 * i + j] = 
-				img_y[(y + 8 + j) * DV_WIDTH 
-				     + x + 8 + i];
-			mb->b[4].coeffs[8 * i + j] = 
-				img_cr[(y + 2*j) * DV_WIDTH/4 
-				      + x / 4 + i / 2];
-			mb->b[5].coeffs[8 * i + j] = 
-				img_cb[(y + 2*j) * DV_WIDTH/4 
-				      + x / 4 + i / 2];
-		}
-#if 0		
-	if((mb->j == 4) && (mb->k > 23)) {
-		fprintf(stderr, "1\n");
-	} else {
-		fprintf(stderr, "2\n");
-		for (j = 0; j < 8; j++)
-			for (i = 0; i < 8; i++) {
-				mb->b[0].coeffs[8 * i + j] = 
-					img_y[(y + j) * DV_WIDTH + x + i];
-				mb->b[1].coeffs[8 * i + j] = 
-					img_y[(y + j) * DV_WIDTH + x + 8 + i];
-				mb->b[2].coeffs[8 * i + j] = 
-					img_y[(y + 8 + j) * DV_WIDTH + x +  i];
-				mb->b[3].coeffs[8 * i + j] = 
-					img_y[(y + 8 + j) * DV_WIDTH + x + 8 + i];
-				mb->b[4].coeffs[8 * i + j] = 
-					img_cr[(y + 2*j) * DV_WIDTH/4 + x / 4 + i / 2];
-				mb->b[5].coeffs[8 * i + j] = 
-					img_cb[(y + 2*j) * DV_WIDTH/4 + x / 4 + i / 2];
-			}
-	}
+#if !ARCH_X86
+	int i,j;
+        for (j = 0; j < 8; j++)
+                for (i = 0; i < 8; i++) {
+                        mb->b[0].coeffs[8 * i + j] = 
+                                img_y[(y + j) * DV_WIDTH +  x + i];
+                        mb->b[1].coeffs[8 * i + j] = 
+                                img_y[(y + j) * DV_WIDTH +  x + 8 + i];
+                        mb->b[2].coeffs[8 * i + j] = 
+                                img_y[(y + 8 + j) * DV_WIDTH + x + i];
+                        mb->b[3].coeffs[8 * i + j] = 
+                                img_y[(y + 8 + j) * DV_WIDTH 
+                                     + x + 8 + i];
+                        mb->b[4].coeffs[8 * i + j] = 
+                                img_cr[(y + 2*j) * DV_WIDTH/4 
+                                      + x / 4 + i / 2];
+                        mb->b[5].coeffs[8 * i + j] = 
+                                img_cb[(y + 2*j) * DV_WIDTH/4 
+                                      + x / 4 + i / 2];
+                }
+#else
+	copy_y_block_mmx(mb->b[0].coeffs, img_y + y * DV_WIDTH + x);
+	copy_y_block_mmx(mb->b[1].coeffs, img_y + y * DV_WIDTH + x + 8);
+	copy_y_block_mmx(mb->b[2].coeffs, img_y + (y + 8) * DV_WIDTH + x);
+	copy_y_block_mmx(mb->b[3].coeffs, img_y + (y + 8) * DV_WIDTH + x + 8);
+	copy_c_block_mmx(mb->b[4].coeffs,
+			 img_cr + y * DV_WIDTH/4 + x / 4, DV_WIDTH / 4);
+	copy_c_block_mmx(mb->b[5].coeffs,
+			 img_cb + y * DV_WIDTH/4 + x / 4, DV_WIDTH / 4);
+
+	transpose_mmx(mb->b[0].coeffs);
+	transpose_mmx(mb->b[1].coeffs);
+	transpose_mmx(mb->b[2].coeffs);
+	transpose_mmx(mb->b[3].coeffs);
+	transpose_mmx(mb->b[4].coeffs);
+	transpose_mmx(mb->b[5].coeffs);
+	emms();
 #endif
 }
 
@@ -779,6 +869,7 @@ static void do_dct(dv_macroblock_t *mb)
 			dct_248(bl->coeffs);
 			weight_248(bl->coeffs);
 		}
+		reorder_block(bl);
 	}
 }
 
@@ -810,6 +901,7 @@ static void do_quant(dv_macroblock_t * mb)
 	   { 2, 3 },	/* 8 16 16 32 */
 	   { 0, 3 }	/* 16 16 32 32 */
 #else
+#if 0
 	   { 15, 0 },	/* 1 1 1 1 */
 	   { 15, 3 },
 	   { 14, 3 },
@@ -827,25 +919,82 @@ static void do_quant(dv_macroblock_t * mb)
 	   { 2, 3 },
 	   { 1, 3 },
 	   { 0, 3 },
+#else
+	   { 15, 0 },	/* 1 1 1 1 */
+	   { 15, 3 },
+	   /* { 14, 3 }, never used ? */
+	   { 13, 3 },
+	   { 12, 3 },
+	   /* { 11, 3 }, never used ? */
+	   { 10, 3 },
+	   /* { 9, 3 }, never used ? */
+	   { 8, 3 },
+	   /* { 7, 3 }, never used ? */
+	   { 6, 3 },
+	   /* { 5, 3 }, never used ? */
+	   { 4, 3 },
+	   /* { 3, 3 }, never used ? */
+	   { 2, 3 },
+	   /* { 1, 3 }, never used ? */
+	   { 0, 3 }
 #endif
+#endif
+#if 0
+
+First table:
+0: 114068
+1: 2314
+2: 4658
+3: 4456
+4: 8426
+5: 792
+6: 590
+7: 1004
+8: 2494
+9: 1934
+10: 3192
+11: 19081
+12: 611
+
+Second table:
+
+0: 114068
+1: 19835
+2: 0
+3: 805
+4: 3279
+5: 0
+6: 4678
+7: 0
+8: 6220
+9: 0
+10: 6563
+11: 0
+12: 5906
+13: 0
+14: 1655
+15: 0
+16: 611
+17: 0
+
+
+#endif
+
 	};
 	int num_modes = sizeof(modes) / sizeof(modes[0]);
 	int highest_mode = 0;
+	dv_block_t bb[6];
+
 	for (b = 0; b < 6; b++) {
-		dv_block_t *bl = &mb->b[b], bb;
+		dv_block_t *bl = &mb->b[b];
 		int mode;
 		guint ac_coeff_budget = ((b < 4) ? 100 : 68) - 4;
 		
-		for (mode = 0; mode < num_modes; mode++) {
-			bb = *bl;
-#if ARCH_X86
-			quant_88_x86(bb.coeffs, modes[mode].qno,
-				     modes[mode].class);
-#else
-			quant_88(bb.coeffs, modes[mode].qno,modes[mode].class);
-#endif
-			if ((maxamp(&bb) < 256) &&
-			    (vlc_num_bits_block(&bb) < ac_coeff_budget))
+		for (mode = highest_mode; mode < num_modes; mode++) {
+			bb[b] = *bl;
+			quant(bb[b].coeffs, modes[mode].qno,modes[mode].class);
+			if (amp_valid(&bb[b]) &&
+			    (vlc_num_bits_block(&bb[b]) < ac_coeff_budget))
 				break;
 		}
 		if (mode == num_modes) {
@@ -861,19 +1010,38 @@ static void do_quant(dv_macroblock_t * mb)
 #endif
 	mb->qno = modes[highest_mode].qno;
 	class = modes[highest_mode].class;
-
-	for (b = 0; b < 6; b++) {
-		dv_block_t *bl = &mb->b[b];
-		
-		bl->class_no = class;
-		if (bl->dct_mode == DV_DCT_88)
-#if ARCH_X86
-			quant_88_x86(bl->coeffs, mb->qno, bl->class_no);
+	if (highest_mode == 0) { /* Things are cheap these days ;-) */
+		for (b = 0; b < 6; b++) {
+			dv_block_t *bl = &mb->b[b];
+			*bl = bb[b];
+			bl->class_no = class;
+		}
+	} else {
+#if 0 /* should give higher quality but doesn't ? */
+		for (b = 0; b < 6; b++) {
+			dv_block_t *bl = &mb->b[b];
+			dv_block_t copy;
+			int c;
+			guint ac_coeff_budget = ((b < 4) ? 100 : 68) - 4;
+			
+			for (c = 0; c < 3; c++) {
+				copy = *bl;
+				quant(copy.coeffs, mb->qno, c);
+				if (amp_valid(&copy) &&
+				    (vlc_num_bits_block(&copy)
+				     < ac_coeff_budget))
+					break;
+			}
+			*bl = copy;
+			bl->class_no = c;
+		}
 #else
-			quant_88(bl->coeffs, mb->qno, bl->class_no);
+		for (b = 0; b < 6; b++) {
+			dv_block_t *bl = &mb->b[b];
+			quant(bl->coeffs, mb->qno, class);
+			bl->class_no = class;
+		}
 #endif
-		else
-			quant_248(bl->coeffs, mb->qno, bl->class_no);
 	}
 }
 
@@ -1202,10 +1370,173 @@ void write_info_blocks(unsigned char* target, int frame, int isPAL,
 	}
 }
 
+void encode_picture(unsigned char* readbuf, int isPAL, int height, time_t now,
+		    int do_blur)
+{
+	static int frame_counter = 0;
+	unsigned char blurred[DV_PAL_HEIGHT * DV_WIDTH * 3];
+	unsigned char target[144000];
+	short img_y[DV_PAL_HEIGHT * DV_WIDTH];
+	short img_cr[DV_PAL_HEIGHT * DV_WIDTH / 4];
+	short img_cb[DV_PAL_HEIGHT * DV_WIDTH / 4];
+
+	if (do_blur) {
+		blur(readbuf, blurred, DV_WIDTH, height);
+		convert_to_yuv(blurred, height, img_y, img_cr, img_cb);
+	} else {
+		convert_to_yuv(readbuf, height, img_y, img_cr, img_cb);
+	}
+	encode(img_y, img_cr, img_cb, isPAL, target);
+	write_info_blocks(target, frame_counter, isPAL, &now);
+	fwrite(target, 1, isPAL ? 144000 : 120000, stdout);
+	frame_counter++;
+}
+
+#define DV_ENCODER_OPT_VERSION         0
+#define DV_ENCODER_OPT_START_FRAME     1
+#define DV_ENCODER_OPT_END_FRAME       2
+#define DV_ENCODER_OPT_WRONG_INTERLACE 3
+#define DV_ENCODER_OPT_BLUR            4
+#define DV_ENCODER_OPT_AUTOHELP        5
+#define DV_ENCODER_NUM_OPTS            6
+
 int main(int argc, char *argv[])
 {
-	gint arg_index;
 	time_t now;
+	unsigned long start = 0;
+	unsigned long end = 0xffffffff;
+	int wrong_interlace = 0;
+	int do_blur = 0;
+	const char* filename = NULL;
+
+#if HAVE_LIBPOPT
+	struct poptOption option_table[DV_ENCODER_NUM_OPTS+1]; 
+	int rc;             /* return code from popt */
+	poptContext optCon; /* context for parsing command-line options */
+#if 0
+	int i,j;
+	dv_coeff_t tester[64];
+
+	memset(tester, 0, 64 * sizeof(short));
+	assert (amp_valid_mmx(tester) == 0);
+	for (i = -255; i <= 255; i++) {
+		for (j = 0; j < 64; j++) {
+			tester[j] = i;
+		}
+		if(amp_valid_mmx(tester) != 0) {
+			fprintf(stderr, "valid Ouch: %d %d!\n", i, j);
+		}
+	}
+
+	for (i = 0; i < 64; i++) {
+		memset(tester, 0, 64 * sizeof(short));
+
+		for (j = 256; j < 32767; j++) {
+			tester[i] = j;
+			if(amp_valid_mmx(tester) == 0) {
+				fprintf(stderr, "ivalid Ouch: %d %d!\n", i, j);
+			}
+		}
+
+		for (j = -32767; j <= -256; j++) {
+			tester[i] = j;
+			if(amp_valid_mmx(tester) == 0) {
+				fprintf(stderr, "ivalid Ouch: %d %d!\n", i, j);
+			}
+		}
+	}
+#endif
+	option_table[DV_ENCODER_OPT_VERSION] = (struct poptOption) {
+		longName: "version", 
+		shortName: 'v', 
+		val: 'v', 
+		descrip: "show encode version number"
+	}; /* version */
+
+	option_table[DV_ENCODER_OPT_START_FRAME] = (struct poptOption) {
+		longName:   "start-frame", 
+		shortName:  's', 
+		argInfo:    POPT_ARG_INT, 
+		arg:        &start,
+		argDescrip: "count",
+		descrip:    "start at <count> frame (defaults to 0)"
+	}; /* start-frame */
+
+	option_table[DV_ENCODER_OPT_END_FRAME] = (struct poptOption) {
+		longName:   "end-frame", 
+		shortName:  'e', 
+		argInfo:    POPT_ARG_INT, 
+		arg:        &end,
+		argDescrip: "count",
+		descrip:    "end at <count> frame (defaults to unlimited)"
+	}; /* end-frames */
+
+	option_table[DV_ENCODER_OPT_WRONG_INTERLACE] = (struct poptOption) {
+		longName:   "wrong-interlace", 
+		shortName:  'i', 
+		arg:        &wrong_interlace,
+		descrip:    "flip lines to compensate for wrong interlacing"
+	}; /* wrong-interlace */
+
+	option_table[DV_ENCODER_OPT_BLUR] = (struct poptOption) {
+		longName:   "blur", 
+		shortName:  'b', 
+		arg:        &do_blur,
+		descrip:    "apply a 3x3 blur filter on the "
+		"images before encoding"
+	}; /* blur */
+
+	
+	option_table[DV_ENCODER_OPT_AUTOHELP] = (struct poptOption) {
+		argInfo: POPT_ARG_INCLUDE_TABLE,
+		arg:     poptHelpOptions,
+		descrip: "Help options",
+	}; /* autohelp */
+
+	option_table[DV_ENCODER_NUM_OPTS] = (struct poptOption) { 
+		NULL, 0, 0, NULL, 0 };
+
+	optCon = poptGetContext(NULL, argc, 
+				(const char **)argv, option_table, 0);
+	poptSetOtherOptionHelp(optCon, "<filename pattern or - for stdin>");
+
+	while ((rc = poptGetNextOpt(optCon)) > 0) {
+		switch (rc) {
+		case 'v':
+			fprintf(stderr,"encode: version %s, "
+				"http://libdv.sourceforge.net/\n",
+				"CVS 01/14/2001");
+			exit(0);
+			break;
+		default:
+			break;
+		} /* switch */
+	} /* while */
+
+	if (rc < -1) {
+		/* an error occurred during option processing */
+		fprintf(stderr, "%s: %s\n",
+			poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
+			poptStrerror(rc));
+		exit(-1);
+	}
+
+	filename = poptGetArg(optCon);
+	if((filename == NULL) || !(poptPeekArg(optCon) == NULL)) {
+		poptPrintUsage(optCon, stderr, 0);
+		fprintf(stderr, 
+			"\nSpecify a single <filename pattern> argument; "
+			"e.g. pond%%05d.ppm or - for stdin\n");
+		exit(-1);
+	}
+	poptFreeContext(optCon);
+
+#else
+	/* No popt, no usage and no options!  HINT: get popt if you don't
+	 * have it yet, it's at: ftp://ftp.redhat.com/pub/redhat/code/popt 
+	 */
+	filename = argv[1];
+#endif // HAVE_LIBPOPT
 
 	weight_init();  
 	dct_init();
@@ -1214,44 +1545,63 @@ int main(int argc, char *argv[])
 	dv_parse_init();
 	dv_place_init();
 	init_vlc_test_lookup();
+	init_vlc_num_bits_lookup();
+	prepare_reorder_tables();
 
 #if MODE_STATISTICS
 	memset(modes_used,0,sizeof(modes_used));
 #endif
 	now = time(NULL);
-	for (arg_index = 1; arg_index < argc; arg_index++) {
-		unsigned char readbuf[DV_PAL_HEIGHT * DV_WIDTH * 3];
-#if DO_BLUR
-		unsigned char blurred[DV_PAL_HEIGHT * DV_WIDTH * 3];
-#endif
-		unsigned char target[144000];
-		int height;
-		int isPAL;
+	if (strcmp(filename, "-") == 0) {
+		int i;
+		for (i = start; i <= end; i++) {
+			unsigned char readbuf[(DV_PAL_HEIGHT+1)* DV_WIDTH * 3];
+			unsigned char* rbuf = readbuf;
+			int height;
+			int isPAL;
 		
-		short img_y[DV_PAL_HEIGHT * DV_WIDTH];
-		short img_cr[DV_PAL_HEIGHT * DV_WIDTH / 4];
-		short img_cb[DV_PAL_HEIGHT * DV_WIDTH / 4];
+			read_ppm_stream(stdin, readbuf, &isPAL, &height);
+			if (wrong_interlace) {
+				memset(readbuf + height * DV_WIDTH * 3, 0,
+				       DV_WIDTH * 3);
+				rbuf += DV_WIDTH * 3;
+			}
+			encode_picture(rbuf, isPAL, height, now, do_blur);
+			fprintf(stderr, "[%d] ", i);
+		}
+	} else {
+		unsigned long i;
+		for (i = start; i <= end; i++) {
+			unsigned char readbuf[(DV_PAL_HEIGHT+1)* DV_WIDTH * 3];
+			unsigned char* rbuf = readbuf;
+			int height;
+			int isPAL;
+			unsigned char fbuf[1024];
 
-		read_ppm(argv[arg_index], readbuf, &isPAL, &height);
-#if DO_BLUR
-		blur(readbuf, blurred, DV_WIDTH, height);
-		convert_to_yuv(blurred, height, img_y, img_cr, img_cb);
-#else
-		convert_to_yuv(readbuf, height, img_y, img_cr, img_cb);
-#endif
-		encode(img_y, img_cr, img_cb, isPAL, target);
-		write_info_blocks(target, arg_index, isPAL, &now);
-		fwrite(target, 1, isPAL ? 144000 : 120000, stdout);
-		fprintf(stderr, "[%d] ", arg_index);
+			snprintf(fbuf, 1024, filename, i);
+		
+			read_ppm(fbuf, readbuf, &isPAL, &height);
+			if (wrong_interlace) {
+				memset(readbuf + height * DV_WIDTH * 3, 0,
+				       DV_WIDTH * 3);
+				rbuf += DV_WIDTH * 3;
+			}
+			encode_picture(rbuf, isPAL, height, now, do_blur);
+			fprintf(stderr, "[%ld] ", i);
+		}
 	}
   
 #if MODE_STATISTICS
-	fprintf(stderr, "MODE_STATISTICS:\n");
-	for (i = 0; i < 50; i++) {
-		fprintf(stderr, "%d: %d\n", i, modes_used[i]);
+	{
+		int i;
+		fprintf(stderr, "MODE_STATISTICS:\n");
+		for (i = 0; i < 50; i++) {
+			fprintf(stderr, "%d: %d\n", i, modes_used[i]);
+		}
 	}
 #endif
 
 	return 0;
 }
+
 

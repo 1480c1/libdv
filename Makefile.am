@@ -13,21 +13,21 @@ EXTRA_DIST                = bootstrap COPYRIGHT
 MAINTAINERCLEANFILES      = Makefile.in aclocal.m4 configure config.h.in \
                             stamp-h.in $(AUX_DIST)
 
-CLEANFILES                = asmoff.h $(EXTRA_PROGRAMS)
+CLEANFILES                = asmoff.h 
 
 lib_LTLIBRARIES= libdv.la
 bin_PROGRAMS= playdv encode
 
 BUILT_SOURCES = asmoff.h
-EXTRA_PROGRAMS= dovlc testvlc testbitstream gasmoff \
-	insert_audio fix_headers scan_packet_headers steal_header
+noinst_PROGRAMS= dovlc testvlc testbitstream gasmoff \
+	insert_audio fix_headers scan_packet_headers steal_header ppmqscale
 
 #
 # If HOST_X86 is set, we build all the x86 asm stuff..
 #
 if HOST_X86
 
-libdv_la_ASMS= vlc_x86.S quant_x86.S idct_block_mmx.S dct_block_mmx.S rgbtoyuv.S
+libdv_la_ASMS= vlc_x86.S quant_x86.S idct_block_mmx.S dct_block_mmx.S rgbtoyuv.S encode_x86.S transpose_x86.S
 libdv_la_ASM_HS=asmoff.h  mmx.h 
 
 gasmoff_SOURCES= gasmoff.c bitstream.c bitstream.h 
@@ -73,6 +73,8 @@ fix_headers_SOURCES = fix_headers.c
 scan_packet_headers_SOURCES = scan_packet_headers.c
 
 steal_header_SOURCES = steal_header.c
+
+ppmqscale_SOURCES = ppmqscale.c
 
 rpm: @PACKAGE@.spec
 	make dist

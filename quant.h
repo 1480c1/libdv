@@ -14,9 +14,7 @@
 extern "C" {
 #endif
 
-extern void quant_88(dv_coeff_t *block,int qno,int class);
-extern void quant_88_x86(dv_coeff_t *block,int qno,int class);
-extern void quant_248(dv_coeff_t *block,int qno,int class);
+extern void quant(dv_coeff_t *block,int qno,int class);
 extern void quant_88_inverse(dv_coeff_t *block,int qno,int class);
 extern void quant_248_inverse(dv_coeff_t *block,int qno,int class);
 extern void quant_88_inverse_x86(dv_coeff_t *block,int qno,int class);
