@@ -101,6 +101,8 @@ dv_decoder_new(int add_ntsc_setup, int clamp_luma, int clamp_chroma) {
   result->audio = dv_audio_new();
   if(!result->audio) goto no_audio;
 
+  dv_set_error_log (result, stderr);
+  dv_set_audio_correction (result, DV_AUDIO_CORRECT_AVERAGE);
 #if HAVE_LIBPOPT
   result->option_table[DV_DECODER_OPT_SYSTEM] = (struct poptOption) {
     longName: "video-system", 
@@ -530,6 +532,16 @@ dv_decode_full_frame(dv_decoder_t *dv, uint8_t *buffer,
   exit(-1);
 } /* dv_decode_full_frame  */
 
+/* ---------------------------------------------------------------------------
+ */
+int
+dv_frame_has_audio_errors (dv_decoder_t *dv)
+{
+  return (dv -> audio -> block_failure);
+} /* dv_has_audio_errors */
+
+/* ---------------------------------------------------------------------------
+ */
 int 
 dv_decode_full_audio(dv_decoder_t *dv, uint8_t *buffer, int16_t **outbufs)
 {
@@ -539,7 +551,7 @@ dv_decode_full_audio(dv_decoder_t *dv, uint8_t *buffer, int16_t **outbufs)
   dif=0;
 
   if(!dv_parse_audio_header(dv, buffer)) goto no_audio;
-
+  dv->audio->block_failure = dv->audio->sample_failure = 0;
   for (ds=0; ds < dv->num_dif_seqs; ds++) {
     dif += 6;
     for(audio_dif=0; audio_dif<9; audio_dif++) {
@@ -547,6 +559,24 @@ dv_decode_full_audio(dv_decoder_t *dv, uint8_t *buffer, int16_t **outbufs)
       dif+=16;
     } /* for  */
   } /* for */
+
+  if (dv -> audio -> block_failure) {
+    if (dv -> audio -> error_log) {
+      fprintf (dv -> audio -> error_log,
+               "audio block failure for %d blocks = %d samples of %d\n",
+               dv -> audio -> block_failure,
+               dv -> audio -> sample_failure,
+               dv -> audio -> samples_this_frame);
+    }
+    dv_audio_correct_errors (dv -> audio, outbufs);
+  }
+  if (!dv->audio->block_failure && dv->audio->sample_failure) {
+    if (dv -> audio -> error_log) {
+      fprintf (dv -> audio -> error_log,
+               "sample failure without block failure: "
+                 "report this to libdv at SF!!\n");
+    }
+  }
 
   if(dv->audio->emphasis) {
     for(ch=0; ch< dv->audio->num_channels; ch++) {
@@ -647,4 +677,17 @@ dv_frame_changed (dv_decoder_t *dv)
   return -1;
 }
 
+/* ---------------------------------------------------------------------------
+ */
+FILE *
+dv_set_error_log (dv_decoder_t *dv, FILE *log)
+{
+    FILE *old_log;
+    
+  old_log = dv -> audio -> error_log;
+  dv -> audio -> error_log =
+    dv -> video -> error_log =
+      log;
+  return old_log;
+}
 /*@}*/

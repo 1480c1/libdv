@@ -1,3 +1,16 @@
+2002-05-01  Stefan Lucke <Stefan.Lucke1@epost.de>
+	* audio error correction:
+	    default error reporting is set to: stderr
+	      old_file = dv_set_error_log (decoder, stderr)      
+      
+	    default correction method is set to: DV_AUDIO_CORRECT_AVERAGE
+	      old_method = dv_set_audio_correction (decoder, NEW_METHOD);      
+	      NEW_METHOD = DV_AUDIO_CORRECT_NONE |
+	                   DV_AUDIO_CORRECT_AVERAGE |
+	                   DV_AUDIO_CORRECT_SILENCE
+          
+	* updated my old invalid email addresses 
+  
 2002-04-07  Charles 'Buck' Krasic  <krasic@acm.org>
 	* Version 0.9.5
 

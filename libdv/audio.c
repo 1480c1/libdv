@@ -451,7 +451,7 @@ dv_decode_audio_block(dv_audio_t *dv_audio, uint8_t *inbuf, int ds, int audio_di
   int16_t *samples, *ysamples, *zsamples;
   int16_t y,z;
   int32_t msb_y, msb_z, lsb;
-  int half_ds;
+  int half_ds, full_failure;
 
 #if 0
   if ((inbuf[0] & 0xe0) != 0x60) goto bad_id;
@@ -476,16 +476,31 @@ dv_decode_audio_block(dv_audio_t *dv_audio, uint8_t *inbuf, int ds, int audio_di
     stride = 45;
   } /* else */
 
+  full_failure = 0;
+  
   if(dv_audio->quantization == 16) {
-
     samples = outbufs[channel];
-
     for (bp = 8; bp < 80; bp+=2) {
 
       i = i_base + (bp - 8)/2 * stride;
-      samples[i] = ((int16_t)inbuf[bp] << 8) | inbuf[bp+1];
+      if ((samples[i] = ((int16_t)inbuf[bp] << 8) | inbuf[bp+1]) == (int16_t) 0x8000) {
+        full_failure++;
+      }
 
     } /* for */
+    /* -----------------------------------------------------------------------
+     * check if all samples in block failed
+     */
+    if (full_failure == 36) {
+      if (dv_audio -> error_log) {
+        fprintf (dv_audio -> error_log,
+                 "complete audio block failure (16bit): "
+                   "header = %02x %02x %02x\n",
+                 inbuf [0], inbuf [1], inbuf [2]);
+      }
+      dv_audio -> block_failure++;
+      dv_audio -> sample_failure += 36;
+    }
 
   } else if(dv_audio->quantization == 12) {
 
@@ -503,13 +518,46 @@ dv_decode_audio_block(dv_audio_t *dv_audio, uint8_t *inbuf, int ds, int audio_di
       lsb   = inbuf[bp+2];  
 
       y = ((msb_y << 4) & 0xff0) | ((lsb >> 4) & 0xf);
-      if(y > 2047) y -= 4096;
       z = ((msb_z << 4) & 0xff0) | (lsb & 0xf);
-      if(z > 2047) z -= 4096;
-
-      ysamples[i] = dv_upsample(y); 
-      zsamples[i] = dv_upsample(z);
+      
+      if(y > 2048) y -= 4096;
+      if(z > 2048) z -= 4096;
+      /* ---------------------------------------------------------------------
+       * so check if both samples have an error value 0x800
+       */
+      if (y == 2048 && z == 2048) {
+        /* -------------------------------------------------------------------
+         * remember full failure and keep error code for later removal
+         */
+        full_failure += 2;
+        ysamples[i] = 0x8000;
+        zsamples[i] = 0x8000;
+      } else {
+        if (y == 2048) {
+          y -= 4095;
+          full_failure++;
+        }
+        if (z == 2048) {
+          z -= 4095;
+          full_failure++;
+        }
+        ysamples[i] = dv_upsample(y); 
+        zsamples[i] = dv_upsample(z);
+      }
     } /* for  */
+    /* -----------------------------------------------------------------------
+     * check if all samples in block failed
+     */
+    if (full_failure == 48) {
+      if (dv_audio -> error_log) {
+        fprintf (dv_audio -> error_log,
+                 "complete audio block failure (12bit): "
+                   "header = %02x %02x %02x\n",
+                 inbuf [0], inbuf [1], inbuf [2]);
+      }
+      dv_audio -> block_failure++;
+      dv_audio -> sample_failure += 48;
+    }
 
   } else {
     goto unsupported_sampling;
@@ -528,3 +576,76 @@ dv_decode_audio_block(dv_audio_t *dv_audio, uint8_t *inbuf, int ds, int audio_di
 #endif
   
 } /* dv_decode_audio_block */
+
+/* ---------------------------------------------------------------------------
+ */
+void
+dv_audio_correct_errors (dv_audio_t *dv_audio, int16_t **outbufs)
+{
+    int      num_ch, i, k, cnt;
+    int16_t  *dptr, *sptr, last_valid, next_valid, diff;
+
+  switch (dv_audio -> correction_method) {
+  case DV_AUDIO_CORRECT_SILENCE:
+    for (num_ch = 0; num_ch < dv_audio -> num_channels; ++num_ch) {
+      dptr = sptr = outbufs [num_ch];
+      for (i = k = 0; i < dv_audio -> samples_this_frame; ++i) {
+        if (*sptr == (int16_t) 0x8000) {
+          ++k;
+          ++sptr;
+        } else {
+          *dptr++ = *sptr++;
+        }
+      }
+      if (k) {
+        memset (dptr, 0, k);
+      }
+    }         
+    break;
+  case DV_AUDIO_CORRECT_AVERAGE:
+    for (num_ch = 0; num_ch < dv_audio -> num_channels; ++num_ch) {
+      dptr = sptr = outbufs [num_ch];
+      last_valid = 0;
+      for (i = 0; i < dv_audio -> samples_this_frame; i++) {
+        if (*sptr != (int16_t) 0x8000) {
+          last_valid = *dptr++ = *sptr++;
+          continue;
+        }
+        for (k = i, cnt = 0;
+             k < dv_audio -> samples_this_frame && *sptr == (int16_t) 0x8000;
+             k++, cnt++, sptr++) {
+          ;
+        }
+        i += (cnt - 1);
+        next_valid = (k == dv_audio -> samples_this_frame) ? 0 : *sptr;
+        diff = (next_valid - last_valid) / (cnt + 1);
+#if 0        
+        fprintf (stderr,
+                 " last_valid = 0x%04x diff =0x%04x next_valid = 0x%04x cnt = %d\n",
+                 last_valid, diff, next_valid, cnt);
+#endif
+        while (cnt-- > 0) {
+          last_valid += diff;
+          *dptr++ = last_valid;
+        }
+      }
+    }
+    break;
+  case DV_AUDIO_CORRECT_NONE:
+    break;
+  default:
+    break;
+  }
+}
+ 
+/* ---------------------------------------------------------------------------
+ */
+int
+dv_set_audio_correction (dv_decoder_t *dv, int method)
+{
+    int  old_method;
+    
+  old_method = dv -> audio -> correction_method;
+  dv -> audio -> correction_method = method;
+  return old_method;
+} /* dv_set_audio_correction */

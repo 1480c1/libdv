@@ -25,7 +25,7 @@
  */
 
 /* Most of this file is derived from patches 101018 and 101136 submitted by
- * Stefan Lucke <lucke@berlin.snafu.de> */
+ * Stefan Lucke <Stefan.Lucke1@epost.de> */
 
 
 #include <unistd.h>

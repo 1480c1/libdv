@@ -78,6 +78,10 @@
 #define DV_AUDIO_OPT_CALLBACK     3
 #define DV_AUDIO_NUM_OPTS         4
 
+#define DV_AUDIO_CORRECT_NONE     0
+#define DV_AUDIO_CORRECT_SILENCE  1
+#define DV_AUDIO_CORRECT_AVERAGE  2
+
 #define DV_VIDEO_OPT_BLOCK_QUALITY 0
 #define DV_VIDEO_OPT_MONOCHROME    1
 #define DV_VIDEO_OPT_CALLBACK      2
@@ -389,6 +393,15 @@ typedef struct {
   int              arg_audio_emphasis;
   int              arg_audio_frequency;
   int              arg_audio_quantization;
+  /* -------------------------------------------------------------------------
+   * audio error correction handling
+   */
+  int              correction_method,
+                   block_failure,
+                   sample_failure,
+                   real_samples_this_frame,
+                   fail_samples_this_frame;
+  FILE             *error_log;                   
 #if HAVE_LIBPOPT
   struct poptOption option_table[DV_AUDIO_NUM_OPTS+1]; 
 #endif // HAVE_LIBPOPT
@@ -398,7 +411,10 @@ typedef struct {
   unsigned int              quality;        
   int               arg_block_quality; // default 3
   int               arg_monochrome;
-
+  /* -------------------------------------------------------------------------
+   * video error log file
+   */
+  FILE              *error_log;
 #if HAVE_LIBPOPT
   struct poptOption  option_table[DV_VIDEO_NUM_OPTS+1]; 
 #endif // HAVE_LIBPOPT

@@ -25,7 +25,7 @@
  */
 
 /* Most of this file is derived from patch 101018 submitted by Stefan
- * Lucke <lucke@berlin.snafu.de> */
+ * Lucke <Stefan.Lucke1@epost.de> */
 
 #include <dv_types.h>
 
