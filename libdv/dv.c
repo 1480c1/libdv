@@ -718,15 +718,8 @@ dv_system_50_fields (dv_decoder_t *dv)
 int
 dv_format_normal (dv_decoder_t *dv)
 {
-  uint8_t  id;
-
-  if ((id = dv -> vaux_pack [0x61]) != 0xff) {
-    if ((dv->vaux_data[id][1] & 0x07) != (dv->std == e_dv_std_smpte_314m? 0x2:0x7)) {
-      return 1;
-    }
-    return 0;
-  }
-  return -1;
+  int result = dv_format_wide(dv);
+  return (result == -1) ? -1 : !result;
 }
 
 /* ---------------------------------------------------------------------------
@@ -737,10 +730,10 @@ dv_format_wide (dv_decoder_t *dv)
   uint8_t  id;
 
   if ((id = dv -> vaux_pack [0x61]) != 0xff) {
-    if ((dv->vaux_data[id][1] & 0x07) == (dv->std == e_dv_std_smpte_314m? 0x2:0x7)) {
-      return 1;
-    }
-    return 0;
+    if (dv->std == e_dv_std_smpte_314m)
+      return ((dv->vaux_data[id][1] & 0x7) != 0x2);
+    else
+      return (((dv->vaux_data[id][1] & 0x7) == 0x2) || ((dv->vaux_data[id][1] & 0x7) == 0x7)) ;
   }
   return -1;
 }

@@ -1,3 +1,6 @@
+2004-05-13  Dan Dennedy <dan@dennedy.org>
+	* libdv/dv.c: add another IEC widescreen code to dv_format_wide().
+
 2004-03-15  Dan Dennedy <dan@dennedy.org>
 	* libdv/dv.c: fix widescreen detection for SMPTE vs IEC.
 	* libdv/dv.h, dv.c: added dv_format_letterbox()
