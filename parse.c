@@ -175,6 +175,8 @@ static gint dv_find_spilled_vlc(dv_videosegment_t *seg, dv_macroblock_t *mb, dv_
     broken_vlc=bitstream_get(bs,bits_left);
   found_vlc = FALSE;
   found_bits = dv_find_mb_unused_bits(mb,&bl_new_lender);
+  if(!found_bits && pass != 1)
+    found_bits = dv_find_vs_unused_bits(seg,&bl_new_lender);
   while(found_bits && (!found_vlc)) {
     bitstream_seek_set(bs, bl_new_lender->offset);
     found_bits_left = bl_new_lender->end - bl_new_lender->offset;
