@@ -94,9 +94,9 @@ void dct_248(double *block) {
       for (z=0;z<4;z++) {
         for (x=0;x<8;x++) {
           temp[u*8+h] += (block[(2*z)*8+x] + block[(2*z+1)*8+x]) *
-                            KC248[x][z][h][u];
+                            KC248[x][z][u][h];
           temp[(u+4)*8+h] += (block[(2*z)*8+x] - block[(2*z+1)*8+x]) *
-                              KC248[x][z][h][u];
+                              KC248[x][z][u][h];
         }
       }
       temp[u*8+h] *= (C[h] * C[u]);
