@@ -172,10 +172,19 @@ void dv_idct_248(dv_248_coeff_t *x248, dv_coeff_t *out)
 	dv_248_coeff_t in0, in1, in2, in3, in4, in5, in6, in7;
 	gint i;
 
+#if 0
+	/* This is to identify visually where 248 blocks are... */
+	for(i=0;i<64;i++) {
+		out[i] = 235 - 128;
+	}
+	return;
+#endif
+
 	// Now, tmp = inv(h2) * inv(g2) * (prescale = inv(d2) * x248 * d)
 	// 32 mults, 64 adds, 80 shifts, 16 negates 
 	in = x248;
 	lhs = tmp;
+
 #if IDCT_248_UNIT_TEST
 	printf("\nt0:\n");
 	for(i=0;i<64; i++) {

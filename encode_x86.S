@@ -24,24 +24,25 @@
  */
 
 #define	DV_WIDTH 720*2
-	
+
 .data
-.align 8
-amp_ofs:	.word	32768+255,32768+255,32768+255,32768+255
-amp_cmp:	.word	32768+(255+255),32768+(255+255),32768+(255+255),32768+(255+255)
+ALLONE:	.word 1,1,1,1
+	
 .text
 
-.global amp_valid_mmx
-amp_valid_mmx:
+.global classify_mmx
+classify_mmx:
 
 	pushl   %ebp
 	movl    %esp, %ebp
 	pushl   %esi
-	
-	movl    8(%ebp), %esi          # source
 
-	movq	amp_ofs, %mm7
-	movq	amp_cmp, %mm6
+	movl	12(%ebp), %esi
+	movq	(%esi), %mm7            # amp_ofs
+	movl	16(%ebp), %esi
+	movq	(%esi), %mm6            # amp_cmp
+
+	movl    8(%ebp), %esi          # source
 
 	movq	%mm7, %mm5
 	movq	%mm6, %mm4
@@ -259,6 +260,256 @@ copy_c_block_mmx:
 	pop	%edi
 	pop	%esi
 	pop	%ebp
+	ret
+
+# FIXME: reorder_block_mmx isn't really _that_ faster than the C version... 
+#	 don't know why...
+	
+.global reorder_block_mmx
+reorder_block_mmx:
+				
+	pushl   %ebp
+	movl    %esp, %ebp
+	pushl   %esi
+	pushl	%edi
+	pushl	%ebx
+	pushl	%ecx
+	pushl	%edx
+
+	movl	8(%ebp), %esi      # source
+	movl	12(%ebp), %edi     # reorder_table
+
+	xorl	%ebp, %ebp
+	xorl	%eax, %eax
+	xorl	%ebx, %ebx
+	xorl	%ecx, %ecx
+	xorl	%edx, %edx
+
+	subl	$128, %esp
+	
+reorder_loop:	
+	
+	movw	 (%esi, %ebp), %ax
+	movw	2(%esi, %ebp), %bx
+
+	movw	 (%edi, %ebp), %cx
+	movw	2(%edi, %ebp), %dx
+
+	movw	 %ax, (%esp,%ecx)
+	movw	 %bx, (%esp,%edx)
+
+	movw	4(%esi, %ebp), %ax
+	movw	6(%esi, %ebp), %bx
+
+	movw	4(%edi, %ebp), %cx
+	movw	6(%edi, %ebp), %dx
+
+	movw	 %ax, (%esp,%ecx)
+	movw	 %bx, (%esp,%edx)
+
+	movw	 8(%esi, %ebp), %ax
+	movw	10(%esi, %ebp), %bx
+
+	movw	8(%edi, %ebp), %cx
+	movw	10(%edi, %ebp), %dx
+
+	movw	 %ax, (%esp,%ecx)
+	movw	 %bx, (%esp,%edx)
+
+	movw	12(%esi, %ebp), %ax
+	movw	14(%esi, %ebp), %bx
+
+	movw	12(%edi, %ebp), %cx
+	movw	14(%edi, %ebp), %dx
+
+	movw	 %ax, (%esp,%ecx)
+	movw	 %bx, (%esp,%edx)
+
+	addl	$16, %ebp
+	
+	cmpl	$128, %ebp
+	jne	reorder_loop
+	
+	movq	(%esp)  , %mm0
+	movq	8(%esp) , %mm1
+	movq	16(%esp), %mm2
+	movq	24(%esp), %mm3
+
+	movq	%mm0, (%esi)
+	movq	%mm1, 8(%esi)
+	movq	%mm2, 16(%esi)
+	movq	%mm3, 24(%esi)
+
+	movq	32(%esp)   , %mm0
+	movq	32+8(%esp) , %mm1
+	movq	32+16(%esp), %mm2
+	movq	32+24(%esp), %mm3
+
+	movq	%mm0, 32(%esi)
+	movq	%mm1, 32+8(%esi)
+	movq	%mm2, 32+16(%esi)
+	movq	%mm3, 32+24(%esi)
+
+	movq	64(%esp)   , %mm0
+	movq	64+8(%esp) , %mm1
+	movq	64+16(%esp), %mm2
+	movq	64+24(%esp), %mm3
+
+	movq	%mm0, 64(%esi)
+	movq	%mm1, 64+8(%esi)
+	movq	%mm2, 64+16(%esi)
+	movq	%mm3, 64+24(%esi)
+
+	movq	96(%esp)   , %mm0
+	movq	96+8(%esp) , %mm1
+	movq	96+16(%esp), %mm2
+	movq	96+24(%esp), %mm3
+
+	addl	$128, %esp
+	
+	movq	%mm0, 96(%esi)
+	movq	%mm1, 96+8(%esi)
+	movq	%mm2, 96+16(%esi)
+	movq	%mm3, 96+24(%esi)
+	
+	popl	%edx
+	popl	%ecx
+	popl	%ebx
+	popl	%edi
+	popl	%esi
+	popl	%ebp
+	ret
+
+.global need_dct_248_mmx
+need_dct_248_mmx:
+	
+	pushl   %ebp
+	movl    %esp, %ebp
+	pushl   %esi
+
+	movl	8(%ebp), %esi      # source
+
+	movq	(0*8+0)*2(%esi), %mm0
+	movq	(0*8+4)*2(%esi), %mm1
+	psubw	(1*8+0)*2(%esi), %mm0
+	psubw	(1*8+4)*2(%esi), %mm1
+	movq	%mm0, %mm2
+	movq	%mm1, %mm3
+	psraw	$15, %mm2
+	psraw	$15, %mm3
+	pxor	%mm2, %mm0
+	pxor	%mm3, %mm1
+	psubw	%mm2, %mm0
+	psubw	%mm3, %mm1
+	
+	movq	(1*8+0)*2(%esi), %mm4
+	movq	(1*8+4)*2(%esi), %mm5
+	psubw	(2*8+0)*2(%esi), %mm4
+	psubw	(2*8+4)*2(%esi), %mm5
+	movq	%mm4, %mm6
+	movq	%mm5, %mm7
+	psraw	$15, %mm6
+	psraw	$15, %mm7
+	pxor	%mm6, %mm4
+	pxor	%mm7, %mm5
+	psubw	%mm6, %mm4
+	psubw	%mm7, %mm5
+
+	paddw	%mm4, %mm0
+	paddw	%mm5, %mm1
+
+	movq	(2*8+0)*2(%esi), %mm4
+	movq	(2*8+4)*2(%esi), %mm5
+	psubw	(3*8+0)*2(%esi), %mm4
+	psubw	(3*8+4)*2(%esi), %mm5
+	movq	%mm4, %mm6
+	movq	%mm5, %mm7
+	psraw	$15, %mm6
+	psraw	$15, %mm7
+	pxor	%mm6, %mm4
+	pxor	%mm7, %mm5
+	psubw	%mm6, %mm4
+	psubw	%mm7, %mm5
+
+	paddw	%mm4, %mm0
+	paddw	%mm5, %mm1
+
+	movq	(3*8+0)*2(%esi), %mm4
+	movq	(3*8+4)*2(%esi), %mm5
+	psubw	(4*8+0)*2(%esi), %mm4
+	psubw	(4*8+4)*2(%esi), %mm5
+	movq	%mm4, %mm6
+	movq	%mm5, %mm7
+	psraw	$15, %mm6
+	psraw	$15, %mm7
+	pxor	%mm6, %mm4
+	pxor	%mm7, %mm5
+	psubw	%mm6, %mm4
+	psubw	%mm7, %mm5
+
+	paddw	%mm4, %mm0
+	paddw	%mm5, %mm1
+
+	movq	(4*8+0)*2(%esi), %mm4
+	movq	(4*8+4)*2(%esi), %mm5
+	psubw	(5*8+0)*2(%esi), %mm4
+	psubw	(5*8+4)*2(%esi), %mm5
+	movq	%mm4, %mm6
+	movq	%mm5, %mm7
+	psraw	$15, %mm6
+	psraw	$15, %mm7
+	pxor	%mm6, %mm4
+	pxor	%mm7, %mm5
+	psubw	%mm6, %mm4
+	psubw	%mm7, %mm5
+
+	paddw	%mm4, %mm0
+	paddw	%mm5, %mm1
+
+	movq	(5*8+0)*2(%esi), %mm4
+	movq	(5*8+4)*2(%esi), %mm5
+	psubw	(6*8+0)*2(%esi), %mm4
+	psubw	(6*8+4)*2(%esi), %mm5
+	movq	%mm4, %mm6
+	movq	%mm5, %mm7
+	psraw	$15, %mm6
+	psraw	$15, %mm7
+	pxor	%mm6, %mm4
+	pxor	%mm7, %mm5
+	psubw	%mm6, %mm4
+	psubw	%mm7, %mm5
+
+	paddw	%mm4, %mm0
+	paddw	%mm5, %mm1
+
+	movq	(6*8+0)*2(%esi), %mm4
+	movq	(6*8+4)*2(%esi), %mm5
+	psubw	(7*8+0)*2(%esi), %mm4
+	psubw	(7*8+4)*2(%esi), %mm5
+	movq	%mm4, %mm6
+	movq	%mm5, %mm7
+	psraw	$15, %mm6
+	psraw	$15, %mm7
+	pxor	%mm6, %mm4
+	pxor	%mm7, %mm5
+	psubw	%mm6, %mm4
+	psubw	%mm7, %mm5
+
+	paddw	%mm4, %mm0
+	paddw	%mm5, %mm1
+
+	paddw	%mm1, %mm0
+	
+	pmaddwd	ALLONE, %mm0	
+	movq	%mm0, %mm1
+	psrlq	$32, %mm1
+	paddd	%mm1, %mm0
+	
+	movd	%mm0, %eax
+	
+	popl	%esi
+	popl	%ebp
+
 	ret
 
 

@@ -160,31 +160,40 @@ dv_quant_init (void)
 
 void quant(dv_coeff_t *block,int qno,int klass) 
 {
+	if (!(qno == 15 && klass != 3)) { /* Nothing to be done ? */
 #if !ARCH_X86
-	int i;
-	guint8 *pq;			/* pointer to the four quantization
-					   factors that we'll use */
-	pq = dv_quant_shifts[qno+dv_quant_offset[klass]];
-	for (i = 1; i < 1+2+3; i++) {
-		block[i] >>= pq[0];
-	}
-	for (; i < 1+2+3+4+5+6; i++) {
-		block[i] >>= pq[1];
-	}
-	for (; i < 1+2+3+4+5+6+7+8+7; i++) {
-		block[i] >>= pq[2];
-	}
-	for (; i < 64; i++) {
-		block[i] >>= pq[3];
-	}
+		int i;
+		int extra = (klass == 3) ? 1 : 0;
+		int factor;
+		guint8 *pq;	/* pointer to the four quantization
+				   factors that we'll use */
 
-	if(klass == 3) { 
-		for (i=1;i<64;i++) block[i] /= 2; 
-	}
+		pq = dv_quant_shifts[qno+dv_quant_offset[klass]];
+		factor = 1 << (pq[0] + extra); 
+                /* There is a little difference between
+		   shifts and divisions:
+		   if you try to quantizise -1 you will 
+		   definitely notice it... */
+		for (i = 1; i < 1+2+3; i++) {
+			block[i] /= factor;
+		}
+		factor = 1 << (pq[1] + extra);
+		for (; i < 1+2+3+4+5+6; i++) {
+			block[i] /= factor;
+		}
+		factor = 1 << (pq[2] + extra);
+		for (; i < 1+2+3+4+5+6+7+8+7; i++) {
+			block[i] /= factor;
+		}
+		factor = 1 << (pq[3] + extra);
+		for (; i < 64; i++) {
+			block[i] /= factor;
+		}
 #else
-	quant_x86(block, qno, klass);
-	emms();
+		quant_x86(block, qno, klass);
+		emms();
 #endif
+	}
 }
 
 void quant_88_inverse(dv_coeff_t *block,int qno,int klass) {

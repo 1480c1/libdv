@@ -1,3 +1,12 @@
+2001-03-05  Peter Schlaile <udbz@rz.uni-karlsruhe.de>
+	
+	* Encoder speedups (factor 3 from realtime on my machine, it even
+	  beats playdv using gtk display ;-) )
+
+	* Fixed stupid need_dct_248() bug
+
+	* Correct(tm) and faster quantization 
+
 2001-02-14  Charles 'Buck' Krasic  <krasic@acm.org>
 
 	* Version 0.5

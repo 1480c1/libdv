@@ -47,7 +47,7 @@
 #define DV_PAL_HEIGHT 576
 
 /* FIXME: Just guessed! */
-#define DCT_248_THRESHOLD ((4 * 8 * 4) << DCT_YUV_PRECISION)
+#define DCT_248_THRESHOLD ((4 * 8 * 8) << DCT_YUV_PRECISION)
 
 #define MODE_STATISTICS 0
 
@@ -432,7 +432,7 @@ static inline guint vlc_num_bits(int run, int amp, int sign)
 	return vlc_num_bits_lookup[amp | (run << 8) | (sign << (8+6))];
 }
 
-static int reorder_88[64] = {
+static unsigned short reorder_88[64] = {
 	1, 2, 6, 7,15,16,28,29,
 	3, 5, 8,14,17,27,30,43,
 	4, 9,13,18,26,31,42,44,
@@ -442,7 +442,7 @@ static int reorder_88[64] = {
 	22,35,38,48,51,57,60,62,
 	36,37,49,50,58,59,63,64
 };
-static int reorder_248[64] = {
+static unsigned short reorder_248[64] = {
 	1, 3, 7,19,21,35,37,51,
 	5, 9,17,23,33,39,49,53,
 	11,15,25,31,41,47,55,61,
@@ -465,23 +465,31 @@ static void prepare_reorder_tables()
 	}
 }
 
-/* FIXME: This wants to be assembler optimized... */
+extern int reorder_block_mmx(dv_coeff_t * a, 
+			     const unsigned short* reorder_table);
 
 void reorder_block(dv_block_t *bl)
 {
+#if !ARCH_X86
 	dv_coeff_t zigzag[64];
-	const int *reorder;
 	int i;
+#endif
+	const unsigned short *reorder;
 
 	if (bl->dct_mode == DV_DCT_88)
 		reorder = reorder_88;
 	else
 		reorder = reorder_248;
-	
+
+#if ARCH_X86
+	reorder_block_mmx(bl->coeffs, reorder);
+	emms();
+#else	
 	for (i = 0; i < 64; i++) {
 		*(unsigned short*) ((char*) zigzag + reorder[i])=bl->coeffs[i];
 	}
 	memcpy(bl->coeffs, zigzag, 64 * sizeof(dv_coeff_t));
+#endif
 }
 
 guint vlc_encode_block(unsigned char *vsbuffer, guint bit_offset, 
@@ -514,7 +522,6 @@ guint vlc_encode_block(unsigned char *vsbuffer, guint bit_offset,
 			sign = 1;
 		}
 
-		/* FIXME: Why does using bit_offset directly not work??? */
 		bits_left -= vlc_num_bits(run, amp, sign);
 		if (bits_left < 4) {
 			break;
@@ -566,37 +573,72 @@ guint vlc_num_bits_block(dv_coeff_t *bl)
 	return num_bits;
 }
 
-extern int amp_valid_mmx(dv_coeff_t * a);
+extern int classify_mmx(dv_coeff_t * a, unsigned short* amp_ofs,
+			unsigned short* amp_cmp);
 
-inline int amp_valid(dv_coeff_t *bl)
+inline int classify(dv_coeff_t * bl, int start)
 {
 #if ARCH_X86
-	int rval = !amp_valid_mmx(bl);
+	static unsigned short amp_ofs[3][4] = { 
+		{ 32768+35,32768+35,32768+35,32768+35 },
+		{ 32768+23,32768+23,32768+23,32768+23 },
+		{ 32768+11,32768+11,32768+11,32768+11 }
+	};
+	static unsigned short amp_cmp[3][4] = { 
+		{ 32768+(35+35),32768+(35+35),32768+(35+35),32768+(35+35) },
+		{ 32768+(23+23),32768+(23+23),32768+(23+23),32768+(23+23) },
+		{ 32768+(11+11),32768+(11+11),32768+(11+11),32768+(11+11) }
+	};
+	int i;
+
+	for (i = start; i < 3; i++) {
+		if (!classify_mmx(bl, amp_ofs[i], amp_cmp[i])) {
+			emms();
+			return i;
+		}
+	}
 	emms();
-	return rval;
+	return i;
 #else
-	int a;
+	int rval = 0;
+
 	dv_coeff_t* p = bl;
 	dv_coeff_t* p_end = p + 64;
 
 	while (p != p_end) {
-		a = *p++;
-		if (a <= -256 || a >= 256) {
-			return 0;
+		int a = *p++;
+		int b = (a >> 15);
+		a ^= b;
+		a -= b;
+		if (rval < a) {
+			rval = a;
 		}
 	}
-	return 1;
+
+	if (rval > 35) {
+		rval = 3;
+	} else if (rval > 23) {
+		rval = 2;
+	} else if (rval > 11) {
+		rval = 1;
+	} else {
+		rval = 0;
+	}
+
+	return rval;
 #endif
 }
 
-/* FIXME: This wants to be MMX optimized... */
+
+extern int need_dct_248_mmx(dv_coeff_t * bl);
 
 int need_dct_248(dv_coeff_t * bl)
 {
-	int i,j;
 	int res = 0;
+#if !ARCH_X86
+	int i,j;
 	
-	for (j = 0; j < 64; j += 16) {
+	for (j = 0; j < 64-8; j += 8) {
 		for (i = 0; i < 8; i++) {
 			int a = bl[j + i] - bl[j + i + 8];
 			int b = (a >> 15);
@@ -605,6 +647,10 @@ int need_dct_248(dv_coeff_t * bl)
 			res += a;
 		}
 	}
+#else
+	res = need_dct_248_mmx(bl);
+	emms();
+#endif
 	return (res > DCT_248_THRESHOLD);
 }
 
@@ -817,201 +863,100 @@ static void do_dct(dv_macroblock_t *mb)
 }
 
 #if MODE_STATISTICS
-long modes_used[50];
+static long modes_used[50];
 #endif
+
+static int classes[3][4] = {
+	{ 0, 1, 2, 3},
+	{ 1, 2, 3, 3},
+	{ 2, 3, 3, 3}
+};
+
+static int qnos[4][16] = {
+	{ 15,                  8,    6,    4,    2, 0},
+	{ 15,         11, 10,  8,    6,    4,    2, 0},
+	{ 15, 14, 13, 11,      8,    6,    4,    2, 0},
+	{ 15,     13, 12, 10,  8,    6,    4,    2, 0}
+};
+
+static int qno_start[4][16];
+
+static void init_qno_start()
+{
+	int qno;
+	int klass;
+	int i;
+	for (qno = 0; qno < 16; qno++) {
+		for (klass = 0; klass < 4; klass++) {
+			i = 0;
+			while (qnos[klass][i] > qno) {
+				i++;
+			}
+			qno_start[klass][qno] = i;
+		}
+	}
+}
 
 static void do_quant(dv_macroblock_t * mb)
 {
-	guint b;
-	gint klass;
-
-	struct {
-		int qno, klass;
-	} modes[] = {
-#if 1	
-        /* FIXME - this table should give better results; 
-	   don't know why it doesn't 
-	   (Now it does: it was caused by incorrect quant_88...) 
-	   
-	   Really correct way(tm) should be:
-	   
-	   1. Classify _each_ dct-block (class)
-	      (for example according to the following matrix)
-
-  	       max AC-value
-	       0 - 11  |  12 - 23  |  24 - 35  | >35
-               -----------------------------------------
-	     Y   0     |     1     |     2     |   3
-	    CR   1     |     2     |     3     |   3
-	    CB   2     |     3     |     3     |   3
-
-	   2. Quantizise going from qno 15 to 0
-
-	*/
-	   { 15, 0 },	/* 1 1 1 1 */
-	   { 8, 0 },	/* 1 1 1 2 */
-	   { 7, 0 },	/* 1 1 2 2 */
-	   { 5, 0 },	/* 1 2 2 4 */
-	   { 15, 3 },	/* 2 2 2 2 */
-	   { 13, 3 },	/* 2 2 2 4 */
-	   { 3, 0 },	/* 2 2 4 4 */
-	   { 1, 0 },	/* 2 4 4 8 */
-	   { 2, 1 },	/* 4 4 8 8 */
-	   { 0, 1 },	/* 4 8 8 16 */
-	   { 1, 2 },	/* 8 8 16 16 */
-	   { 2, 3 },	/* 8 16 16 32 */
-	   { 0, 3 }	/* 16 16 32 32 */
-#else
-#if 0
-	   { 15, 0 },	/* 1 1 1 1 */
-	   { 15, 3 },
-	   { 14, 3 },
-	   { 13, 3 },
-	   { 12, 3 },
-	   { 11, 3 },
-	   { 10, 3 },
-	   { 9, 3 },
-	   { 8, 3 },
-	   { 7, 3 },
-	   { 6, 3 },
-	   { 5, 3 },
-	   { 4, 3 },
-	   { 3, 3 },
-	   { 2, 3 },
-	   { 1, 3 },
-	   { 0, 3 },
-#else
-	   { 15, 0 },	/* 1 1 1 1 */
-	   { 15, 3 },
-	   /* { 14, 3 }, never used ? */
-	   { 13, 3 },
-	   { 12, 3 },
-	   /* { 11, 3 }, never used ? */
-	   { 10, 3 },
-	   /* { 9, 3 }, never used ? */
-	   { 8, 3 },
-	   /* { 7, 3 }, never used ? */
-	   { 6, 3 },
-	   /* { 5, 3 }, never used ? */
-	   { 4, 3 },
-	   /* { 3, 3 }, never used ? */
-	   { 2, 3 },
-	   /* { 1, 3 }, never used ? */
-	   { 0, 3 }
+	int b;
+	int smallest_qno = 15;
+	int qno_index;
+#if MODE_STATISTICS
+	int cycles = 0;
 #endif
-#endif
-#if 0
-
-First table:
-0: 114068
-1: 2314
-2: 4658
-3: 4456
-4: 8426
-5: 792
-6: 590
-7: 1004
-8: 2494
-9: 1934
-10: 3192
-11: 19081
-12: 611
-
-Second table:
-
-0: 114068
-1: 19835
-2: 0
-3: 805
-4: 3279
-5: 0
-6: 4678
-7: 0
-8: 6220
-9: 0
-10: 6563
-11: 0
-12: 5906
-13: 0
-14: 1655
-15: 0
-16: 611
-17: 0
-
-
-#endif
-
-	};
-	int num_modes = sizeof(modes) / sizeof(modes[0]);
-	int highest_mode = 0;
 	dv_coeff_t bb[6][64];
+
+	/* First step: classify */
+
+	for (b = 0; b < 4; b++) {
+		dv_block_t *bl = &mb->b[b];
+		bl->class_no = classes[0][classify(bl->coeffs, classes[0][0])];
+	}
+	{
+		dv_block_t *bl = &mb->b[4];
+		bl->class_no = classes[1][classify(bl->coeffs, classes[1][0])];
+	}
+	{
+		dv_block_t *bl = &mb->b[5];
+		bl->class_no = classes[2][classify(bl->coeffs, classes[2][0])];
+	}
+
+	/* Second step: calculate qno */
 
 	for (b = 0; b < 6; b++) {
 		dv_block_t *bl = &mb->b[b];
-		int mode;
 		guint ac_coeff_budget = ((b < 4) ? 100 : 68) - 4;
-		
-		for (mode = highest_mode; mode < num_modes; mode++) {
+		qno_index = qno_start[bl->class_no][smallest_qno];
+		while (smallest_qno > 0) {
 			memcpy(bb[b], bl->coeffs, 64 *sizeof(dv_coeff_t));
-			quant(bb[b], modes[mode].qno,modes[mode].klass);
-			if (amp_valid(bb[b]) &&
-			    (vlc_num_bits_block(bb[b]) < ac_coeff_budget))
+			quant(bb[b], smallest_qno, bl->class_no);
+			if (vlc_num_bits_block(bb[b]) < ac_coeff_budget)
 				break;
+			qno_index++;
+#if MODE_STATISTICS
+			cycles++;
+#endif
+			smallest_qno = qnos[bl->class_no][qno_index];
 		}
-		if (mode == num_modes) {
-			/* Nothing good enough found: make coeffs as small as
-			   possible */
-			mode = num_modes - 1;
+		if (smallest_qno == 0) {
+			break;
 		}
-		if (mode > highest_mode )
-			highest_mode = mode;
 	}
 #if MODE_STATISTICS
-	modes_used[highest_mode]++;
+	modes_used[cycles]++;
 #endif
-	mb->qno = modes[highest_mode].qno;
-	klass = modes[highest_mode].klass;
-	if (highest_mode == 0) { /* Things are cheap these days ;-) */
+	mb->qno = smallest_qno;
+	if (smallest_qno == 15) { /* Things are cheap these days ;-) */
 		for (b = 0; b < 6; b++) {
 			dv_block_t *bl = &mb->b[b];
 			memcpy(bl->coeffs, bb[b], 64 *sizeof(dv_coeff_t));
-			bl->class_no = klass;
 		}
 	} else {
-#if 0 /* should give higher quality but doesn't ? */
-		if (class != 0) {
-			for (b = 0; b < 6; b++) {
-				dv_block_t *bl = &mb->b[b];
-				dv_block_t copy;
-				int c;
-				guint ac_coeff_budget = 
-					((b < 4) ? 100 : 68) - 4;
-				
-				for (c = 0; c <= 3; c++) {
-					copy = *bl;
-					quant(copy.coeffs, mb->qno, c);
-					if (amp_valid(copy.coeffs) &&
-					    (vlc_num_bits_block(copy.coeffs)
-					     < ac_coeff_budget))
-						break;
-				}
-				*bl = copy;
-				bl->class_no = c;
-			}
-		} else {
-			for (b = 0; b < 6; b++) {
-				dv_block_t *bl = &mb->b[b];
-				quant(bl->coeffs, mb->qno, klass);
-				bl->class_no = klass;
-			}
-		}
-#else
 		for (b = 0; b < 6; b++) {
 			dv_block_t *bl = &mb->b[b];
-			quant(bl->coeffs, mb->qno, klass);
-			bl->class_no = klass;
+			quant(bl->coeffs, smallest_qno, bl->class_no);
 		}
-#endif
 	}
 }
 
@@ -1488,6 +1433,7 @@ int main(int argc, char *argv[])
 	dv_place_init();
 	init_vlc_test_lookup();
 	init_vlc_num_bits_lookup();
+	init_qno_start();
 	prepare_reorder_tables();
 
 #if MODE_STATISTICS
