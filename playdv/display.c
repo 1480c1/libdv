@@ -161,6 +161,14 @@ dv_display_new(void)
 	       descrip: (char *)result, /* data passed to callback */
 	       }; /* callback */
 
+  result->option_table[DV_DISPLAY_OPT_XV_PORT] = (struct poptOption) {
+    longName:   "xvport", 
+    argInfo:    POPT_ARG_INT, 
+    arg:        &result->arg_xv_port,
+    argDescrip: "number",
+    descrip:    "set Xvideo port (defaults to the first usable)",
+  }; /* choose Xvideo port */
+
 #endif /* HAVE_LIBPOPT */
 
  no_mem:
@@ -405,6 +413,17 @@ dv_display_Xv_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name,
 	      ad_info[i].base_id,
 	      ad_info[i].base_id +
 	      ad_info[i].num_ports - 1);
+
+      if (dv_dpy->arg_xv_port != 0 && 
+	      (dv_dpy->arg_xv_port < ad_info[i].base_id ||
+	       dv_dpy->arg_xv_port >= ad_info[i].base_id+ad_info[i].num_ports)) {
+	  fprintf(stderr,
+		    "Xv: %s: skipping (looking for port %i)\n",
+		    ad_info[i].name,
+		    dv_dpy->arg_xv_port);
+	  continue;
+      }
+
       if (!(ad_info[i].type & XvImageMask)) {
 	fprintf(stderr,
 		"Xv: %s: XvImage NOT in capabilty list (%s%s%s%s%s )\n",
@@ -442,6 +461,7 @@ dv_display_Xv_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name,
       for(dv_dpy->port = ad_info[i].base_id, k = 0;
 	  k < ad_info[i].num_ports;
 	  ++k, ++(dv_dpy->port)) {
+	if (dv_dpy->arg_xv_port != 0 && dv_dpy->arg_xv_port != dv_dpy->port) continue;
 	if(!XvGrabPort(dv_dpy->dpy, dv_dpy->port, CurrentTime)) {
 	  fprintf(stderr, "Xv: grabbed port %ld\n",
 		  dv_dpy->port);

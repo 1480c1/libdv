@@ -8,6 +8,11 @@
 	  for expression in weighting.c.  This was causing video artifacts and crashes.
 	  Workaround found by changing the expression gcc was messing up on.
 
+	* New option for selecting Xvideo port.  nVidia drivers have now 2
+	  Xvideo adaptors: `Video overlay' (1 port) and `Video blitter' (32 ports).
+	  Matrox G series have a similar option.  This patch allows to select any of 
+	  their ports.
+
 2001-06-05  Peter Schlaile <udbz@rz.uni-karlsruhe.de>
 	* Added dvconnect. A small utility to grab and send dv data over
 	  firewire

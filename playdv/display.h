@@ -53,7 +53,8 @@
 #define DV_DISPLAY_OPT_ASPECT	1
 #define DV_DISPLAY_OPT_SIZE	2
 #define DV_DISPLAY_OPT_CALLBACK 3
-#define DV_DISPLAY_NUM_OPTS     4
+#define DV_DISPLAY_OPT_XV_PORT  4
+#define DV_DISPLAY_NUM_OPTS     5
 
 typedef enum dv_dpy_lib_e {
   e_dv_dpy_Xv,
@@ -108,7 +109,8 @@ typedef struct {
 
   gint 			arg_display,
 			arg_aspect_val,
-			arg_size_val;
+			arg_size_val,
+			arg_xv_port;
   gchar			*arg_aspect_string;
 
 #if HAVE_LIBPOPT
