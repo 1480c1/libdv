@@ -641,7 +641,7 @@ dv_parse_video_segment(dv_videosegment_t *seg, unsigned int quality) {
 /* ---------------------------------------------------------------------------
  */
 static void
-dv_parse_ssyb (dv_decoder_t *dv, uint8_t *buffer) {
+dv_parse_ssyb (dv_decoder_t *dv, const uint8_t *buffer) {
     int  i, j, k,
 #if 0
          got13 = 0, got62 = 0, got63 = 0,
@@ -732,7 +732,7 @@ dv_parse_ssyb (dv_decoder_t *dv, uint8_t *buffer) {
 /* ---------------------------------------------------------------------------
  */
 static void
-dv_parse_vaux (dv_decoder_t *dv, uint8_t *buffer) {
+dv_parse_vaux (dv_decoder_t *dv, const uint8_t *buffer) {
   int	i, j;
 
   /* 
@@ -782,7 +782,7 @@ dv_parse_id(bitstream_t *bs,dv_id_t *id) {
 /* ---------------------------------------------------------------------------
  */
 void
-dv_parse_packs(dv_decoder_t *dv, uint8_t *buffer) {
+dv_parse_packs(dv_decoder_t *dv, const uint8_t *buffer) {
   dv_parse_ssyb (dv, buffer);
   /* dv_parse_aaux (dv, buffer); */
 } /* dv_parse_packs () */
@@ -790,14 +790,14 @@ dv_parse_packs(dv_decoder_t *dv, uint8_t *buffer) {
 /* ---------------------------------------------------------------------------
  */
 int
-dv_parse_header(dv_decoder_t *dv, uint8_t *buffer) {
+dv_parse_header(dv_decoder_t *dv, const uint8_t *buffer) {
   dv_header_t *header = &dv->header;
   bitstream_t *bs;
   dv_id_t      id;
   int         prev_system, result = 0;
 
   if(!(bs = bitstream_init())) goto no_bitstream;
-  bitstream_new_buffer(bs,buffer,6*80);
+  bitstream_new_buffer(bs,(uint8_t *)buffer,6*80);
   dv_parse_id(bs,&id);
   if (id.sct != 0) goto parse_error;            /* error, if not header */
   header->dsf = bitstream_get(bs,1);

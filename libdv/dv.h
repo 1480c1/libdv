@@ -52,9 +52,10 @@ extern dv_decoder_t *dv_decoder_new     (int add_ntsc_setup, int clamp_luma,
 extern void         dv_decoder_free     (dv_decoder_t*);
 extern void         dv_init             (int clamp_luma, int clamp_chroma); 
 extern void         dv_reconfigure      (int clamp_luma, int clamp_chroma); 
-extern int          dv_parse_header     (dv_decoder_t *dv, uint8_t *buffer);
+extern int          dv_parse_header     (dv_decoder_t *dv, const uint8_t *buffer);
+extern void         dv_parse_packs      (dv_decoder_t *dv, const uint8_t *buffer);
 extern void         dv_decode_full_frame(dv_decoder_t *dv, 
-					  uint8_t *buffer, dv_color_space_t color_space, 
+					  const uint8_t *buffer, dv_color_space_t color_space, 
 					  uint8_t **pixels, int *pitches);
 extern int          dv_decode_full_audio(dv_decoder_t *dv, 
 					  const uint8_t *buffer, int16_t **outbufs);
@@ -112,7 +113,8 @@ extern int dv_frame_changed (dv_decoder_t *dv),
  * return value: 0 not-present, >0 ok
  */
 extern int dv_get_timestamp (dv_decoder_t *dv, char *tstprt),
-           dv_get_recording_datetime (dv_decoder_t *dv, char *dtptr);
+           dv_get_recording_datetime (dv_decoder_t *dv, char *dtptr),
+           dv_get_timestamp_int (dv_decoder_t *dv, int *timestamp);
 
 #ifdef __cplusplus
 }

@@ -440,7 +440,7 @@ void dv_check_coeff_ranges(dv_macroblock_t *mb) {
 }
 
 void
-dv_decode_full_frame(dv_decoder_t *dv, uint8_t *buffer, 
+dv_decode_full_frame(dv_decoder_t *dv, const uint8_t *buffer, 
 		     dv_color_space_t color_space, uint8_t **pixels, int *pitches) {
 
   static dv_videosegment_t vs;
@@ -478,7 +478,7 @@ dv_decode_full_frame(dv_decoder_t *dv, uint8_t *buffer,
       } /* if */
       /* stage 1: parse and VLC decode 5 macroblocks that make up a video segment */
       offset = dif * 80;
-      bitstream_new_buffer(seg->bs, buffer + offset, 80*5); 
+      bitstream_new_buffer(seg->bs, (uint8_t *)buffer + offset, 80*5); 
       dv_parse_video_segment(seg, dv->quality);
       /* stage 2: dequant/unweight/iDCT blocks, and place the macroblocks */
       dif+=5;
@@ -756,6 +756,32 @@ dv_get_timestamp (dv_decoder_t *dv, char *tstptr)
     return 1;
   }
   strcpy (tstptr, "00:00:00.00");
+  return 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * timecode is an array of 4 ints
+ */
+int
+dv_get_timestamp_int (dv_decoder_t *dv, int *timestamp)
+{
+    int  id;
+
+  if ((id = dv -> ssyb_pack [0x13]) != 0xff) {
+    timestamp[0] = ((dv -> ssyb_data [id] [3] >> 4) & 0x03) * 10 +
+              (dv -> ssyb_data [id] [3] & 0x0f);
+	  
+    timestamp[1] = ((dv -> ssyb_data [id] [2] >> 4) & 0x07) * 10 +
+              (dv -> ssyb_data [id] [2] & 0x0f);
+	  
+    timestamp[2] = ((dv -> ssyb_data [id] [1] >> 4) & 0x07) * 10 +
+              (dv -> ssyb_data [id] [1] & 0x0f);
+	  
+    timestamp[3] = ((dv -> ssyb_data [id] [0] >> 4) & 0x03) * 10 +
+              (dv -> ssyb_data [id] [0] & 0x0f);
+
+    return 1;
+  }
   return 0;
 }
 
