@@ -27,6 +27,9 @@
 ALLONE:		.word 1,1,1,1
 VLCADDMASK:	.byte 255,0,0,0,255,0,0,0
 		
+
+.section .note.GNU-stack, "", @progbits
+
 .text
 
 .global _dv_vlc_encode_block_mmx

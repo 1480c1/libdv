@@ -1,3 +1,5 @@
+.section .note.GNU-stack, "", @progbits
+
 .text
 .global _dv_transpose_mmx_x86_64
 	

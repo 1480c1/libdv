@@ -53,6 +53,8 @@ scratch2:       .quad 0
 scratch3:       .quad 0
 scratch4:       .quad 0
 
+.section .note.GNU-stack, "", @progbits
+
 .text
 
 .align 8	

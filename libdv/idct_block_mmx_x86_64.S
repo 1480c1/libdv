@@ -13,6 +13,7 @@
 /* If we're using MMX assembler, fold weights into the iDCT
    prescale here instead of  _dv_weight_init */
 
+.section .note.GNU-stack, "", @progbits
 
 .text
 	.align 4

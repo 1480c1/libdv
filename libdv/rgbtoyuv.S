@@ -111,6 +111,8 @@ VBG0B:  .long   0,0
 	
 #endif	
 	
+.section .note.GNU-stack, "", @progbits
+
 .text
 
 #define _inPtr     8

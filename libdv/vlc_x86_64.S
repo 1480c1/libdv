@@ -1,4 +1,6 @@
 	#include "asmoff.h"
+.section .note.GNU-stack, "", @progbits
+
 .text
 	.align 4
 .globl dv_decode_vlc

@@ -24,6 +24,8 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
+.section .note.GNU-stack, "", @progbits
+.previous
 
 /*
 

@@ -6,7 +6,7 @@
  * (element[0][0] of the matrix)
  */
 
-
+.section .note.GNU-stack, "", @progbits
 
 .text
 	.align 4
