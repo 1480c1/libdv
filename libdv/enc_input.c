@@ -166,7 +166,7 @@ void dv_enc_rgb_to_ycb(unsigned char* img_rgb, int height,
 
 static unsigned char* readbuf = NULL;
 static unsigned char* real_readbuf = 0; /* for wrong interlacing */
-int force_dct = 0;
+static int force_dct = 0;
 static int wrong_interlace = 0;
 
 static short* img_y = NULL; /* [DV_PAL_HEIGHT * DV_WIDTH]; */
@@ -958,6 +958,9 @@ void ycb_fill_macroblock(dv_encoder_t *dv_enc, dv_macroblock_t *mb)
 	int y = mb->y;
 	int x = mb->x;
 	dv_block_t *bl = mb->b;
+	int b;
+	int need_dct_248_rows[6];
+
 
 #if !ARCH_X86
 	if (dv_enc->isPAL || mb->x == DV_WIDTH- 16) { /* PAL or rightmost NTSC block */
@@ -1010,10 +1013,10 @@ void ycb_fill_macroblock(dv_encoder_t *dv_enc, dv_macroblock_t *mb)
 			}
 		}
 	}
-	if (force_dct != -1) {
+	if (dv_enc->force_dct != -1) {
 		int b;
 		for (b = 0; b < 6; b++) {
-			bl[b].dct_mode = force_dct;
+			bl[b].dct_mode = dv_enc->force_dct;
 		}
 	} else {
 		int b;
@@ -1045,7 +1048,33 @@ void ycb_fill_macroblock(dv_encoder_t *dv_enc, dv_macroblock_t *mb)
 					  dv_enc->img_cb + y*DV_WIDTH/2 + x/2);
 	}
 
-	finish_mb_mmx(mb);
+	
+	/* from finish_mb_mmx() */
+	if (dv_enc->force_dct != -1) {
+		for (b = 0; b < 6; b++) {
+			bl[b].dct_mode = dv_enc->force_dct;
+		}
+	} else {
+		for (b = 0; b < 6; b++) {
+			need_dct_248_rows[b]
+				= need_dct_248_mmx_rows(bl[b].coeffs) + 1;
+		}
+	}
+	transpose_mmx(bl[0].coeffs);
+	transpose_mmx(bl[1].coeffs);
+	transpose_mmx(bl[2].coeffs);
+	transpose_mmx(bl[3].coeffs);
+	transpose_mmx(bl[4].coeffs);
+	transpose_mmx(bl[5].coeffs);
+
+	if (dv_enc->force_dct == -1) {
+		for (b = 0; b < 6; b++) {
+			bl[b].dct_mode = 
+				((need_dct_248_rows[b] * 65536 / 
+				  (need_dct_248_mmx_rows(bl[b].coeffs) + 1))
+				 > DCT_248_THRESHOLD) ? DV_DCT_248 : DV_DCT_88;
+		}
+	}
 
 	emms();
 #endif

@@ -1444,8 +1444,6 @@ void show_statistics()
 /****** public encoder implementation ***********************************/
 /* By Dan Dennedy <dan@dennedy.org> */
 
-extern int force_dct;
-
 gint dv_encode_videosegment( dv_encoder_t *dv_enc,
 				dv_videosegment_t *videoseg, guint8 *vsbuffer)
 {
@@ -1581,7 +1579,7 @@ gint dv_encode_full_frame(guchar **in, guchar *out,
 	time_t now;
 	now = time(NULL);
 	
-	force_dct = force_dct_;
+	dv_enc.force_dct = force_dct_;
 	dv_enc.isPAL = isPAL;
 	dv_enc.vlc_encode_passes = vlc_encode_passes;
 	dv_enc.static_qno = static_qno;
@@ -1593,8 +1591,8 @@ gint dv_encode_full_frame(guchar **in, guchar *out,
 		dv_enc.vlc_encode_passes = 3;
 	if (dv_enc.static_qno < 1 || dv_enc.static_qno > 2)
 		dv_enc.static_qno = 0;
-	if (force_dct < DV_DCT_AUTO || force_dct > DV_DCT_248)
-		force_dct = DV_DCT_AUTO;
+	if (dv_enc.force_dct < DV_DCT_AUTO || dv_enc.force_dct > DV_DCT_248)
+		dv_enc.force_dct = DV_DCT_AUTO;
 
 	memset(out, 0, 480 * (isPAL ? 300 : 250));
 

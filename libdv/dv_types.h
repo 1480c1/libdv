@@ -425,12 +425,13 @@ typedef struct {
 } dv_oss_t;
 
 typedef struct {
-	int isPAL;
-	int vlc_encode_passes;
-	int static_qno;
-	short *img_y;  /* height * width     */
-	short *img_cr; /* height * width / 2 */
-	short *img_cb; /* height * width / 2 */
+  gint   isPAL;
+  gint   vlc_encode_passes;
+  gint   static_qno;
+  short *img_y;  /* height * width     */
+  short *img_cr; /* height * width / 2 */
+  short *img_cb; /* height * width / 2 */
+  gint   force_dct; 
 } dv_encoder_t;
 
 #if ARCH_X86
