@@ -196,13 +196,17 @@ static gint
 dv_display_Xv_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name) {
   gint		ret = 0;
 #if HAVE_LIBXV
-  int		scn_id, ad_cnt, got_port, i, k;
+  int		scn_id,
+                ad_cnt, fmt_cnt,
+                got_port, got_fmt,
+                i, k;
   XGCValues	values;
   XSizeHints	hints;
   XWMHints	wmhints;
   XTextProperty	x_wname, x_iname;
 
   XvAdaptorInfo	*ad_info;
+  XvImageFormatValues	*fmt_info;
 
   if(!(dv_dpy->dpy = XOpenDisplay(NULL))) {
     return 0;
@@ -223,6 +227,40 @@ dv_display_Xv_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name) {
 	      ad_info[i].base_id,
 	      ad_info[i].base_id +
 	      ad_info[i].num_ports - 1);
+      if (!(ad_info[i].type & XvImageMask)) {
+	fprintf(stderr,
+		"Xv: %s: XvImage NOT in capabilty list (%s%s%s%s%s )\n",
+		ad_info[i].name,
+		(ad_info[i].type & XvInputMask) ? " XvInput"  : "",
+		(ad_info[i]. type & XvOutputMask) ? " XvOutput" : "",
+		(ad_info[i]. type & XvVideoMask)  ?  " XvVideo"  : "",
+		(ad_info[i]. type & XvStillMask)  ?  " XvStill"  : "",
+		(ad_info[i]. type & XvImageMask)  ?  " XvImage"  : "");
+	continue;
+      }
+      fmt_info = XvListImageFormats(dv_dpy->dpy, ad_info[i].base_id,&fmt_cnt);
+      if (!fmt_info || fmt_cnt == 0) {
+	fprintf(stderr, "Xv: %s: NO supported formats\n", ad_info[i].name);
+	continue;
+      }
+      for(got_fmt = False, k = 0; k < fmt_cnt; ++k) {
+	if (dv_dpy->format == fmt_info[k].id) {
+	  got_fmt = True;
+	  break;
+	}
+      }
+      if (!got_fmt) {
+	fprintf(stderr,
+		"Xv: %s: format %#08x is NOT in format list ( ",
+		ad_info[i].name,
+                dv_dpy->format);
+	for (k = 0; k < fmt_cnt; ++k) {
+	  fprintf (stderr, "%#08x[%s] ", fmt_info[k].id, fmt_info[k].guid);
+	}
+	fprintf(stderr, ")\n");
+	continue;
+      }
+
       for(dv_dpy->port = ad_info[i].base_id, k = 0;
 	  k < ad_info[i].num_ports;
 	  ++k, ++(dv_dpy->port)) {
