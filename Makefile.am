@@ -50,7 +50,7 @@ libdv_la_SOURCES= dv.c dct.c idct_248.c weighting.c quant.c vlc.c place.c \
 	parse.c bitstream.c YUY2.c YV12.c rgb.c audio.c oss.c util.c \
 	$(libdv_la_ASMS)
 
-libdv_la_LDFLAGS = -version-info 0:0:0
+libdv_la_LDFLAGS = -version-info 1:0:0
 
 playdv_SOURCES= playdv.c display.c display.h
 playdv_LDADD= libdv.la
@@ -76,10 +76,8 @@ steal_header_SOURCES = steal_header.c
 
 ppmqscale_SOURCES = ppmqscale.c
 
-rpm: @PACKAGE@.spec
-	make dist
-	mv @PACKAGE@-@VERSION@.tar.gz `rpm --eval %{_sourcedir}`
-	rpm -ba @PACKAGE@.spec
+rpm: dist
+	rpm -ta @PACKAGE@-@VERSION@.tar.gz
 
 dist-hook:
 	(cd $(distdir) && mkdir $(ac_aux_dir))

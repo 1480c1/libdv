@@ -1,5 +1,13 @@
 2001-02-14  Charles 'Buck' Krasic  <krasic@acm.org>
 
+	* Version 0.5
+
+	* Integrate patch #103780 "encoder and ppmqscale improvements",
+	  from Peter Schlaile (see below)
+
+	* Bump libtool library version number to reflect dv_init()
+	  interface change.
+
 	* Bug fix for bug #131581: 
 	  "Initializating multiple dv_decoder_t	objects fails".  
 
@@ -8,6 +16,26 @@
 
 	* Bugfix from Stefan Lucke for recent PAL breakage.
 
+	* Cleaner rpm rule in Makefile.am
+
+2001-02-14  Peter Schlaile <udbz@rz.uni-karlsruhe.de>
+
+        * Again encoder speedups.
+	
+	* Fixed serious quant bugs (divide != shift!!!!)
+	
+	* Implemented DCT248 AAN version in C and MMX
+	
+	* Integrated use of DCT248 (somewhat experimental. My camcorder
+	  apparently uses motion detection for this one...)
+	
+	* General code cleanups
+	
+	* ppmqscale can now shrink pictures
+	
+	* Added a lot of FIXMEs so other people can also improve things
+	  (hint, hint ;-)
+	
 2001-02-08  Charles 'Buck' Krasic  <krasic@acm.org>
 
 	* Add --enable-gprof to configure.  Disable SDL by default.  Minor

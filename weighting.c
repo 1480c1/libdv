@@ -43,7 +43,8 @@ dv_coeff_t preSC[64] ALIGN32 = {
 	18081,25080,23624,21261, 18081,14206,9785,4988
 };
 
-dv_coeff_t postSC[64] ALIGN32;
+dv_coeff_t postSC88[64] ALIGN32;
+dv_coeff_t postSC248[64] ALIGN32;
 
 static double W[8];
 
@@ -54,8 +55,12 @@ static dv_coeff_t dv_weight_inverse_88_matrix[64];
 #if BRUTE_FORCE_DCT_88
 static double dv_weight_88_matrix[64];
 #endif
+#if BRUTE_FORCE_DCT_248
+static double dv_weight_248_matrix[64];
+#endif
 
 double dv_weight_inverse_248_matrix[64];
+
 
 static inline double CS(int m) {
   return cos(((double)m) * M_PI / 16.0);
@@ -63,13 +68,14 @@ static inline double CS(int m) {
 
 static void weight_88_inverse_float(double *block);
 static void weight_88_float(double *block);
+static void weight_248_float(double *block);
 
 static inline short int_val(double f)
 {
 	return (short) floor(f + 0.5);
 }
 
-static void postscale_init(double* post_sc)
+static void postscale88_init(double* post_sc)
 {
 	int i,j;
 	double ci,cj;
@@ -91,6 +97,31 @@ static void postscale_init(double* post_sc)
 	post_sc[63] = 1.0;    
 }
 
+static void postscale248_init(double* post_sc)
+{
+	int i,j;
+	double ci,cj;
+
+	for( i = 0; i < 4; i++ ) {
+		ci = i==0 ? 1/(4.*sqrt(2.)) : 1.0/8.0;
+		/* di = i==0 ? 1.5/(sqrt(2.)) : 0.5;
+		   ps3[i] = 2.0*2.0*ci/cos(i*M_PI/16); 
+		   israelh. this is table1 from AAN paper. 
+		   Note the trick if 8 or 16 deivision
+		*/
+		for( j = 0; j < 8; j++) {
+			cj = j==0 ? 1/(8*sqrt(2.)) : 1.0/16.0;
+			post_sc[i * 16 + j] = 4.0*2.0 * ci * cj / 
+				(cos(i*M_PI/8)*cos(j*M_PI/16));
+			post_sc[i * 16 + 8 + j] = 4.0*2.0 * ci * cj / 
+				(cos(i*M_PI/8)*cos(j*M_PI/16));
+			/* israelh. patch the first 4.0? */
+		}
+	}
+	post_sc[63-8] = 1.0;    
+	post_sc[63] = 1.0;    
+}
+
 void weight_init(void) 
 {
 	double temp[64];
@@ -99,7 +130,6 @@ void weight_init(void)
 #if ARCH_X86
 	const double dv_weight_bias_factor = (double)(1UL << DV_WEIGHT_BIAS);
 #endif
-	postscale_init(temp_postsc);
 
 	W[0] = 1.0;
 	W[1] = CS(4) / (4.0 * CS(7) * CS(2));
@@ -125,6 +155,7 @@ void weight_init(void)
 #endif
 	}
 
+	postscale88_init(temp_postsc);
 	for (i = 0; i < 64; i++) {
 		temp[i] = 1.0;
 	}
@@ -137,10 +168,30 @@ void weight_init(void)
 		/* If we're not using brute force(tm), 
 		   fold weights into the DCT
 		   postscale */
-		postSC[i] = int_val(temp_postsc[i] * temp[i] * 32768.0 * 2.0);
+		postSC88[i]= int_val(temp_postsc[i] * temp[i] * 32768.0 * 2.0);
 #endif
 	}
-	postSC[63] = temp[63] * 32768 * 2.0;    
+	postSC88[63] = temp[63] * 32768 * 2.0;    
+
+	postscale248_init(temp_postsc);
+
+	for (i = 0; i < 64; i++) {
+		temp[i] = 1.0;
+	}
+	weight_248_float(temp);
+
+	for (i=0;i<64;i++) {
+#if BRUTE_FORCE_DCT_248
+		dv_weight_248_matrix[i] = temp[i];
+#else
+		/* If we're not using brute force(tm), 
+		   fold weights into the DCT
+		   postscale */
+		postSC248[i]= int_val(temp_postsc[i]* temp[i] * 32768.0 * 2.0);
+#endif
+	}
+	postSC248[63-8] = temp[63] * 32768 * 2.0;    
+	postSC248[63]   = temp[63] * 32768 * 2.0;    
 
 	for (z=0;z<4;z++) {
 		for (x=0;x<8;x++) {
@@ -184,8 +235,21 @@ static void weight_88_float(double *block)
 
 void weight_248(dv_coeff_t *block) 
 {
+	/* These weights are now folded into the dct postscaler - so this
+	   function doesn't do anything. */
+#if BRUTE_FORCE_DCT_248
+	int i;
+
+	for (i=0;i<64;i++) {
+		block[i] *= dv_weight_248_matrix[i];
+	}
+#endif
+}
+
+static void weight_248_float(double *block) 
+{
 	int x,z;
-	dv_coeff_t dc;
+	double dc;
 
 	dc = block[0];
 	for (z=0;z<4;z++) {
@@ -196,6 +260,7 @@ void weight_248(dv_coeff_t *block)
 	}
 	block[0] = dc / 4;
 }
+
 
 static void weight_88_inverse_float(double *block) 
 {

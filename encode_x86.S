@@ -37,11 +37,8 @@ amp_valid_mmx:
 	pushl   %ebp
 	movl    %esp, %ebp
 	pushl   %esi
-	pushl	%edi	
 	
 	movl    8(%ebp), %esi          # source
-	movl	%esi, %edi
-	addl	$8, %edi
 
 	movq	amp_ofs, %mm7
 	movq	amp_cmp, %mm6
@@ -52,8 +49,8 @@ amp_valid_mmx:
 	pxor	%mm3, %mm3
 	pxor	%mm2, %mm2
 
-	movq	(%esi), %mm0
-	movq	(%edi), %mm1
+	movq	0*8(%esi), %mm0
+	movq	1*8(%esi), %mm1
 	
 	paddw	%mm7, %mm0
 	paddw	%mm5, %mm1
@@ -61,77 +58,63 @@ amp_valid_mmx:
 	pcmpgtw %mm4, %mm1
 	paddw	%mm0, %mm3 
 	paddw	%mm1, %mm2 
-	addl	$16, %esi 
-	addl	$16, %edi 
 
-	movq	(%esi), %mm0
-	movq	(%edi), %mm1
+	movq	2*8(%esi), %mm0
+	movq	3*8(%esi), %mm1
 	paddw	%mm7, %mm0
 	paddw	%mm5, %mm1
 	pcmpgtw	%mm6, %mm0
 	pcmpgtw %mm4, %mm1
 	paddw	%mm0, %mm3 
 	paddw	%mm1, %mm2 
-	addl	$16, %esi 
-	addl	$16, %edi 
 
-	movq	(%esi), %mm0
-	movq	(%edi), %mm1
+	movq	4*8(%esi), %mm0
+	movq	5*8(%esi), %mm1
 	paddw	%mm7, %mm0
 	paddw	%mm5, %mm1
 	pcmpgtw	%mm6, %mm0
 	pcmpgtw %mm4, %mm1
 	paddw	%mm0, %mm3 
 	paddw	%mm1, %mm2 
-	addl	$16, %esi 
-	addl	$16, %edi 
 
-	movq	(%esi), %mm0
-	movq	(%edi), %mm1
+	movq	6*8(%esi), %mm0
+	movq	7*8(%esi), %mm1
 	paddw	%mm7, %mm0
 	paddw	%mm5, %mm1
 	pcmpgtw	%mm6, %mm0
 	pcmpgtw %mm4, %mm1
 	paddw	%mm0, %mm3 
 	paddw	%mm1, %mm2 
-	addl	$16, %esi 
-	addl	$16, %edi 
 
-	movq	(%esi), %mm0
-	movq	(%edi), %mm1
+	movq	8*8(%esi), %mm0
+	movq	9*8(%esi), %mm1
 	paddw	%mm7, %mm0
 	paddw	%mm5, %mm1
 	pcmpgtw	%mm6, %mm0
 	pcmpgtw %mm4, %mm1
 	paddw	%mm0, %mm3 
 	paddw	%mm1, %mm2 
-	addl	$16, %esi 
-	addl	$16, %edi 
 
-	movq	(%esi), %mm0
-	movq	(%edi), %mm1
+	movq	10*8(%esi), %mm0
+	movq	11*8(%esi), %mm1
 	paddw	%mm7, %mm0
 	paddw	%mm5, %mm1
 	pcmpgtw	%mm6, %mm0
 	pcmpgtw %mm4, %mm1
 	paddw	%mm0, %mm3 
 	paddw	%mm1, %mm2 
-	addl	$16, %esi 
-	addl	$16, %edi 
 
-	movq	(%esi), %mm0
-	movq	(%edi), %mm1
+	movq	12*8(%esi), %mm0
+	movq	13*8(%esi), %mm1
 	paddw	%mm7, %mm0
 	paddw	%mm5, %mm1
 	pcmpgtw	%mm6, %mm0
 	pcmpgtw %mm4, %mm1
 	paddw	%mm0, %mm3 
 	paddw	%mm1, %mm2 
-	addl	$16, %esi 
-	addl	$16, %edi 
 
-	movq	(%esi), %mm0
-	movq	(%edi), %mm1
+	movq	14*8(%esi), %mm0
+	movq	15*8(%esi), %mm1
 	paddw	%mm7, %mm0
 	paddw	%mm5, %mm1
 	pcmpgtw	%mm6, %mm0
@@ -144,7 +127,6 @@ amp_valid_mmx:
 
 	movd	%mm3, %eax
 
-	pop	%edi	
 	pop	%esi
 	pop	%ebp
 	ret
@@ -162,35 +144,35 @@ copy_y_block_mmx:
 	
 	movq	(%esi), %mm0
 	movq	8(%esi), %mm1
-	movq	DV_WIDTH(%esi), %mm2
-	movq	DV_WIDTH+8(%esi), %mm3
-	movq	DV_WIDTH*2(%esi), %mm4
-	movq	DV_WIDTH*2+8(%esi), %mm5
-	movq	DV_WIDTH*3(%esi), %mm6
-	movq	DV_WIDTH*3+8(%esi), %mm7
 	movq	%mm0, 0*8(%edi)
 	movq	%mm1, 1*8(%edi) 
+	movq	DV_WIDTH(%esi), %mm2
+	movq	DV_WIDTH+8(%esi), %mm3
 	movq	%mm2, 2*8(%edi)
 	movq	%mm3, 3*8(%edi) 
+	movq	DV_WIDTH*2(%esi), %mm4
+	movq	DV_WIDTH*2+8(%esi), %mm5
 	movq	%mm4, 4*8(%edi)
 	movq	%mm5, 5*8(%edi) 
+	movq	DV_WIDTH*3(%esi), %mm6
+	movq	DV_WIDTH*3+8(%esi), %mm7
 	movq	%mm6, 6*8(%edi)
 	movq	%mm7, 7*8(%edi) 
 
 	movq	DV_WIDTH*4(%esi), %mm0
 	movq	DV_WIDTH*4+8(%esi), %mm1
-	movq	DV_WIDTH*5(%esi), %mm2
-	movq	DV_WIDTH*5+8(%esi), %mm3
-	movq	DV_WIDTH*6(%esi), %mm4
-	movq	DV_WIDTH*6+8(%esi), %mm5
-	movq	DV_WIDTH*7(%esi), %mm6
-	movq	DV_WIDTH*7+8(%esi), %mm7
 	movq	%mm0, 8*8(%edi)
 	movq	%mm1, 9*8(%edi) 
+	movq	DV_WIDTH*5(%esi), %mm2
+	movq	DV_WIDTH*5+8(%esi), %mm3
 	movq	%mm2, 10*8(%edi)
 	movq	%mm3, 11*8(%edi) 
+	movq	DV_WIDTH*6(%esi), %mm4
+	movq	DV_WIDTH*6+8(%esi), %mm5
 	movq	%mm4, 12*8(%edi)
 	movq	%mm5, 13*8(%edi) 
+	movq	DV_WIDTH*7(%esi), %mm6
+	movq	DV_WIDTH*7+8(%esi), %mm7
 	movq	%mm6, 14*8(%edi)
 	movq	%mm7, 15*8(%edi) 
 	
@@ -211,87 +193,66 @@ copy_c_block_mmx:
 	pushl	%ebx
 	
 	movl    8(%ebp), %edi          # dest
-	movl    %edi, %eax             # dest
-	addl	$8, %eax
 	movl    12(%ebp), %esi         # src
-	movl	%esi, %ebx
 	movl	16(%ebp), %edx         # ofs
 	shll	$2, %edx
+	movl	%edx, %ebx
+	shll	$1, %ebx
 
-	addl	%edx, %ebx
-	shll	$1, %edx
-		
 	movq	(%esi), %mm0
-	movq	(%ebx), %mm2
+	movq	(%esi,%edx), %mm2
 	movq	%mm0, %mm1
 	movq	%mm2, %mm3
-	addl	%edx, %esi
-	addl	%edx, %ebx	
+	addl	%ebx, %esi
 	punpcklwd %mm0, %mm0
 	punpckhwd %mm1, %mm1
 	punpcklwd %mm2, %mm2
 	punpckhwd %mm3, %mm3
-	movq	%mm0, (%edi)
-	movq	%mm1, (%eax)
-	addl	$16, %edi
-	addl	$16, %eax
-	movq	%mm2, (%edi)
-	movq	%mm3, (%eax)
-	addl	$16, %edi
-	addl	$16, %eax
+	movq	%mm0, 0*8(%edi)
+	movq	%mm1, 1*8(%edi)
+	movq	%mm2, 2*8(%edi)
+	movq	%mm3, 3*8(%edi)
 
 	movq	(%esi), %mm0
-	movq	(%ebx), %mm2
+	movq	(%esi,%edx), %mm2
 	movq	%mm0, %mm1
 	movq	%mm2, %mm3
-	addl	%edx, %esi
-	addl	%edx, %ebx	
+	addl	%ebx, %esi
 	punpcklwd %mm0, %mm0
 	punpckhwd %mm1, %mm1
 	punpcklwd %mm2, %mm2
 	punpckhwd %mm3, %mm3
-	movq	%mm0, (%edi)
-	movq	%mm1, (%eax)
-	addl	$16, %edi
-	addl	$16, %eax
-	movq	%mm2, (%edi)
-	movq	%mm3, (%eax)
-	addl	$16, %edi
-	addl	$16, %eax
+	movq	%mm0, 4*8(%edi)
+	movq	%mm1, 5*8(%edi)
+	movq	%mm2, 6*8(%edi)
+	movq	%mm3, 7*8(%edi)
 
 	movq	(%esi), %mm0
-	movq	(%ebx), %mm2
+	movq	(%esi,%edx), %mm2
 	movq	%mm0, %mm1
 	movq	%mm2, %mm3
-	addl	%edx, %esi
-	addl	%edx, %ebx	
+	addl	%ebx, %esi
 	punpcklwd %mm0, %mm0
 	punpckhwd %mm1, %mm1
 	punpcklwd %mm2, %mm2
 	punpckhwd %mm3, %mm3
-	movq	%mm0, (%edi)
-	movq	%mm1, (%eax)
-	addl	$16, %edi
-	addl	$16, %eax
-	movq	%mm2, (%edi)
-	movq	%mm3, (%eax)
-	addl	$16, %edi
-	addl	$16, %eax
+	movq	%mm0, 8*8(%edi)
+	movq	%mm1, 9*8(%edi)
+	movq	%mm2, 10*8(%edi)
+	movq	%mm3, 11*8(%edi)
 
 	movq	(%esi), %mm0
-	movq	(%ebx), %mm2
+	movq	(%esi,%edx), %mm2
 	movq	%mm0, %mm1
 	movq	%mm2, %mm3
 	punpcklwd %mm0, %mm0
 	punpckhwd %mm1, %mm1
 	punpcklwd %mm2, %mm2
 	punpckhwd %mm3, %mm3
-	movq	%mm0, (%edi)
-	movq	%mm1, (%eax)
-	addl	$16, %edi
-	addl	$16, %eax
-	movq	%mm2, (%edi)
-	movq	%mm3, (%eax)
+	movq	%mm0, 12*8(%edi)
+	movq	%mm1, 13*8(%edi)
+	movq	%mm2, 14*8(%edi)
+	movq	%mm3, 15*8(%edi)
 
 	pop	%ebx
 	pop	%edx

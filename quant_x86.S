@@ -2,6 +2,7 @@
  *  quant_x86.S
  *
  *     Copyright (C) James Bowman - May 2000
+ *     Copyright (C) Peter Schlaile - Jan 2001
  *
  *  This file is part of libdv, a free DV (IEC 61834/SMPTE 314M)
  *  codec.
@@ -22,6 +23,7 @@
  *
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
+
 
 /*
 
@@ -193,9 +195,12 @@ quant_88_inverse_x86:
 .globl	quant_x86
 quant_x86:	
 	pushl	%ebx
+	pushl	%ecx
+	pushl	%edx	
 	pushl	%esi
+	
 
-#define ARGn(N)  (12+(4*(N)))(%esp)
+#define ARGn(N)  (20+(4*(N)))(%esp)
 
 	/*
 		eax	
@@ -208,24 +213,29 @@ quant_x86:
 	/*  pq = dv_quant_shifts[qno + dv_quant_offset[class]]; */
 	movl	ARGn(1),%eax	/* qno */
 	movl	ARGn(2),%ebx	/* class */
+
 	movzbl	dv_quant_offset(%ebx),%ecx
 	addl	%ecx,%eax
 	leal	dv_quant_shifts(,%eax,4),%edx	/* edx is pq */
 
 	/* extra = (class == 3); */
 				/*  0   1   2   3 */
-	# subl	$3,%ebx		/* -3  -2  -1   0 */
-	# sarl	$31,%ebx	/* -1  -1  -1   0 */
-	# incl	%ebx		/*  0   0   0   1 */
-	# incl	%ebx
-	# addl	$DV_WEIGHT_BIAS,%ebx
+	subl	$3,%ebx		/* -3  -2  -1   0 */
+	sarl	$31,%ebx	/* -1  -1  -1   0 */
+	incl	%ebx		/*  0   0   0   1 */
 				/* ebx is extra */
 
 	movl	ARGn(0),%esi	/* esi is block */
 
-	/* Pick up each of the factors into %ecx, then shift the
-	appropriate coefficients.  The pattern here is taken from
-	dv_88_areas; it's arranged by diagonals for clarity. */
+	/* Since we already reordered the coefficients, it's easy:
+	   Shift between OFS0 and OFS1 with the first pq value
+	         between OFS1 and OFS2 with the second pq value etc.
+	   Since we really want to divide, we have to compensate for
+	   negative values.
+
+	   The remaining thing is pipe-line optimization
+	   which results in obfuscating MMX code...
+	 */
 
 	# sarw	%cl,ADDR(row,col)
 
@@ -233,185 +243,208 @@ quant_x86:
 #define OFS1 (1+2+3)
 #define OFS2 (1+2+3+4+5+6)
 #define OFS3 (1+2+3+4+5+6+7+8+7)
-			
-	/* 0 */
+
+	/* 0 */                     
 	movzbl	(%edx),%ecx
-	movd	%ecx, %mm1
+	movq	OFS0*2(%esi), %mm2
+	addl	%ebx, %ecx
+	movq	(OFS0+4)*2(%esi), %mm4
+	movd	%ecx, %mm7
 	
-	movq	OFS0*2(%esi), %mm0
-	psraw	%mm1, %mm0
-	movq	%mm0, OFS0*2(%esi)
-	sarw	%cl, (OFS0+4)*2(%esi)
+	movq	%mm2, %mm3
+	movq	%mm4, %mm5
+	psraw	$0x0f, %mm2
+	psraw	$0x0f, %mm4
+	pxor	%mm2, %mm3
+	pxor	%mm4, %mm5
+	psubw	%mm2, %mm3
+	psubw	%mm4, %mm5
+	psraw	%mm7, %mm3
+	psraw	%mm7, %mm5
+	pxor	%mm2, %mm3
+	pxor	%mm4, %mm5
+	psubw	%mm2, %mm3
+	psubw	%mm4, %mm5
+	
+	movq	(OFS1*2)(%esi), %mm2
+	movq	%mm3, OFS0*2(%esi)
+	movq	%mm5, (OFS0+4)*2(%esi)
 	
 	/* 1 */	
 	movzbl	1(%edx),%ecx
-	movd	%ecx, %mm1
-
-	movq	OFS1*2(%esi), %mm0
-	movq	(OFS1+4)*2(%esi), %mm2
-	movq	(OFS1+8)*2(%esi), %mm3
-	psraw	%mm1, %mm0
-	psraw	%mm1, %mm2
-	psraw	%mm1, %mm3
-	movq	%mm0, OFS1*2(%esi)
-	movq	%mm2, (OFS1+4)*2(%esi)
+	movq	(OFS1+4)*2(%esi), %mm4
+	addl	%ebx, %ecx
+	movq	%mm2, %mm3
+	movd	%ecx, %mm7
+	movq	%mm4, %mm5
+	psraw	$0x0f, %mm2
+	psraw	$0x0f, %mm4
+	pxor	%mm2, %mm3
+	pxor	%mm4, %mm5
+	psubw	%mm2, %mm3
+	psubw	%mm4, %mm5
+	psraw	%mm7, %mm3
+	psraw	%mm7, %mm5
+	pxor	%mm2, %mm3
+	pxor	%mm4, %mm5
+	psubw	%mm2, %mm3
+	psubw	%mm4, %mm5
+	
+	movq	%mm3, OFS1*2(%esi)
+	movq	(OFS1+8)*2(%esi), %mm2
+	movq	%mm5, (OFS1+4)*2(%esi)
+	movq	(OFS1+12)*2(%esi), %mm4	
+	movq	%mm2, %mm3
+	movq	%mm4, %mm5
+	psraw	$0x0f, %mm2
+	psraw	$0x0f, %mm4
+	pxor	%mm2, %mm3
+	pxor	%mm4, %mm5
+	psubw	%mm2, %mm3
+	psubw	%mm4, %mm5
+	psraw	%mm7, %mm3
+	psraw	%mm7, %mm5
+	pxor	%mm2, %mm3
+	pxor	%mm4, %mm5
+	psubw	%mm2, %mm3
+	psubw	%mm4, %mm5
+	
+	movq	OFS2*2(%esi), %mm0
 	movq	%mm3, (OFS1+8)*2(%esi)
-
-	sarw	%cl, (OFS1+12)*2(%esi)
-	sarw	%cl, (OFS1+13)*2(%esi)
-	sarw	%cl, (OFS1+14)*2(%esi)
+	movq	%mm5, (OFS1+12)*2(%esi)
 	
 	/* 2 */	
 	movzbl	2(%edx),%ecx
-
-	movd	%ecx, %mm1
-
-	movq	OFS2*2(%esi), %mm0
 	movq	(OFS2+4)*2(%esi), %mm2
-	movq	(OFS2+8)*2(%esi), %mm3
-	movq	(OFS2+12)*2(%esi), %mm4
-	movq	(OFS2+16)*2(%esi), %mm5
-	psraw	%mm1, %mm0
-	psraw	%mm1, %mm2
-	psraw	%mm1, %mm3
-	psraw	%mm1, %mm4
-	psraw	%mm1, %mm5
-	movq	%mm0, OFS2*2(%esi)
-	movq	%mm2, (OFS2+4)*2(%esi)
-	movq	%mm3, (OFS2+8)*2(%esi)
-	movq	%mm4, (OFS2+12)*2(%esi)
-	movq	%mm5, (OFS2+16)*2(%esi)
+	addl	%ebx, %ecx
+	movq	(OFS2+8)*2(%esi), %mm4
+	movd	%ecx, %mm7
 
-	sarw	%cl, (OFS2+20)*2(%esi)
-	sarw	%cl, (OFS2+21)*2(%esi)
+	movq	%mm0, %mm1
+	movq	%mm2, %mm3
+	movq	%mm4, %mm5
+	psraw	$0x0f, %mm0
+	psraw	$0x0f, %mm2
+	psraw	$0x0f, %mm4
+	pxor	%mm0, %mm1
+	pxor	%mm2, %mm3
+	pxor	%mm4, %mm5
+	psubw	%mm0, %mm1
+	psubw	%mm2, %mm3
+	psubw	%mm4, %mm5
+	psraw	%mm7, %mm1
+	psraw	%mm7, %mm3
+	psraw	%mm7, %mm5
+	pxor	%mm0, %mm1
+	pxor	%mm2, %mm3
+	pxor	%mm4, %mm5
+	psubw	%mm0, %mm1
+	psubw	%mm2, %mm3
+	psubw	%mm4, %mm5
 	
-	/* 3 */	
-	movzbl	3(%edx),%ecx
+	movq	%mm1, OFS2*2(%esi)
+	movq	%mm3, (OFS2+4)*2(%esi)
+	movq	%mm5, (OFS2+8)*2(%esi)
+	
+	movq	(OFS2+12)*2(%esi), %mm0
+	movq	(OFS2+16)*2(%esi), %mm2
+	movq	(OFS2+20)*2(%esi), %mm4
 
-	movd	%ecx, %mm1
+	movq	%mm0, %mm1
+	movq	%mm2, %mm3
+	movq	%mm4, %mm5
+	psraw	$0x0f, %mm0
+	psraw	$0x0f, %mm2
+	psraw	$0x0f, %mm4
+	pxor	%mm0, %mm1
+	pxor	%mm2, %mm3
+	pxor	%mm4, %mm5
+	psubw	%mm0, %mm1
+	psubw	%mm2, %mm3
+	psubw	%mm4, %mm5
+	psraw	%mm7, %mm1
+	psraw	%mm7, %mm3
+	psraw	%mm7, %mm5
+	pxor	%mm0, %mm1
+	pxor	%mm2, %mm3
+	pxor	%mm4, %mm5
+	psubw	%mm0, %mm1
+	psubw	%mm2, %mm3
+	psubw	%mm4, %mm5
 
 	movq	OFS3*2(%esi), %mm0
+
+	movq	%mm1, (OFS2+12)*2(%esi)
+	movq	%mm3, (OFS2+16)*2(%esi)
+	movq	%mm5, (OFS2+20)*2(%esi)
+
+	/* 3 */	
+	movzbl	3(%edx),%ecx
 	movq	(OFS3+4)*2(%esi), %mm2
-	movq	(OFS3+8)*2(%esi), %mm3
-	movq	(OFS3+12)*2(%esi), %mm4
-	movq	(OFS3+16)*2(%esi), %mm5
-	psraw	%mm1, %mm0
-	psraw	%mm1, %mm2
-	psraw	%mm1, %mm3
-	psraw	%mm1, %mm4
-	psraw	%mm1, %mm5
-	movq	%mm0, OFS3*2(%esi)
-	movq	%mm2, (OFS3+4)*2(%esi)
-	movq	%mm3, (OFS3+8)*2(%esi)
-	movq	%mm4, (OFS3+12)*2(%esi)
+	addl	%ebx, %ecx
+	movq	(OFS3+8)*2(%esi), %mm4
+	movd	%ecx, %mm7
+
+	movq	%mm0, %mm1
+	movq	%mm2, %mm3
+	movq	%mm4, %mm5
+	psraw	$0x0f, %mm0
+	psraw	$0x0f, %mm2
+	psraw	$0x0f, %mm4
+	pxor	%mm0, %mm1
+	pxor	%mm2, %mm3
+	pxor	%mm4, %mm5
+	psubw	%mm0, %mm1
+	psubw	%mm2, %mm3
+	psubw	%mm4, %mm5
+	psraw	%mm7, %mm1
+	psraw	%mm7, %mm3
+	psraw	%mm7, %mm5
+	pxor	%mm0, %mm1
+	pxor	%mm2, %mm3
+	pxor	%mm4, %mm5
+	psubw	%mm0, %mm1
+	psubw	%mm2, %mm3
+	psubw	%mm4, %mm5
+	
+	movq	%mm1, OFS3*2(%esi)
+	movq	%mm3, (OFS3+4)*2(%esi)
+	movq	%mm5, (OFS3+8)*2(%esi)
+
+	movq	(OFS3+12)*2(%esi), %mm2
+	movq	(OFS3+16)*2(%esi), %mm4
+
+	movq	%mm2, %mm3
+	movq	%mm4, %mm5
+	psraw	$0x0f, %mm2
+	psraw	$0x0f, %mm4
+	pxor	%mm2, %mm3
+	pxor	%mm4, %mm5
+	psubw	%mm2, %mm3
+	psubw	%mm4, %mm5
+	psraw	%mm7, %mm3
+	psraw	%mm7, %mm5
+	pxor	%mm2, %mm3
+	pxor	%mm4, %mm5
+	psubw	%mm2, %mm3
+	psubw	%mm4, %mm5
+	
+	movq	%mm3, (OFS3+12)*2(%esi)
 	movq	%mm5, (OFS3+16)*2(%esi)
 
-	sarw	%cl, (OFS3+20)*2(%esi)
+	movw	(OFS3+20)*2(%esi), %ax
+	movw	%ax, %bx
+	sarw	$0xf, %bx
+	xorw	%bx, %ax
+	subw	%bx, %ax
+	sarw	%cl, %ax
+	xorw	%bx, %ax
+	subw	%bx, %ax
+	movw	%ax, (OFS3+20)*2(%esi)
 	
-	cmp	$3, %ebx
-	jne	early_out
-
-	pushw	(%esi)
-	
-	movq	0*8(%esi), %mm0
-	movq	1*8(%esi), %mm1
-	movq	2*8(%esi), %mm2
-	movq	3*8(%esi), %mm3
-	movq	4*8(%esi), %mm4
-	movq	5*8(%esi), %mm5
-	movq	6*8(%esi), %mm6
-	movq	7*8(%esi), %mm7
-	
-	psrlw	$0xf, %mm0
-	psrlw	$0xf, %mm1
-	psrlw	$0xf, %mm2
-	psrlw	$0xf, %mm3
-	psrlw	$0xf, %mm4
-	psrlw	$0xf, %mm5
-	psrlw	$0xf, %mm6
-	psrlw	$0xf, %mm7
-	
-	paddw	0*8(%esi), %mm0
-	paddw	1*8(%esi), %mm1
-	paddw	2*8(%esi), %mm2
-	paddw	3*8(%esi), %mm3
-	paddw	4*8(%esi), %mm4
-	paddw	5*8(%esi), %mm5
-	paddw	6*8(%esi), %mm6
-	paddw	7*8(%esi), %mm7
-	
-	psraw	$1, %mm0
-	psraw	$1, %mm1
-	psraw	$1, %mm2
-	psraw	$1, %mm3
-	psraw	$1, %mm4
-	psraw	$1, %mm5
-	psraw	$1, %mm6
-	psraw	$1, %mm7
-
-	movq	%mm0, 0*8(%esi)
-	movq	%mm1, 1*8(%esi)
-	movq	%mm2, 2*8(%esi)
-	movq	%mm3, 3*8(%esi)
-	movq	%mm4, 4*8(%esi)
-	movq	%mm5, 5*8(%esi)
-	movq	%mm6, 6*8(%esi)
-	movq	%mm7, 7*8(%esi)
-
-	addl	$64, %esi
-
-	movq	0*8(%esi), %mm0
-	movq	1*8(%esi), %mm1
-	movq	2*8(%esi), %mm2
-	movq	3*8(%esi), %mm3
-	movq	4*8(%esi), %mm4
-	movq	5*8(%esi), %mm5
-	movq	6*8(%esi), %mm6
-	movq	7*8(%esi), %mm7
-	
-	psrlw	$0xf, %mm0
-	psrlw	$0xf, %mm1
-	psrlw	$0xf, %mm2
-	psrlw	$0xf, %mm3
-	psrlw	$0xf, %mm4
-	psrlw	$0xf, %mm5
-	psrlw	$0xf, %mm6
-	psrlw	$0xf, %mm7
-	
-	paddw	0*8(%esi), %mm0
-	paddw	1*8(%esi), %mm1
-	paddw	2*8(%esi), %mm2
-	paddw	3*8(%esi), %mm3
-	paddw	4*8(%esi), %mm4
-	paddw	5*8(%esi), %mm5
-	paddw	6*8(%esi), %mm6
-	paddw	7*8(%esi), %mm7
-	
-	psraw	$1, %mm0
-	psraw	$1, %mm1
-	psraw	$1, %mm2
-	psraw	$1, %mm3
-	psraw	$1, %mm4
-	psraw	$1, %mm5
-	psraw	$1, %mm6
-	psraw	$1, %mm7
-
-	movq	%mm0, 0*8(%esi)
-	movq	%mm1, 1*8(%esi)
-	movq	%mm2, 2*8(%esi)
-	movq	%mm3, 3*8(%esi)
-	movq	%mm4, 4*8(%esi)
-	movq	%mm5, 5*8(%esi)
-	movq	%mm6, 6*8(%esi)
-	movq	%mm7, 7*8(%esi)
-
-	sub	$64, %esi
-	
-	popw	(%esi)
-		
-early_out:				
-#undef ARGn
 	popl	%esi
+	popl	%edx
+	popl	%ecx
 	popl	%ebx
 	ret
 

@@ -29,9 +29,9 @@
 #include <time.h>
 #include <math.h>
 #include <assert.h>
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <gtk/gtk.h>
 
 #include "dct.h"
@@ -46,8 +46,10 @@
 #define DV_WIDTH      720
 #define DV_PAL_HEIGHT 576
 
+/* FIXME: Just guessed! */
+#define DCT_248_THRESHOLD ((4 * 8 * 4) << DCT_YUV_PRECISION)
+
 #define MODE_STATISTICS 0
-#define YUV_TESTING     0
 
 /* #include "ycrcb_to_rgb32.h" */
 
@@ -142,6 +144,8 @@ dv_place_420_macroblock(dv_macroblock_t *mb)
 	mb->y = mb_row * 16;
 } /* dv_place_420_macroblock */
 
+/* FIXME: Could still be faster... */
+
 static inline guint put_bits(unsigned char *s, guint offset, 
 			     guint len, guint value)
 {
@@ -155,7 +159,7 @@ static inline guint put_bits(unsigned char *s, guint offset,
 	s[1] |= (value >> 8) & 0xff;
 	s[2] |= value & 0xff;
 	return offset + len;
-#else /* ARCH_X86 */
+#else
 	s += (offset >> 3);
 	value <<= 32 - len - (offset & 7);
 	__asm__("bswap %0" : "=r" (value) : "0" (value));
@@ -163,7 +167,7 @@ static inline guint put_bits(unsigned char *s, guint offset,
 	*((unsigned long*) s) |= value;
 	return offset + len;
 
-#endif /* ARCH_X86 */
+#endif
 }
 
 inline gint f2b(float f)
@@ -184,21 +188,6 @@ inline gint f2sb(float f)
 	
 	return b;
 }
-
-#if 0
-static void dump_block(  char *tag, dv_block_t *bl)
-{
-	int i, j;
-	printf("%s\n", tag);
-	for (j = 0; j < 8; j++) {
-		printf("{ ");
-		for (i = 0; i < 8; i++) {
-			printf("%4d, ", bl->coeffs[8 * j + i]);
-		}
-		printf(" },\n");
-	}
-}
-#endif
 
 typedef struct {
 	gint8 run;
@@ -313,7 +302,7 @@ static void init_vlc_test_lookup()
 
 static inline dv_vlc_encode_t * find_vlc_entry(int run, int amp)
 {
-	if (run < -1 || run > 14 || amp < 0 || amp > 22) {
+	if (run > 14 || amp > 22) { /* run < -1 || amp < 0 never happens! */
 		return NULL;
 	} else {
 		return vlc_test_lookup[((run + 1) << 5) + amp];
@@ -332,11 +321,13 @@ static inline guint vlc_encode_r(unsigned char *vsbuffer, guint bit_offset,
 		if (amp != 0)
 			bit_offset = put_bits(vsbuffer, bit_offset, 1, sign);
 	} else {
-		if ((6 <= run) && (run <= 61) && (amp == 0)) {
+		if (amp == 0) {
+			/* if ((6 <= run) && (run <= 61) && (amp == 0)) { */
 			/* 1111110 */
 			bit_offset = put_bits(vsbuffer, bit_offset, 7, 0x7e); 
 			bit_offset = put_bits(vsbuffer, bit_offset, 6, run);
-		} else if ((23 <= amp) && (amp <= 255) && (run == 0)) {
+		} else {
+			/* if ((23 <= amp) && (amp <= 255) && (run == 0)) */
 			/* 1111111 */
 			bit_offset = put_bits(vsbuffer, bit_offset, 7, 0x7f); 
 			bit_offset = put_bits(vsbuffer, bit_offset, 8, amp);
@@ -346,6 +337,7 @@ static inline guint vlc_encode_r(unsigned char *vsbuffer, guint bit_offset,
 	return bit_offset;
 }
 
+/* FIXME: This wants to be optimized... */
 
 static inline guint vlc_encode(unsigned char *vsbuffer, guint bit_offset,
 			int run, int amp, int sign)
@@ -359,16 +351,26 @@ static inline guint vlc_encode(unsigned char *vsbuffer, guint bit_offset,
 		if (amp != 0)
 			bit_offset = put_bits(vsbuffer, bit_offset, 1, sign);
 	} else {
-		if ((62 <= run) && (run <= 63) && (amp == 0)) {
-			bit_offset = vlc_encode_r(vsbuffer, bit_offset, 
-						  1, 0, 0);
-			bit_offset = vlc_encode_r(vsbuffer, bit_offset, 
-						  run - 2, 0, 0);
-		} else if ((6 <= run) && (run <= 61) && (amp == 0)) {
-			/* 1111110 */
-			bit_offset = put_bits(vsbuffer, bit_offset, 7, 0x7e); 
-			bit_offset = put_bits(vsbuffer, bit_offset, 6, run);
-		} else if ((23 <= amp) && (amp <= 255) && (run == 0)) {
+		if (amp == 0) {
+			if (run < 62) {
+				/* } else if ((6 <= run) && (run <= 61) 
+				   && (amp == 0)) { */
+				/* 1111110 */
+				bit_offset = put_bits(
+					vsbuffer, bit_offset, 7, 0x7e); 
+				bit_offset = put_bits(
+					vsbuffer, bit_offset, 6, run);
+			} else {
+				/* if ((62 <= run) && (run <= 63) 
+				   && (amp == 0)) { */
+				bit_offset = vlc_encode_r(
+					vsbuffer, bit_offset, 1, 0, 0);
+				bit_offset = vlc_encode_r(
+					vsbuffer, bit_offset, run - 2, 0, 0);
+			}
+		} else if (run == 0) {
+			/* } else if ((23 <= amp) && (amp <= 255) 
+			   && (run == 0)) { */
 			/* 1111111 */
 			bit_offset = put_bits(vsbuffer, bit_offset, 7, 0x7f); 
 			bit_offset = put_bits(vsbuffer, bit_offset, 8, amp);
@@ -463,6 +465,8 @@ static void prepare_reorder_tables()
 	}
 }
 
+/* FIXME: This wants to be assembler optimized... */
+
 void reorder_block(dv_block_t *bl)
 {
 	dv_coeff_t zigzag[64];
@@ -481,10 +485,10 @@ void reorder_block(dv_block_t *bl)
 }
 
 guint vlc_encode_block(unsigned char *vsbuffer, guint bit_offset, 
-		       dv_block_t *bl, guint bit_budget)
+		       dv_coeff_t *bl, guint bit_budget)
 {
-	dv_coeff_t * z = bl->coeffs + 1; /* First AC coeff */
-	dv_coeff_t * z_end = bl->coeffs + 64;
+	dv_coeff_t * z = bl + 1; /* First AC coeff */
+	dv_coeff_t * z_end = bl + 64;
 	int run, amp, sign;
 	guint start_offset;
 	gint bits_left = bit_budget;
@@ -510,7 +514,7 @@ guint vlc_encode_block(unsigned char *vsbuffer, guint bit_offset,
 			sign = 1;
 		}
 
-		/*printf("run=%d, amp=%d, sign=%d\n", run, amp, sign); */
+		/* FIXME: Why does using bit_offset directly not work??? */
 		bits_left -= vlc_num_bits(run, amp, sign);
 		if (bits_left < 4) {
 			break;
@@ -528,10 +532,10 @@ guint vlc_encode_block(unsigned char *vsbuffer, guint bit_offset,
 }
 
 
-guint vlc_num_bits_block(dv_block_t *bl)
+guint vlc_num_bits_block(dv_coeff_t *bl)
 {
-	dv_coeff_t * z = bl->coeffs + 1; /* First AC coeff */
-	dv_coeff_t * z_end = bl->coeffs + 64;
+	dv_coeff_t * z = bl + 1; /* First AC coeff */
+	dv_coeff_t * z_end = bl + 64;
 	int run, amp, sign;
 	guint num_bits = 0;
 
@@ -564,15 +568,15 @@ guint vlc_num_bits_block(dv_block_t *bl)
 
 extern int amp_valid_mmx(dv_coeff_t * a);
 
-inline int amp_valid(dv_block_t *bl)
+inline int amp_valid(dv_coeff_t *bl)
 {
 #if ARCH_X86
-	int rval = !amp_valid_mmx(bl->coeffs);
+	int rval = !amp_valid_mmx(bl);
 	emms();
 	return rval;
 #else
 	int a;
-	dv_coeff_t* p = bl->coeffs;
+	dv_coeff_t* p = bl;
 	dv_coeff_t* p_end = p + 64;
 
 	while (p != p_end) {
@@ -585,12 +589,36 @@ inline int amp_valid(dv_block_t *bl)
 #endif
 }
 
+/* FIXME: This wants to be MMX optimized... */
+
+int need_dct_248(dv_coeff_t * bl)
+{
+	int i,j;
+	int res = 0;
+	
+	for (j = 0; j < 64; j += 16) {
+		for (i = 0; i < 8; i++) {
+			int a = bl[j + i] - bl[j + i + 8];
+			int b = (a >> 15);
+			a ^= b;
+			a -= b;
+			res += a;
+		}
+	}
+	return (res > DCT_248_THRESHOLD);
+}
+
+
+
 void read_ppm_stream(FILE* f, unsigned char* readbuf, int * isPAL,
 		     int * height_)
 {
 	int height, width;
 	char line[200];
 	fgets(line, sizeof(line), f);
+	if (feof(f)) {
+		exit(0);
+	}
 	do {
 		fgets(line, sizeof(line), f); /* P6 */
 	} while ((line[0] == '#') && !feof(f));
@@ -655,60 +683,12 @@ void blur(unsigned char * readbuf, unsigned char * writebuf,
 extern void rgbtoyuv_mmx(unsigned char* inPtr, int rows, int columns,
 			 short* outyPtr, short* outuPtr, short* outvPtr);
 
-#if YUV_TESTING
-static void test_yuv(short* img, const char* name, int width, int height)
-{
-	int x,y,v;
-	int min_v, max_v;
-
-	fprintf(stderr, "\n%s testing:\nOuch: ", name);
-	min_v = 32767;
-	max_v = -32767;
-	for (y = 0;y < height; y++) {
-		for (x=0; x < width; x++) {
-			v = img[y * width + x];
-			if (v > 2040 || v < -2040) {
-				fprintf(stderr, "%d,%d ", x, y);
-			}
-			if (v < min_v) min_v = v;
-			if (v > max_v) max_v = v;
-		}
-	}
-	fprintf(stderr, "\nMinmax: %d, %d\n", min_v, max_v);
-}
-#endif
-
 static void convert_to_yuv(unsigned char* img_rgb, int height,
 			   short* img_y, short* img_cr, short* img_cb)
 {
 #if !ARCH_X86
 	int x,y;
 	/* This is the RGB -> YUV color matrix */
-#if 0
-	static const double cm[3][3] = {
-		{ 0.256951160416, 0.504420728197,  0.0977346405969    },
-		{ 0.439165945662, -0.367885794249, -0.0712801514127   },
-		{ -0.148211670329, -0.290954275333,  0.439165945662  }
-	};
-	static const double cm[3][3] = {
-		{ .8709346012, -2.081971942, 1.631416352 },
-		{ -2.290125167, 5.474551516, -1.660311207},
-		{ .3826427476, 6.172463509, -4.836692416}};
-
-	static const double cm[3][3] = {
-		{.299,.587,.114},
-		{-.169,-.331,.5},
-		{.5,-.419,-.081}
-	};
-	static const double cm[3][3] = {
-		{.6529939999, .3326341616,-.1265216323},
-		{.4762437443, -.3839685689, -.9227517543e-1},
-		{.3766526342, .1918662855,-.5685189197}};
-	static const double cm[3][3] = {
-		{ 0.299 , 0.587, 0.114 },
-		{ 0.617,  -0.517, -0.100 },
-		{ -0.146, -0.288, 0.434 }};
-#endif
 	static const double cm[3][3] = {
 		{.299 * 219.0/255.0,.587* 219.0/255.0,.114* 219.0/255.0},
 		{.5* 224.0/255.0,-.419* 224.0/255.0,-.081* 224.0/255.0},
@@ -719,15 +699,6 @@ static void convert_to_yuv(unsigned char* img_rgb, int height,
 	double tmp_cb[DV_PAL_HEIGHT][DV_WIDTH];
 	double fac = pow(2, DCT_YUV_PRECISION);
 	int i,j;
-
-#if 0
-	for (i = 0; i < 3; i++) {
-		for (j = 0; j < 3; j++) {
-			fprintf(stderr, "%g\t", cm[i][j] * 32768);
-		}
-		fprintf(stderr, "\n");
-	}
-#endif
 
 	for (y = 0; y < height; y++) {
 		for (x = 0; x < DV_WIDTH; x++) {
@@ -746,7 +717,6 @@ static void convert_to_yuv(unsigned char* img_rgb, int height,
 				(f2sb(cy) - 128 + 16) * fac;
 			tmp_cr[y][x] = cr * fac;
 			tmp_cb[y][x] = cb * fac;
-			/*printf("%02x\n", img_y[y][x]); */
 		}
 	}
 	for (y = 0; y < height; y++) {
@@ -764,41 +734,9 @@ static void convert_to_yuv(unsigned char* img_rgb, int height,
 		}
 	}
 #else
-#if YUV_TESTING
-	int x,y;
-#endif
 	rgbtoyuv_mmx(img_rgb, height, DV_WIDTH, (short*) img_y,
 		     (short*) img_cr, (short*) img_cb);
 	emms();
-#if YUV_TESTING
-	test_yuv(img_y, "Y", DV_WIDTH, height);
-	test_yuv(img_cr, "CR", DV_WIDTH/4, height);
-	test_yuv(img_cb, "CB", DV_WIDTH/4, height);
-
-	fprintf(stderr, "\n");
-	fprintf(stderr, "Y: 300-320\n");
-	for (y = 300; y < 320; y++) {
-		for (x = 200; x < 200+50; x++) {
-			fprintf(stderr, "%d\t", img_y[y * DV_WIDTH + x]);
-		}
-		fprintf(stderr, "\n");
-	}
-	fprintf(stderr, "CR: 300-320\n");
-	for (y = 300; y < 320; y++) {
-		for (x = 50; x < 100; x++) {
-			fprintf(stderr, "%d\t", img_cr[y * DV_WIDTH/4 + x]);
-		}
-		fprintf(stderr, "\n");
-	}
-	fprintf(stderr, "CB: 300-320\n");
-
-	for (y = 300; y < 320; y++) {
-		for (x = 50; x < 100; x++) {
-			fprintf(stderr, "%d\t", img_cb[y * DV_WIDTH/4 + x]);
-		}
-		fprintf(stderr, "\n");
-	}
-#endif
 #endif
 }
 
@@ -812,6 +750,9 @@ void build_coeff(short* img_y, short* img_cr, short* img_cb,
 	int y = mb->y;
 	int x = mb->x;
 
+/* FIXME: This doesn't handle correctly the rightmost block!
+   (But I haven't noticed any problems yet ???)
+ */
 #if !ARCH_X86
 	int i,j;
         for (j = 0; j < 8; j++)
@@ -858,16 +799,18 @@ static void do_dct(dv_macroblock_t *mb)
 
 	for (b = 0; b < 6; b++) {
 		dv_block_t *bl = &mb->b[b];
-		static short tblock[64] ALIGN64;
 		
-		memcpy(tblock, &bl->coeffs, 64*sizeof(short));
-		bl->dct_mode = DV_DCT_88;
+		bl->dct_mode = need_dct_248(bl->coeffs)? DV_DCT_248: DV_DCT_88;
 		if (bl->dct_mode == DV_DCT_88) {
-			dct_88(tblock, bl->coeffs);
+			dct_88(bl->coeffs);
+#if BRUTE_FORCE_DCT_88
 			weight_88(bl->coeffs);
+#endif
 		} else {
 			dct_248(bl->coeffs);
+#if BRUTE_FORCE_DCT_248
 			weight_248(bl->coeffs);
+#endif
 		}
 		reorder_block(bl);
 	}
@@ -883,10 +826,28 @@ static void do_quant(dv_macroblock_t * mb)
 	gint klass;
 
 	struct {
-		int qno, class;
+		int qno, klass;
 	} modes[] = {
-#if 0	/* XXX - this table should give better results; 
-	   don't know why it doesn't */
+#if 1	
+        /* FIXME - this table should give better results; 
+	   don't know why it doesn't 
+	   (Now it does: it was caused by incorrect quant_88...) 
+	   
+	   Really correct way(tm) should be:
+	   
+	   1. Classify _each_ dct-block (class)
+	      (for example according to the following matrix)
+
+  	       max AC-value
+	       0 - 11  |  12 - 23  |  24 - 35  | >35
+               -----------------------------------------
+	     Y   0     |     1     |     2     |   3
+	    CR   1     |     2     |     3     |   3
+	    CB   2     |     3     |     3     |   3
+
+	   2. Quantizise going from qno 15 to 0
+
+	*/
 	   { 15, 0 },	/* 1 1 1 1 */
 	   { 8, 0 },	/* 1 1 1 2 */
 	   { 7, 0 },	/* 1 1 2 2 */
@@ -983,7 +944,7 @@ Second table:
 	};
 	int num_modes = sizeof(modes) / sizeof(modes[0]);
 	int highest_mode = 0;
-	dv_block_t bb[6];
+	dv_coeff_t bb[6][64];
 
 	for (b = 0; b < 6; b++) {
 		dv_block_t *bl = &mb->b[b];
@@ -991,10 +952,10 @@ Second table:
 		guint ac_coeff_budget = ((b < 4) ? 100 : 68) - 4;
 		
 		for (mode = highest_mode; mode < num_modes; mode++) {
-			bb[b] = *bl;
-			quant(bb[b].coeffs, modes[mode].qno,modes[mode].class);
-			if (amp_valid(&bb[b]) &&
-			    (vlc_num_bits_block(&bb[b]) < ac_coeff_budget))
+			memcpy(bb[b], bl->coeffs, 64 *sizeof(dv_coeff_t));
+			quant(bb[b], modes[mode].qno,modes[mode].klass);
+			if (amp_valid(bb[b]) &&
+			    (vlc_num_bits_block(bb[b]) < ac_coeff_budget))
 				break;
 		}
 		if (mode == num_modes) {
@@ -1009,31 +970,40 @@ Second table:
 	modes_used[highest_mode]++;
 #endif
 	mb->qno = modes[highest_mode].qno;
-	klass = modes[highest_mode].class;
+	klass = modes[highest_mode].klass;
 	if (highest_mode == 0) { /* Things are cheap these days ;-) */
 		for (b = 0; b < 6; b++) {
 			dv_block_t *bl = &mb->b[b];
-			*bl = bb[b];
+			memcpy(bl->coeffs, bb[b], 64 *sizeof(dv_coeff_t));
 			bl->class_no = klass;
 		}
 	} else {
 #if 0 /* should give higher quality but doesn't ? */
-		for (b = 0; b < 6; b++) {
-			dv_block_t *bl = &mb->b[b];
-			dv_block_t copy;
-			int c;
-			guint ac_coeff_budget = ((b < 4) ? 100 : 68) - 4;
-			
-			for (c = 0; c < 3; c++) {
-				copy = *bl;
-				quant(copy.coeffs, mb->qno, c);
-				if (amp_valid(&copy) &&
-				    (vlc_num_bits_block(&copy)
-				     < ac_coeff_budget))
-					break;
+		if (class != 0) {
+			for (b = 0; b < 6; b++) {
+				dv_block_t *bl = &mb->b[b];
+				dv_block_t copy;
+				int c;
+				guint ac_coeff_budget = 
+					((b < 4) ? 100 : 68) - 4;
+				
+				for (c = 0; c <= 3; c++) {
+					copy = *bl;
+					quant(copy.coeffs, mb->qno, c);
+					if (amp_valid(copy.coeffs) &&
+					    (vlc_num_bits_block(copy.coeffs)
+					     < ac_coeff_budget))
+						break;
+				}
+				*bl = copy;
+				bl->class_no = c;
 			}
-			*bl = copy;
-			bl->class_no = c;
+		} else {
+			for (b = 0; b < 6; b++) {
+				dv_block_t *bl = &mb->b[b];
+				quant(bl->coeffs, mb->qno, klass);
+				bl->class_no = klass;
+			}
 		}
 #else
 		for (b = 0; b < 6; b++) {
@@ -1078,10 +1048,15 @@ static void process_videosegment(
 				+ dv_parse_bit_start[b] - 12;
 			guint ac_coeff_budget = (b < 4) ? 100 : 68;
 			
-			bit_offset = put_bits(vsbuffer, bit_offset, 9, bl->coeffs[0]);
-			bit_offset = put_bits(vsbuffer, bit_offset, 1, bl->dct_mode);
-			bit_offset = put_bits(vsbuffer, bit_offset, 2, bl->class_no);
-			bit_offset = vlc_encode_block(vsbuffer, bit_offset, bl, ac_coeff_budget);
+			bit_offset = put_bits(vsbuffer, bit_offset, 9, 
+					      bl->coeffs[0]);
+			bit_offset = put_bits(vsbuffer, bit_offset, 1, 
+					      bl->dct_mode);
+			bit_offset = put_bits(vsbuffer, bit_offset, 2, 
+					      bl->class_no);
+			bit_offset = vlc_encode_block(vsbuffer, bit_offset, 
+						      bl->coeffs, 
+						      ac_coeff_budget);
 		}
 	}
 }
@@ -1110,7 +1085,7 @@ static void encode(short* img_y, short* img_cr, short* img_cb,
 	for (ds = 0; ds < numDIFseq; ds++) { 
 		/* Each DIF segment conists of 150 dif blocks, 
 		   135 of which are video blocks */
-	  dif += 6; /* skip the first 6 dif blocks in a dif sequence  */
+		dif += 6; /* skip the first 6 dif blocks in a dif sequence */
 		/* A video segment consists of 5 video blocks, where each video
 		   block contains one compressed macroblock.  DV bit allocation
 		   for the VLC stage can spill bits between blocks in the same
@@ -1413,39 +1388,6 @@ int main(int argc, char *argv[])
 	struct poptOption option_table[DV_ENCODER_NUM_OPTS+1]; 
 	int rc;             /* return code from popt */
 	poptContext optCon; /* context for parsing command-line options */
-#if 0
-	int i,j;
-	dv_coeff_t tester[64];
-
-	memset(tester, 0, 64 * sizeof(short));
-	assert (amp_valid_mmx(tester) == 0);
-	for (i = -255; i <= 255; i++) {
-		for (j = 0; j < 64; j++) {
-			tester[j] = i;
-		}
-		if(amp_valid_mmx(tester) != 0) {
-			fprintf(stderr, "valid Ouch: %d %d!\n", i, j);
-		}
-	}
-
-	for (i = 0; i < 64; i++) {
-		memset(tester, 0, 64 * sizeof(short));
-
-		for (j = 256; j < 32767; j++) {
-			tester[i] = j;
-			if(amp_valid_mmx(tester) == 0) {
-				fprintf(stderr, "ivalid Ouch: %d %d!\n", i, j);
-			}
-		}
-
-		for (j = -32767; j <= -256; j++) {
-			tester[i] = j;
-			if(amp_valid_mmx(tester) == 0) {
-				fprintf(stderr, "ivalid Ouch: %d %d!\n", i, j);
-			}
-		}
-	}
-#endif
 	option_table[DV_ENCODER_OPT_VERSION] = (struct poptOption) {
 		longName: "version", 
 		shortName: 'v', 
