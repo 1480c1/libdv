@@ -42,7 +42,7 @@ static gint8 *dv_clamp;
 
 static inline guint8 dv_clamp_c(gint d) { return d; }
 static inline guint8 dv_clamp_y(gint d) {
-	return dv_clamp[d];
+  return dv_clamp[d + (128 - 16)];
 } // dv_clamp_y
 
 void dv_ycrcb_init()
@@ -51,7 +51,7 @@ void dv_ycrcb_init()
   for(i=0;
       i<256;
       ++i) {
-    ylut[i] = 298 * ((gint8)(i) + 128 - 16);
+    ylut[i] = 298 * i;
     impactcbr[i] = 409 * (gint8)(i);
     impactcbg[i] = 100 * (gint8)(i);
     impactcrg[i] = 208 * (gint8)(i);
@@ -59,9 +59,9 @@ void dv_ycrcb_init()
   }
   dv_clamp = _dv_clamp+128;
   for(i=-128; i<(256+128); i++) {
-    if(i < 16) _dv_clamp[i] = 16-128;
-    else if(i > 235) _dv_clamp[i] = 235-128;
-    else _dv_clamp[i] = i-128;
+    if(i < 0) dv_clamp[i] = 0;
+    else if(i > 255) dv_clamp[i] = 255;
+    else dv_clamp[i] = i;
   } // for 
 }
 
