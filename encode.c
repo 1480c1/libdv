@@ -744,7 +744,6 @@ static void convert_to_yuv(unsigned char* img_rgb, int height,
 	double tmp_cr[DV_PAL_HEIGHT][DV_WIDTH];
 	double tmp_cb[DV_PAL_HEIGHT][DV_WIDTH];
 	double fac = pow(2, DCT_YUV_PRECISION);
-	int i,j;
 
 	for (y = 0; y < height; y++) {
 		for (x = 0; x < DV_WIDTH; x++) {

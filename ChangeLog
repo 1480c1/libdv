@@ -1,3 +1,9 @@
+2001-03-05  Charles 'Buck' Krasic  <krasic@acm.org>
+
+	* Version 0.6
+
+	* Compile fixups to dct.c and encode.c for --disable-asm
+
 2001-03-05  Thom van Os <thom@vanos.com>
 
 	* NTSC encoding fixups.

@@ -18,17 +18,25 @@ CLEANFILES                = asmoff.h
 lib_LTLIBRARIES= libdv.la
 bin_PROGRAMS= playdv encode
 
-BUILT_SOURCES = asmoff.h
-noinst_PROGRAMS= dovlc testvlc testbitstream gasmoff \
-	insert_audio fix_headers scan_packet_headers steal_header ppmqscale
+if HOST_X86
+GASMOFF=gasmoff
+else # HOST_X86
+GASMOFF=
+endif # HOST_X86
+
+noinst_PROGRAMS= dovlc testvlc testbitstream \
+	insert_audio fix_headers scan_packet_headers steal_header ppmqscale $(GASMOFF)
 
 #
 # If HOST_X86 is set, we build all the x86 asm stuff..
 #
 if HOST_X86
 
+BUILT_SOURCES = asmoff.h
+
 libdv_la_ASMS= vlc_x86.S quant_x86.S idct_block_mmx.S dct_block_mmx.S rgbtoyuv.S encode_x86.S transpose_x86.S
 libdv_la_ASM_HS=asmoff.h  mmx.h 
+
 
 gasmoff_SOURCES= gasmoff.c bitstream.c bitstream.h 
 

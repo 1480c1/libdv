@@ -40,9 +40,12 @@ typedef short var;
 
 #if BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88
 static double KC248[8][4][4][8];
-static double KC88[8][8][8][8];
+#endif /* BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88 */
+
+#if (!ARCH_X86) || BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88
 static double C[8];
-#endif
+static double KC88[8][8][8][8];
+#endif /* (!ARCH_X86) || BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88 */
 
 #if ARCH_X86
 void idct_block_mmx(gint16 *block);
@@ -58,18 +61,10 @@ extern dv_coeff_t postSC248[64] ALIGN32;
 
 void dct_init(void) {
 #if BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88
-  int x, y, z, h, v, u, i;
-  for (x = 0; x < 8; x++) {
-    for (z = 0; z < 4; z++) {
-      for (u = 0; u < 4; u++) {
-        for (h = 0; h < 8; h++) {
-	  KC248[x][z][u][h] = 
-	    cos((M_PI * u * ((2.0 * z) + 1.0)) / 8.0) *
-	    cos((M_PI * h * ((2.0 * x) + 1.0)) / 16.0);
-        }                       /* for h */
-      }                         /* for u */
-    }                           /* for z */
-  }                             /* for x */
+  int u, z;
+#endif /* BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88 */
+#if (!ARCH_X86) || BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88
+  int x, y, h, v, i;
   for (x = 0; x < 8; x++) {
     for (y = 0; y < 8; y++) {
       for (v = 0; v < 8; v++) {
@@ -81,10 +76,25 @@ void dct_init(void) {
       }
     }
   }
+#endif /* (!ARCH_X86) || BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88 */
+#if BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88
+  for (x = 0; x < 8; x++) {
+    for (z = 0; z < 4; z++) {
+      for (u = 0; u < 4; u++) {
+        for (h = 0; h < 8; h++) {
+	  KC248[x][z][u][h] = 
+	    cos((M_PI * u * ((2.0 * z) + 1.0)) / 8.0) *
+	    cos((M_PI * h * ((2.0 * x) + 1.0)) / 16.0);
+        }                       /* for h */
+      }                         /* for u */
+    }                           /* for z */
+  }                             /* for x */
+#endif /* BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88 */
+#if (!ARCH_X86) || BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88
   for (i = 0; i < 8; i++) {
     C[i] = (i == 0 ? 0.5 / sqrt(2.0) : 0.5);
   } /* for i */
-#endif
+#endif /* (!ARCH_X86) || BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88 */
 }
 
 #if 0
@@ -321,20 +331,19 @@ void dct_88(dv_coeff_t *block) {
   }
 
   for (i = 0; i < 64; i++) {
-    block_out[i] = temp[i] / factor;
+    block[i] = temp[i] / factor;
   }
-#else
-  dct88_aan(block, block_out);
-  postscale88(block_out);
-#endif
-
-#else
+#else /* BRUTE_FORCE_DCT_88 */
+  dct88_aan(block);
+  postscale88(block);
+#endif /* BRUTE_FORCE_DCT_88 */
+#else /* ARCH_X86 */
   dct_88_block_mmx(block);
   transpose_mmx(block);
   dct_88_block_mmx(block);
   dct_block_mmx_postscale(block, postSC88);
-  emms();
-#endif
+  emms(); 
+#endif /* ARCH_X86 */
 }
 
 /* Input has to be transposed !!! */
@@ -365,18 +374,18 @@ void dct_248(dv_coeff_t *block)
 
   for (i=0;i<64;i++)
 	  block_out[i] = temp[i] / factor;
-#else
-  dct248_aan(block, block_out);
-  postscale248(block_out);
-#endif
-#else
+#else /* BRUTE_FORCE_DCT_248 */
+  dct248_aan(block);
+  postscale248(block);
+#endif /* BRUTE_FORCE_DCT_248 */
+#else /* ARCH_X86 */
   dct_88_block_mmx(block);
   transpose_mmx(block);
   dct_248_block_mmx(block);
   dct_248_block_mmx_post_sum(block);
   dct_block_mmx_postscale(block, postSC248);
   emms();
-#endif
+#endif /* ARCH_X86 */
 }
 
 void idct_88(dv_coeff_t *block) 
