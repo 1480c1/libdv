@@ -36,6 +36,8 @@ testvlc: testvlc.o vlc.o vlc_x86.o bitstream.o
 testbitstream: testbitstream.o bitstream.o
 	$(CC) -o $@ $(CFLAGS) testbitstream.o bitstream.o $(LDFLAGS)
 
+vlc_x86.d: asmoff.h
+
 asmoff.h: gasmoff
 	./gasmoff > asmoff.h
 
@@ -43,9 +45,6 @@ gasmoff: gasmoff.o bitstream.o
 
 clean:
 	rm -f playdv gasmoff asmoff.h *.o *.d 
-
-test:
-	echo $(deps)
 
 ifneq ($(MAKECMDGOALS),clean)
 -include $(deps)
