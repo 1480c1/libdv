@@ -44,7 +44,7 @@ available_tags=" CXX"
 
 # ### BEGIN LIBTOOL CONFIG
 
-# Libtool was configured on host arch:
+# Libtool was configured on host kino:
 
 # Shell to use when invoking shell scripts.
 SHELL="/bin/sh"
@@ -319,7 +319,7 @@ link_all_deplibs=unknown
 sys_lib_search_path_spec=" /usr/lib/gcc/i686-pc-linux-gnu/3.4.2/ /usr/lib/gcc/i686-pc-linux-gnu/3.4.2/ /usr/lib/gcc/i686-pc-linux-gnu/3.4.2/../../../../i686-pc-linux-gnu/lib/i686-pc-linux-gnu/3.4.2/ /usr/lib/gcc/i686-pc-linux-gnu/3.4.2/../../../../i686-pc-linux-gnu/lib/ /usr/lib/gcc/i686-pc-linux-gnu/3.4.2/../../../i686-pc-linux-gnu/3.4.2/ /usr/lib/gcc/i686-pc-linux-gnu/3.4.2/../../../ /lib/i686-pc-linux-gnu/3.4.2/ /lib/ /usr/lib/i686-pc-linux-gnu/3.4.2/ /usr/lib/"
 
 # Run-time system search path for libraries
-sys_lib_dlsearch_path_spec="/lib /usr/lib # # /etc/ld.so.conf #  /usr/X11R6/lib  # End of file /usr/local/lib /opt/xfce4/lib /opt/gnome/lib /opt/qt/lib /opt/kde/lib /opt/mono/lib /opt/mozilla/lib/mozilla-1.7 "
+sys_lib_dlsearch_path_spec="/lib /usr/lib # # /etc/ld.so.conf #  /usr/X11R6/lib /usr/local/lib  # End of file /opt/mozilla/lib/mozilla /opt/gnome/lib /opt/gecko-sdk/lib /opt/gecko-sdk/bin /opt/qt/lib "
 
 # Fix the shell variable $srcfile for the compiler.
 fix_srcfile_path=""
@@ -6745,7 +6745,7 @@ build_old_libs=`case $build_libtool_libs in yes) $echo no;; *) $echo yes;; esac`
 # End:
 # ### BEGIN LIBTOOL TAG CONFIG: CXX
 
-# Libtool was configured on host arch:
+# Libtool was configured on host kino:
 
 # Shell to use when invoking shell scripts.
 SHELL="/bin/sh"
@@ -7017,7 +7017,7 @@ link_all_deplibs=unknown
 sys_lib_search_path_spec=" /usr/lib/gcc/i686-pc-linux-gnu/3.4.2/ /usr/lib/gcc/i686-pc-linux-gnu/3.4.2/ /usr/lib/gcc/i686-pc-linux-gnu/3.4.2/../../../../i686-pc-linux-gnu/lib/i686-pc-linux-gnu/3.4.2/ /usr/lib/gcc/i686-pc-linux-gnu/3.4.2/../../../../i686-pc-linux-gnu/lib/ /usr/lib/gcc/i686-pc-linux-gnu/3.4.2/../../../i686-pc-linux-gnu/3.4.2/ /usr/lib/gcc/i686-pc-linux-gnu/3.4.2/../../../ /lib/i686-pc-linux-gnu/3.4.2/ /lib/ /usr/lib/i686-pc-linux-gnu/3.4.2/ /usr/lib/"
 
 # Run-time system search path for libraries
-sys_lib_dlsearch_path_spec="/lib /usr/lib # # /etc/ld.so.conf #  /usr/X11R6/lib  # End of file /usr/local/lib /opt/xfce4/lib /opt/gnome/lib /opt/qt/lib /opt/kde/lib /opt/mono/lib /opt/mozilla/lib/mozilla-1.7 "
+sys_lib_dlsearch_path_spec="/lib /usr/lib # # /etc/ld.so.conf #  /usr/X11R6/lib /usr/local/lib  # End of file /opt/mozilla/lib/mozilla /opt/gnome/lib /opt/gecko-sdk/lib /opt/gecko-sdk/bin /opt/qt/lib "
 
 # Fix the shell variable $srcfile for the compiler.
 fix_srcfile_path=""

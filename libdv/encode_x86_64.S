@@ -43,7 +43,7 @@ _dv_vlc_encode_block_mmx_x86_64:
 	xor	%rax,%rax
 	mov	%rsi,%rdx 
 	mov	(%rdx),%rdx                      # o = out->coeffs
-	add	$2, %rdi                         # skip the first entry
+	add	$2, %rdi                         # skip the first entry, DC coeff
 
 	mov	$63, %rcx                        # loop counter
 
@@ -57,14 +57,14 @@ _dv_vlc_encode_block_mmx_x86_64:
 vlc_encode_block_mmx_loop:
 	pand	%mm1, %mm0
 	movw	(%rdi), %ax                     /* amp = *z */
-	add	$8, %rdx
+	add	$8, %rdx                        /* point to next vlc entry */
 	paddd	%mm0, %mm2
 	cmpw	$0, %ax
 	jz	vlc_encode_block_amp_zero
 	
 	addw	$255, %ax
 	add	$2, %rdi                        /* z++ */
-	movq	(%r11, %rax, 8), %mm0
+	movq	(%r11, %rax, 8), %mm0           /* get the vlc code from the table */
 	movq	%mm0, (%rdx)
 	dec	%rcx
 	jnz	vlc_encode_block_mmx_loop
@@ -76,13 +76,13 @@ vlc_encode_block_mmx_loop:
 vlc_encode_block_amp_zero:
         mov     %rcx, %rbp
         inc     %rcx
-        repz    scasw                 /* scans for eax up to rcx times, increments rdi */
+        repz    scasw                 /* scans for eax (zero) up to rcx times, increments rdi */
         jecxz   vlc_encode_block_out
 
 	/* inline vlc_encode(int run, int amp, int sign, dv_vlc_entry_t * o) */
 	/* vlc_encode_lookup + 2 * ((amp + 255) | (run << 9)); */
         movw    -2(%rdi), %ax
-        sub     %rcx, %rbp
+        sub     %rcx, %rbp                /* the run length of zeros */
 	addw	$255, %ax
         shl     $9, %rbp
 	or	%rbp, %rax
@@ -101,10 +101,10 @@ vlc_encode_block_out:
 	psrlq	$32, %mm0
 	paddd	%mm0, %mm2
 
-	mov	%rsi, %rbx
+	mov	%rsi, %rbx             /* update the output pointer */
 	mov	%rdx, (%rbx)
 	
-	movd	%mm2, %rax             # return value
+	movd	%mm2, %rax             # return value, number of bits
 	
 	pop	%rbp
 	pop	%rbx
@@ -126,37 +126,38 @@ _dv_vlc_num_bits_block_x86_64:
 	xor	%rbx, %rbx
 	xor	%rbp, %rbp
 	
-	add	$2, %rdi
-
+	add	$2, %rdi           /* skip the DC coefficient */
 	mov	$63, %rcx
+
 	mov	vlc_num_bits_lookup(%rip), %r11
 	
 vlc_num_bits_block_x86_loop:
-	movw	(%rdi), %ax
-	add	%rbx, %rdx
+	movw	(%rdi), %ax        /* get the next coeffiecient */
+	add	%rbx, %rdx         /* accumulate the number of VLC bits */
 	cmpw	$0, %ax
 	jz	vlc_num_bits_block_amp_zero
 	addw	$255, %ax
 	add	$2, %rdi
-	movb	(%r11, %rax), %bl
+	movb	(%r11, %rax), %bl  /* lookup the number of VLC bits in the table */
 	
 	dec	%rcx
 	jnz	vlc_num_bits_block_x86_loop
-	add	%rbx, %rdx
+	
+	add	%rbx, %rdx         /* accumulate the number of VLC bits */
 	jmp	vlc_num_bits_block_out
 	
 vlc_num_bits_block_amp_zero:
         mov     %rcx, %rbp
         inc     %rcx
-        repz    scasw                 /* scans for eax up to rcx times, increments rdi */
+        repz    scasw              /* scans for eax (zero) up to rcx times, increments rdi */
         jecxz   vlc_num_bits_block_out
 	
-        sub     %rcx, %rbp
-        movw    -2(%rdi), %ax
+        sub     %rcx, %rbp         /* The run length of zero coefficients */
+        movw    -2(%rdi), %ax      /* The first nonzero coefficient */
         shl     $9, %rbp
 	addw	$255, %ax
 	or 	%rbp, %rax
-	movb	(%r11, %rax), %bl
+	movb	(%r11, %rax), %bl  /* lookup the number of VLC bits in the table */
 	
 	dec	%rcx
 	jnz	vlc_num_bits_block_x86_loop
@@ -183,14 +184,12 @@ extern void _dv_vlc_encode_block_pass_1_x86_64(dv_vlc_entry_t** start,        rd
 	push	%rbx
 	push	%r12
 	push	%rbp
-	push    %r13
 	push	%r15
 	push	%rsi
 	
 	mov	%rsi, %r12		   # end
 	mov	(%rdi), %rsi               # *start
-	mov	(%rdx), %r13               # *bit_budget
-	mov	%r13, %r15                 # local bit_budget
+	mov	(%rdx), %r15               # local bit_budget = *bit_budget
 	mov	(%rcx), %ebp		   # *bit_offset
 	mov	%rcx, %r11
 	xor	%rcx,%rcx
@@ -213,17 +212,17 @@ vlc_encode_block_pass_1_x86_loop:
 	movb	%al, %r10b               # len
 	sub	%rbx, %rcx               # 32-len-(bit_offset & 7)
 	
-	shr	$8, %r13                 # value
+	shr	$8, %eax                 # value
 	mov	%rbp, %rbx               # bit_offset
 	
-	shl	%cl, %r13                # value <<= 32-len-(bit_offset & 7)
+	shl	%cl, %eax                # value <<= 32-len-(bit_offset & 7)
 	shr	$3, %rbx                 # bit_offset >> 3
 	
-	bswap	%r13d
+	bswap	%eax
 	add	%r8, %rbx                # vsbuffer + bit_offset >> 3
 	
 	add	%r10, %rbp               # bit_offset += len
-	or	%r13d, (%rbx)            # store value
+	or	%eax, (%rbx)             # store value
 		
 	cmp	%rsi, %r12
 	jnz	vlc_encode_block_pass_1_x86_loop
@@ -244,7 +243,6 @@ vlc_encode_block_pass1_x86_out:
 
 	pop	%rsi
 	pop	%r15
-	pop	%r13
 	pop	%rbp	
 	pop	%r12
 	pop	%rbx	

@@ -200,7 +200,7 @@ _dv_quant_x86_64:
 	/* Args are at block=rdi, qno=rsi, class=rdx */
 	
 	push	%r12
-	push	%rcx
+	push	%rbx
 	push	%r11	
 	push	%r14
 
@@ -449,7 +449,7 @@ _dv_quant_x86_64:
 	
 	pop	%r14
 	pop	%r11
-	pop	%rcx
+	pop	%rbx
 	pop	%r12
 	ret
 

@@ -285,7 +285,6 @@ lib_LTLIBRARIES = libdv.la
 @HOST_X86_TRUE@BUILT_SOURCES = asmoff.h
 @HOST_X86_64_TRUE@libdv_la_ASMS = vlc_x86_64.S quant_x86_64.S idct_block_mmx_x86_64.S dct_block_mmx_x86_64.S rgbtoyuv_x86_64.S encode_x86_64.S transpose_x86_64.S
 @HOST_X86_TRUE@libdv_la_ASMS = vlc_x86.S quant_x86.S idct_block_mmx.S dct_block_mmx.S rgbtoyuv.S encode_x86.S transpose_x86.S
-# libdv_la_ASMS= vlc_x86_64.S quant_x86_64.S idct_block_mmx_x86_64.S dct_block_mmx_x86_64.S rgbtoyuv_x86_64.S encode_x86_64.S transpose_x86_64.S
 @HOST_X86_64_TRUE@libdv_la_ASM_HS = asmoff.h  mmx.h
 @HOST_X86_TRUE@libdv_la_ASM_HS = asmoff.h  mmx.h 
 @HOST_X86_64_TRUE@gasmoff_SOURCES = gasmoff.c bitstream.h
@@ -329,9 +328,9 @@ $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__confi
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign  libdv/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  libdv/Makefile'; \
 	cd $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign  libdv/Makefile
+	  $(AUTOMAKE) --gnu  libdv/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \

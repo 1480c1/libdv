@@ -73,7 +73,8 @@
 #define VLC_BITS_ON_FULL_MBLOCK_CYCLE_QUANT_3 500
 #define VLC_MAX_RUNS_PER_CYCLE_QUANT_3        3
 
-typedef unsigned long dv_vlc_entry_t;
+/* typedef unsigned long dv_vlc_entry_t; */
+typedef uint32_t dv_vlc_entry_t;
 
 static inline unsigned long get_dv_vlc_val(dv_vlc_entry_t v) 
 {
