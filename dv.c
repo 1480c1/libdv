@@ -50,7 +50,7 @@
 #define DV_MB420_YUV_MMX(a,b,c) dv_mb420_YV12_mmx(a,b,c)
 #else
 #define DV_MB420_YUV(a,b,c)     dv_mb420_YUY2    (a,b,c)
-#define DV_MB420_YUV_MMX(a,b,c) dv_mb420_YV12_mmx(a,b,c)
+#define DV_MB420_YUV_MMX(a,b,c) dv_mb420_YUY2_mmx(a,b,c)
 #endif 
 
 #if HAVE_LIBPOPT

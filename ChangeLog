@@ -1,3 +1,7 @@
+2001-02-14  Charles 'Buck' Krasic  <krasic@acm.org>
+
+	* Bugfix from Stefan Lucke for recent PAL breakage.
+
 2001-02-08  Charles 'Buck' Krasic  <krasic@acm.org>
 
 	* Add --enable-gprof to configure.  Disable SDL by default.  Minor
