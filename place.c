@@ -29,12 +29,13 @@
 
 #define DEBUG_HIGHLIGHT_MBS 0
 
-void dv_place_init(void) {
+void 
+dv_place_init(void) {
   return;
 } // dv_place_init
 
-size_t dv_place_411_macroblock(dv_macroblock_t *mb, size_t pel_size) {
-  size_t result; // offset in bytes from start of image buffer
+void
+dv_place_411_macroblock(dv_macroblock_t *mb, gint *x, gint *y) {
   gint mb_num; // mb number withing the 6 x 5 zig-zag pattern 
   gint mb_num_mod_6, mb_num_div_6; // temporaries
   gint mb_row;    // mb row within sb (de-zigzag)
@@ -69,13 +70,12 @@ size_t dv_place_411_macroblock(dv_macroblock_t *mb, size_t pel_size) {
     // Convert from superblock-relative row position to frame relative (in blocks).
     mb_row = mb_row * 2 + mb->i * 6; // each right-edge macroblock is 2 blocks high, and each superblock is 6 blocks high
   } // else
-  result = mb_row * 8 * 720 * pel_size // block is 8 pels high, row is 720 pels wide, pel_size bytes per pel
-    + mb_col * 8 * pel_size;       // macroblock is 4 blocks wide, 8 pels wide per block, pel_size bytes per pel
-  return(result);
+  *x = mb_col * 8;
+  *y = mb_row * 8;
 } // dv_place_411_macroblock
 
-size_t dv_place_420_macroblock(dv_macroblock_t *mb, size_t pel_size) {
-  size_t result; // offset in bytes from start of image buffer
+void 
+dv_place_420_macroblock(dv_macroblock_t *mb, gint *x, gint *y) {
   gint mb_num; // mb number withing the 6 x 5 zig-zag pattern 
   gint mb_num_mod_3, mb_num_div_3; // temporaries
   gint mb_row;    // mb row within sb (de-zigzag)
@@ -103,9 +103,8 @@ size_t dv_place_420_macroblock(dv_macroblock_t *mb, size_t pel_size) {
   // Compute frame-relative byte offset of macroblock's top-left corner
   // Convert from superblock-relative row position to frame relative (in blocks).
   mb_row += (mb->i * 3); // each right-edge macroblock is 2 blocks high, and each superblock is 6 blocks high
-  result = mb_row * 16 * 720 * pel_size // macro block is 16 pels high, row is 720 pels wide, pel_size bytes per pel
-    + mb_col * 16 * pel_size;       // macroblock is 2 blocks wide, 8 pels wide per block, pel_size bytes per pel
-  return(result);
+  *x = mb_col * 16;
+  *y = mb_row * 16;
 } // dv_place_420_macroblock
 
 

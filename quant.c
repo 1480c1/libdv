@@ -50,6 +50,7 @@ static guint8 dv_248_areas[64] = {
  1,1,2,2,2,3,3,3, 
  1,2,2,3,3,3,3,3 };
 
+#if 0
 static guint8 dv_quant_steps[22][4] = {
   { 8,8,16,16 }, 
   { 8,8,16,16 }, 
@@ -82,6 +83,7 @@ static guint8 dv_quant_steps[22][4] = {
   { 1,1,1,1 }, 
   { 1,1,1,1 }
 };
+#endif
 
 guint8 dv_quant_shifts[22][4] = {
   { 3,3,4,4 }, 

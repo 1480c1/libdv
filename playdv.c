@@ -24,69 +24,29 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#define BENCHMARK_MODE 0
-#if BENCHMARK_MODE
-#define GTKDISPLAY 0
-#else
-#define GTKDISPLAY 1
-#endif
-#define Y_ONLY 0
-
+#include <stdlib.h>
 #include <glib.h>
 #include <stdio.h>
 
-#include <gtk/gtk.h>
-
+#include "dv.h"
+#include "display.h"
 #include "bitstream.h"
-#include "dct.h"
-#include "idct_248.h"
-#include "quant.h"
-#include "weighting.h"
-#include "vlc.h"
-#include "parse.h"
-#include "place.h"
-#include "ycrcb_to_rgb32.h"
-
-void convert_coeffs(dv_block_t *bl)
-{
-  int i;
-  for(i=0;
-      i<64;
-      i++) {
-    bl->coeffs248[i] = bl->coeffs[i];
-  }
-} // convert_coeffs
-
-void convert_coeffs_prime(dv_block_t *bl)
-{
-  int i;
-  for(i=0;
-      i<64;
-      i++) {
-    bl->coeffs[i] = bl->coeffs248[i];
-  }
-} // convert_coeffs_prime
 
 int main(int argc,char *argv[]) {
   static guint8 vsbuffer[80*5]      __attribute__ ((aligned (64))); 
   static dv_videosegment_t videoseg __attribute__ ((aligned (64)));
+  dv_display_t *dv_dpy = NULL;
   FILE *f;
   dv_sample_t sampling;
   gboolean isPAL = 0;
   gboolean is61834 = 0;
   gboolean displayinit = FALSE;
   gint numDIFseq;
-  dv_macroblock_t *mb;
-  dv_block_t *bl;
-  gint ds;
-  gint b,m,v;
+  gint ds, v;
   gint lost_coeffs;
   guint dif;
   guint offset;
-  size_t mb_offset;
   static gint frame_count;
-  GtkWidget *window,*image;
-  guint8 rgb_frame[720*576*3];
   guint quality = DV_QUALITY_COLOR | DV_QUALITY_AC_2;
 
   if (argc >= 2)
@@ -94,14 +54,9 @@ int main(int argc,char *argv[]) {
   else
     f = stdin;
 
-  weight_init();  
-  dct_init();
-  dv_dct_248_init();
-  dv_construct_vlc_table();
-  dv_parse_init();
-  dv_place_init();
-  dv_ycrcb_init();
+
   videoseg.bs = bitstream_init();
+  dv_init();
 
   lost_coeffs = 0;
   dif = 0;
@@ -122,26 +77,12 @@ int main(int argc,char *argv[]) {
 //           is61834?"IEC61834":"SMPTE314M",isPAL?"PAL":"NTSC");
     numDIFseq = isPAL ? 12 : 10;
 
-#if GTKDISPLAY
     if (!displayinit) {
-      gtk_init(&argc,&argv);  
-      gdk_rgb_init();
-      gtk_widget_set_default_colormap(gdk_rgb_get_cmap());
-      gtk_widget_set_default_visual(gdk_rgb_get_visual());
-      window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-      image = gtk_drawing_area_new();
-      gtk_container_add(GTK_CONTAINER(window),image);
-      gtk_drawing_area_size(GTK_DRAWING_AREA(image),720,isPAL?576:480);
-      gtk_widget_set_usize(GTK_WIDGET(image),720,isPAL?576:480);
-      gtk_widget_show(image);
-      gtk_widget_show(window);
-      gdk_flush();
-      while (gtk_events_pending())
-        gtk_main_iteration();
-      gdk_flush();
       displayinit = TRUE;
+      dv_dpy = dv_display_init (&argc, &argv, 
+				 720, isPAL ? 576: 480, sampling, "playdv", "playdv");
+      if(!dv_dpy) goto no_display;
     }
-#endif
 
     // each DV frame consists of a sequence of DIF segments 
     for (ds=0;
@@ -168,52 +109,23 @@ int main(int argc,char *argv[]) {
         videoseg.isPAL = isPAL;
         lost_coeffs += dv_parse_video_segment(&videoseg, quality);
         // stage 2: dequant/unweight/iDCT blocks, and place the macroblocks
-        for (m=0,mb = videoseg.mb;
-	     m<5;
-	     m++,mb++) {
-	  for (b=0,bl = mb->b;
-	       b<((quality & DV_QUALITY_COLOR) ? 6 : 4);
-	       b++,bl++) {
-	    if (bl->dct_mode == DV_DCT_248) { 
-	      quant_248_inverse(bl->coeffs,mb->qno,bl->class_no);
-	      weight_248_inverse(bl->coeffs);
-	      convert_coeffs(bl);
-	      dv_idct_248(bl->coeffs248);
-	      convert_coeffs_prime(bl);
-	    } else {
-	      quant_88_inverse(bl->coeffs,mb->qno,bl->class_no);
-	      weight_88_inverse(bl->coeffs);
-	      idct_88(bl->coeffs);
-	    } // else
-	  } // for b
-	  if(sampling == e_dv_sample_411) {
-	    mb_offset = dv_place_411_macroblock(mb,3);
-	    if((mb->j == 4) && (mb->k > 23)) 
-	      dv_ycrcb_420_block(rgb_frame + mb_offset, mb->b);
-	    else
-	      dv_ycrcb_411_block(rgb_frame + mb_offset, mb->b);
-	  } else {
-	    mb_offset = dv_place_420_macroblock(mb,3);
-	    dv_ycrcb_420_block(rgb_frame + mb_offset, mb->b);
-	  }
-        } // for mb
 	dif+=5;
+	dv_decode_video_segment(&videoseg,quality);
+	if(dv_dpy->color_space == e_dv_color_yuv) 
+	  dv_render_video_segment_yuv_mmx(&videoseg, sampling, dv_dpy->pixels, dv_dpy->pitches);
+	else
+	  dv_render_video_segment_rgb(&videoseg, sampling, dv_dpy->pixels[0], dv_dpy->pitches[0]);
       } // for s
     } // ds
     //fprintf(stderr,"displaying frame (%d coeffs lost in parse)\n", lost_coeffs);
     frame_count++;
-#if BENCHMARK_MODE
-    if(frame_count >= 300) break;
+#if 1
+    if(frame_count >= 450) break;
 #endif
-#if GTKDISPLAY
-
-    gdk_draw_rgb_image(image->window,image->style->fg_gc[image->state],
-		       0,0,720,isPAL?576:480,GDK_RGB_DITHER_MAX,rgb_frame,720*3);
-    gdk_flush();
-    while (gtk_events_pending())
-      gtk_main_iteration();
-    gdk_flush();
-#endif
+    dv_display_show(dv_dpy);
   }
+  dv_display_exit(dv_dpy);
   exit(0);
+ no_display:
+  exit(-1);
 }

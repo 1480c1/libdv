@@ -28,9 +28,10 @@
 #define __PLACE_H__
 
 #include <stddef.h>
+#include <glib.h>
 
 extern void dv_place_init(void);
-extern size_t dv_place_411_macroblock(dv_macroblock_t *mb, size_t pel_size);
-extern size_t dv_place_420_macroblock(dv_macroblock_t *mb, size_t pel_size);
+extern void dv_place_411_macroblock(dv_macroblock_t *mb, gint *x, gint *y);
+extern void dv_place_420_macroblock(dv_macroblock_t *mb, gint *x, gint *y);
 
 #endif // __PLACE_H__

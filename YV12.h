@@ -1,5 +1,5 @@
 /* 
- *  ycrcb_to_rgb32.h
+ *  YV12.h
  *
  *     Copyright (C) Charles 'Buck' Krasic - April 2000
  *     Copyright (C) Erik Walthinsen - April 2000
@@ -24,11 +24,32 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#ifndef __DV_YCRCB_TO_RGB32_H__
-#define __DV_YCRCB_TO_RGB32_H__
+#ifndef __YV12_H__
+#define __YV12_H__
 
-void dv_ycrcb_init();
-void dv_ycrcb_411_block(unsigned char *base, dv_block_t *bl);
-void dv_ycrcb_420_block(unsigned char *base, dv_block_t *bl);
+#include "dv.h"
 
-#endif // __DV_YCRCB_TO_RGB32_H__
+/* Convert output of decoder to YV12 conforming layout.  YV12 is a
+ * format supported directly by many display adaptors.  See
+ * the following website for details of YV12:
+ *
+ *    http://www.webartz.com/fourcc/fccyuv.htm#YV12
+ * 
+ * The conversion entails going from 16bit to 8bit and properly
+ * clamping YUV values.
+ * 
+ * These conversions make sense to use if the HW supports YV12 and the
+ * DV is IEC 61834 PAL.  SMPTE 314M PAL uses 411, so it is better to
+ * upsample that to YUY2.  */
+
+extern void dv_YV12_init(void);
+
+/* scalar version */
+extern void dv_mb420_YV12(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches, gint x, gint y); 
+
+#if USE_MMX_ASM
+/* pentium architecture mmx version */
+extern void dv_mb420_YV12_mmx(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches, gint x, gint y); 
+#endif // USE_MMX_ASM
+
+#endif /* __YV12_H__ */

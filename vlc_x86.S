@@ -453,7 +453,7 @@ blkloop:
 	shll	$8,%eax
 	orl	%ecx,%eax
 
-        movl    %ax,%dx
+        movl    %eax,%edx
         /* if(dc > 255) dc -= 512;
            just do an arithmetric shift right 7bits*/
         sar     $7,%dx                  /* dc in %dx */

@@ -97,4 +97,19 @@ typedef struct dv_videosegment_s {
   gboolean isPAL;
 } dv_videosegment_t;
 
+extern void dv_init(void);
+extern gint dv_parse_video_segment(dv_videosegment_t *seg, guint quality);
+extern void dv_decode_video_segment(dv_videosegment_t *seg, guint quality);
+
+extern void dv_render_video_segment_rgb(dv_videosegment_t *seg, dv_sample_t sampling, 
+					guchar *pixels, gint pitch );
+
+extern void dv_render_video_segment_yuv(dv_videosegment_t *seg, dv_sample_t sampling, 
+					guchar **pixels, guint16 *pitches);
+
+#if USE_MMX_ASM
+extern void dv_render_video_segment_yuv_mmx(dv_videosegment_t *seg, dv_sample_t sampling, 
+					    guchar **pixels, guint16 *pitches);
+#endif // USE_MMX_ASM
+
 #endif /* __DV_H__ */

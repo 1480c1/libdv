@@ -39,7 +39,9 @@ dv_coeff_t preSC[64] __attribute__ ((aligned (32))) = {
 };
 
 static double W[8];
+#if !USE_MMX_ASM
 static dv_coeff_t dv_weight_inverse_88_matrix[64];
+#endif
 
 double dv_weight_inverse_248_matrix[64];
 

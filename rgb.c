@@ -1,5 +1,5 @@
 /* 
- *  ycrcb_to_rgb32.c
+ *  rgb.c
  *
  *     Copyright (C) Charles 'Buck' Krasic - April 2000
  *     Copyright (C) Erik Walthinsen - April 2000
@@ -28,73 +28,109 @@
 #include <math.h>
 #include "dv.h"
 
-#define DVC_IMAGE_WIDTH 720
-#define DVC_IMAGE_CHANS 3
-#define DVC_IMAGE_ROWOFFSET (DVC_IMAGE_WIDTH * DVC_IMAGE_CHANS)
-
 #define COLOR_FRACTION_BITS 10
 #define COLOR_FRACTION_MUL  (1 << COLOR_FRACTION_BITS)
 
-gint32 real_table_2_018[256];
-gint32 real_table_0_813[256];
-gint32 real_table_0_391[256];
-gint32 real_table_1_596[256];
+/* yuv -> rgb converion lookup tables.  These tables are constructed
+ * from the standard formulas, plus the following assumptions:
+ *
+ *  - yuv index values are signed (i.e. offset by -128)
+ *  - yuv index values may be out of range and should be clamped
+ *    to 16-235 for y, and 16-240 for uv.
+ *
+ * The standard formulas are:
+ *
+ *    G = 1.164(Y-16) - 0.391(U-128)  0.813(V-128)
+ *    R = 1.164(Y-16) - 1.596(V-128)
+ *    B = 1.164(Y-16) - 2.018(U-128)
+ * 
+ * Note that you need to clamp values both before and after
+ * the formula.  Given the limits above for YUV, the range of 
+ * values from the formula are:
+ *    
+ *   -179 < R < 433
+ *   -135 < G < 390
+ *   -227 < B < 365
+ *
+ * These must be clamped to 0 .. 255 for the correct final 
+ * 8-bit pixel components.
+ */  
 
-gint32 *table_2_018;
-gint32 *table_0_813;
-gint32 *table_0_391;
-gint32 *table_1_596;
+/* lookups for the terms in the formula above.  Note we use
+ * pointer arithmetic to make use of negative index values legal.
+ */
 
-gint32 real_ylut[512], *ylut;
+static gint32 real_table_2_018[256];
+static gint32 real_table_0_813[256];
+static gint32 real_table_0_391[256];
+static gint32 real_table_1_596[256];
 
-guint8 real_clamptab[768], *clamptab;
+static gint32 *table_2_018;
+static gint32 *table_0_813;
+static gint32 *table_0_391;
+static gint32 *table_1_596;
 
-void dv_ycrcb_init()
-{
+static gint32 real_ylut[512], *ylut;
+
+/* rgb lookup - clamps values in range -256 .. 512 to 0 .. 255 */
+static guint8 real_rgblut[768], *rgblut;
+
+void 
+dv_rgb_init(void) {
   gint i;
   gint clamped_offset;
   table_2_018 = real_table_2_018 + 128;
   table_0_813 = real_table_0_813 + 128;
   table_0_391 = real_table_0_391 + 128;
   table_1_596 = real_table_1_596 + 128;
-  ylut = real_ylut + 256;
-  clamptab = real_clamptab + 256;
 
   for(i=-128;
       i<128;
       ++i) {
-    if(i < (16-128)) clamped_offset = (16-128);
-    else if(i > (240-128)) clamped_offset = (240-128);
-    else clamped_offset = i;
+    if(i < (16-128)) {
+      clamped_offset = (16-128);
+    } else if(i > (240-128)) {
+      clamped_offset = (240-128);
+    } else {
+      clamped_offset = i;
+    } // else 
     table_2_018[i] = (gint32)rint(2.018 * COLOR_FRACTION_MUL * clamped_offset);
     table_0_813[i] = (gint32)rint(0.813 * COLOR_FRACTION_MUL * clamped_offset);
     table_0_391[i] = (gint32)rint(0.391 * COLOR_FRACTION_MUL * clamped_offset);
     table_1_596[i] = (gint32)rint(1.596 * COLOR_FRACTION_MUL * clamped_offset);
-  }
+  } // for
+
+  ylut = real_ylut + 256;
   for(i=-256; i < 256; i++) {
     if(i < (16-128)) clamped_offset = (16-128);
     else if(i > (235-128)) clamped_offset = (235-128);
     else clamped_offset = i;
     ylut[i] = (gint32)rint(1.164 * COLOR_FRACTION_MUL * (clamped_offset+128-16));
-  }
+  } // for
 
+  rgblut = real_rgblut + 256;
   for(i=-256; i < 512; i++) {
-    clamptab[i] = CLAMP(i, 0, 255);
-  }
-}
+    rgblut[i] = CLAMP(i, 0, 255);
+  } // for
+} /* dv_rgb_init */
 
-void dv_ycrcb_411_block(guint8 *base, dv_block_t *bl)
-{
+void 
+dv_mb411_rgb(dv_macroblock_t *mb, guchar *pixels, gint pitch, gint x, gint y) {
   dv_coeff_t *Y[4], *cr_frame, *cb_frame;
-  guint8 *rgbp = base;
+  guint8 *prgb, *pwrgb;
   int i,j,k, row;
-  Y[0] = bl[0].coeffs;
-  Y[1] = bl[1].coeffs;
-  Y[2] = bl[2].coeffs;
-  Y[3] = bl[3].coeffs;
-  cr_frame = bl[4].coeffs;
-  cb_frame = bl[5].coeffs;
+
+  Y[0] = mb->b[0].coeffs;
+  Y[1] = mb->b[1].coeffs;
+  Y[2] = mb->b[2].coeffs;
+  Y[3] = mb->b[3].coeffs;
+  cr_frame = mb->b[4].coeffs;
+  cb_frame = mb->b[5].coeffs;
+
+  prgb = pixels + (x * 3)  + (y * pitch);
+
   for (row = 0; row < 8; ++row) { // Eight rows
+    pwrgb = prgb;
     for (i = 0; i < 4; ++i) {     // Four Y blocks
       dv_coeff_t *Ytmp = Y[i]; // less indexing in inner loop speedup?
       for (j = 0; j < 2; ++j) {   // two 4-pixel spans per Y block
@@ -109,35 +145,38 @@ void dv_ycrcb_411_block(guint8 *base, dv_block_t *bl)
           gint32 r = (y + ro) >> COLOR_FRACTION_BITS;
           gint32 g = (y - go) >> COLOR_FRACTION_BITS;
           gint32 b = (y + bo) >> COLOR_FRACTION_BITS;
-          *rgbp++ = clamptab[r];
-          *rgbp++ = clamptab[g];
-          *rgbp++ = clamptab[b];
-#if (DVC_IMAGE_CHANS == 4)
-          rgbp++;
-#endif
-        }
-      }
+          *pwrgb++ = rgblut[r];
+          *pwrgb++ = rgblut[g];
+          *pwrgb++ = rgblut[b];
+        } // for k
+      } // for j
       Y[i] = Ytmp;
-    }
-    rgbp += DVC_IMAGE_ROWOFFSET - 4 * 8 * DVC_IMAGE_CHANS; // 4 rows, 8 pixels
-  }
-}
+    } // for i
+    prgb += pitch;
+  } // for row
+} // dv_mb411_rgb
 
-void dv_ycrcb_420_block(guint8 *base, dv_block_t *bl)
-{
+void 
+dv_mb420_rgb(dv_macroblock_t *mb, guchar *pixels, gint pitch, gint x, gint y) {
   dv_coeff_t *Y[4], *cr_frame, *cb_frame;
-  guint8 *rgbp0, *rgbp1;
+  guint8 *prgb, *pwrgb0, *pwrgb1;
   int i, j, k, row, col;
-  rgbp0 = base;
-  rgbp1 = base + DVC_IMAGE_ROWOFFSET;
-  Y[0] = bl[0].coeffs;
-  Y[1] = bl[1].coeffs;
-  Y[2] = bl[2].coeffs;
-  Y[3] = bl[3].coeffs;
-  cr_frame = bl[4].coeffs;
-  cb_frame = bl[5].coeffs;
+
+  Y[0] = mb->b[0].coeffs;
+  Y[1] = mb->b[1].coeffs;
+  Y[2] = mb->b[2].coeffs;
+  Y[3] = mb->b[3].coeffs;
+  cr_frame = mb->b[4].coeffs;
+  cb_frame = mb->b[5].coeffs;
+
+  prgb = pixels + (x * 3) + (y * pitch);
+
   for (j = 0; j < 4; j += 2) { // Two rows of blocks j, j+1
+    
     for (row = 0; row < 8; row+=2) { // 4 pairs of two rows
+      pwrgb0 = prgb; 
+      pwrgb1 = prgb + pitch;
+
       for (i = 0; i < 2; ++i) { // Two columns of blocks
         int yindex = j + i;
         dv_coeff_t *Ytmp0 = Y[yindex];
@@ -154,29 +193,25 @@ void dv_ycrcb_420_block(guint8 *base, dv_block_t *bl)
             gint32 r = (y + ro) >> COLOR_FRACTION_BITS;
             gint32 g = (y - go) >> COLOR_FRACTION_BITS;
             gint32 b = (y + bo) >> COLOR_FRACTION_BITS;
-	    *rgbp0++ = clamptab[r];
-	    *rgbp0++ = clamptab[g];
-	    *rgbp0++ = clamptab[b];
-#if (DVC_IMAGE_CHANS == 4)
-            rgbp0++;
-#endif
+	    *pwrgb0++ = rgblut[r];
+	    *pwrgb0++ = rgblut[g];
+	    *pwrgb0++ = rgblut[b];
 
             y = ylut[*Ytmp1++];
             r = (y + ro) >> COLOR_FRACTION_BITS;
             g = (y - go) >> COLOR_FRACTION_BITS;
             b = (y + bo) >> COLOR_FRACTION_BITS;
-	    *rgbp1++ = clamptab[r];
-	    *rgbp1++ = clamptab[g];
-	    *rgbp1++ = clamptab[b];
-#if (DVC_IMAGE_CHANS == 4)
-            rgbp1++;
-#endif
-          }
-        }
+	    *pwrgb1++ = rgblut[r];
+	    *pwrgb1++ = rgblut[g];
+	    *pwrgb1++ = rgblut[b];
+          } // for k
+
+        } // for col
         Y[yindex] = Ytmp1;
-      }
-      rgbp0 += 2 * DVC_IMAGE_ROWOFFSET - 2 * 8 * DVC_IMAGE_CHANS;
-      rgbp1 += 2 * DVC_IMAGE_ROWOFFSET - 2 * 8 * DVC_IMAGE_CHANS;
-    }
-  }
-}
+      } // for i
+
+      prgb += (2 * pitch);
+    } // for row
+
+  } // for j
+} /* dv_mb420_rgb */
