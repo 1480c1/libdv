@@ -65,43 +65,8 @@ extern void dv_construct_vlc_table();
 
 // Note we assume bits is right (lsb) aligned, 0 < maxbits < 17
 // This may look crazy, but there are no branches here.
-#if ! INLINE_DECODE_VLC
 extern void dv_decode_vlc(gint bits,gint maxbits, dv_vlc_t *result);
-#else
-extern __inline__ void dv_decode_vlc(gint bits,gint maxbits, dv_vlc_t *result) {
-  static dv_vlc_t vlc_broken = {run: -1, amp: -1, len: VLC_NOBITS};
-  dv_vlc_t *results[2] = { &vlc_broken, result };
-  gint class, has_sign, amps[2];
-  
-  bits = bits << (16 - maxbits); // left align input
-  class = dv_vlc_classes[maxbits][(bits & (dv_vlc_class_index_mask[maxbits])) >> (dv_vlc_class_index_rshift[maxbits])];
-  *result = dv_vlc_lookups[class][(bits & (dv_vlc_index_mask[class])) >> (dv_vlc_index_rshift[class])];
-  amps[1] = -(amps[0] = result->amp);
-  has_sign = amps[0] > 0;
-  result->len += has_sign;
-  result->amp = amps[has_sign *  // or vlc not valid
-		       ((sign_mask[result->len] & bits) >> sign_rshift[result->len])];
-  *result = *results[maxbits >= result->len];
-} // dv_decode_vlc
-#endif // ! INLINE_DECODE_VLC
-
-#if ! INLINE_DECODE_VLC
 extern void __dv_decode_vlc(gint bits, dv_vlc_t *result);
-#else
-// Fastpath, assumes full 16bits are available, which eleminates left align of input,
-// check for enough bits at end, and hardcodes lookups on maxbits.
-extern __inline__ void __dv_decode_vlc(gint bits, dv_vlc_t *result) {
-  gint class, has_sign, amps[2];
-  
-  class = dv_vlc_classes[16][(bits & (dv_vlc_class_index_mask[16])) >> (dv_vlc_class_index_rshift[16])];
-  *result = dv_vlc_lookups[class][(bits & (dv_vlc_index_mask[class])) >> (dv_vlc_index_rshift[class])];
-  amps[1] = -(amps[0] = result->amp);
-  has_sign = amps[0] > 0;
-  result->len += has_sign;
-  result->amp = amps[has_sign *  // or vlc not valid
-		    ((sign_mask[result->len] & bits) >> sign_rshift[result->len])];
-} // __dv_decode_vlc
-#endif // ! INLINE_DECODE_VLC
 
 extern __inline__ void dv_peek_vlc(bitstream_t *bs,gint maxbits, dv_vlc_t *result) {
   if(maxbits < 16)
