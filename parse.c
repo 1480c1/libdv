@@ -40,13 +40,26 @@
 #define VLC_BOUNDS_CHECK 0
 
 #define PARSE_VLC_TRACE 0
+
+#ifdef __GNUC__
 #if PARSE_VLC_TRACE
 #define vlc_trace(format,args...) fprintf(stdout,format,##args)
 #else 
 #define vlc_trace(format,args...) 
-#endif 
+#endif  /* PARSE_VLC_TRACE */
+#else
+static inline void vlc_trace(char *format, ...)
+{
+#if PARSE_VLC_TRACE
+  va_list argp;
+  va_start(argp, format);
+  vfprintf(stdout, format, argp);
+  va_end(argp);
+#endif /* PARSE_VLC_TRACE */
+}
+#endif /* __GNUC__ */
 
-// Assign coefficient in zigzag order without indexing multiply
+/* Assign coefficient in zigzag order without indexing multiply */
 #define ZERO_MULT_ZIGZAG 1
 #if ZERO_MULT_ZIGZAG
 #define SET_COEFF(COEFFS,REORDER,VALUE) (*((dv_coeff_t *)(((guint8 *)(COEFFS)) + *(REORDER)++)) = (VALUE))
@@ -96,23 +109,23 @@ dv_video_popt_callback(poptContext con, enum poptCallbackReason reason,
   default:
     dv_opt_usage(con, video->option_table, DV_VIDEO_OPT_BLOCK_QUALITY);
     break;
-  } // switch 
+  } /* switch  */
   if(!video->arg_monochrome) {
     video->quality |= DV_QUALITY_COLOR;
-  } // if
+  } /* if */
   
-} // dv_video_popt_callback 
-#endif // HAVE_LIBPOPT
+} /* dv_video_popt_callback  */
+#endif /* HAVE_LIBPOPT */
 
 dv_video_t *
 dv_video_new(void)
 {
   dv_video_t *result;
   
-  result = calloc(1,sizeof(dv_video_t));
+  result = (dv_video_t *)calloc(1,sizeof(dv_video_t));
   if(!result) goto noopt;
 
-  result->arg_block_quality = 3; // Default is best quality 
+  result->arg_block_quality = 3; /* Default is best quality  */
 
 #if HAVE_LIBPOPT
   result->option_table[DV_VIDEO_OPT_BLOCK_QUALITY] = (struct poptOption){
@@ -125,27 +138,27 @@ dv_video_new(void)
     "  1=DC and no ACs,"
     " 2=DC and single-pass for ACs ,"
     " 3=DC and multi-pass for ACs [default]",
-  }; // block quality
+  }; /* block quality */
 
   result->option_table[DV_VIDEO_OPT_MONOCHROME] = (struct poptOption){
     longName:  "monochrome", 
     shortName: 'm', 
     arg:       &result->arg_monochrome,
     descrip:   "skip decoding of color blocks",
-  }; // monochrome
+  }; /* monochrome */
 
   result->option_table[DV_VIDEO_OPT_CALLBACK] = (struct poptOption){
     argInfo: POPT_ARG_CALLBACK|POPT_CBFLAG_POST,
     arg:     dv_video_popt_callback,
-    descrip: (char *)result, // data passed to callback
-  }; // callback
+    descrip: (char *)result, /* data passed to callback */
+  }; /* callback */
 #else
   result->quality = DV_QUALITY_BEST;
-#endif // HAVE_LIBPOPT
+#endif /* HAVE_LIBPOPT */
 
  noopt:
   return(result);
-} // dv_video_new
+} /* dv_video_new */
 
 void dv_parse_init(void) {
   gint i;
@@ -155,17 +168,17 @@ void dv_parse_init(void) {
 #else
     dv_reorder[DV_DCT_88][i] = ((dv_88_reorder_prime[i] % 8) * 8) + (dv_88_reorder_prime[i] / 8);
 #endif
-  } // for 
+  } /* for  */
   for(i=0;i<64;i++) {
 #if ZERO_MULT_ZIGZAG
     dv_reorder[DV_DCT_88][i] = (dv_reorder[DV_DCT_88][i]) * sizeof(dv_coeff_t);
     dv_reorder[DV_DCT_248][i] = (dv_reorder[DV_DCT_248][i]) * sizeof(dv_coeff_t);
 #endif
-  } // for
-} // dv_parse_init
+  } /* for */
+} /* dv_parse_init */
 
-// Scan the blocks of a macroblock.  We're looking to find the next
-// block from which unused space was borrowed
+/* Scan the blocks of a macroblock.  We're looking to find the next */
+/* block from which unused space was borrowed */
 static inline
 gboolean dv_find_mb_unused_bits(dv_macroblock_t *mb, dv_block_t **lender) {
   gint b;
@@ -174,21 +187,21 @@ gboolean dv_find_mb_unused_bits(dv_macroblock_t *mb, dv_block_t **lender) {
     if((mb->b[b].eob) &&    /* an incomplete block can only "borrow" bits
 			* from other blocks that are themselves
                         * already completely decoded */
-       (mb->b[b].end > mb->b[b].offset) && // the lender must have unused bits
-       (!mb->b[b].mark)) {  // the lender musn't already be lending...
+       (mb->b[b].end > mb->b[b].offset) && /* the lender must have unused bits */
+       (!mb->b[b].mark)) {  /* the lender musn't already be lending... */
       mb->b[b].mark = TRUE;
       *lender = &mb->b[b];
       return(TRUE);
-    } // if 
-  } // for b
+    } /* if  */
+  } /* for b */
   return(FALSE);
-} // dv_find_mb_unused_bits
+} /* dv_find_mb_unused_bits */
 
-// After parsing vlcs from borrowed space, we must clear the trail of
-// marks we used to track lenders.  found_vlc indicates whether the
-// scanning process successfully found a complete vlc.  If it did,
-// then we update all blocks that lent bits as having no bits left.
-// If so, the last block gets fixed in the caller.  
+/* After parsing vlcs from borrowed space, we must clear the trail of 
+ * marks we used to track lenders.  found_vlc indicates whether the 
+ * scanning process successfully found a complete vlc.  If it did,
+ * then we update all blocks that lent bits as having no bits left. 
+ * If so, the last block gets fixed in the caller.   */
 static void dv_clear_mb_marks(dv_macroblock_t *mb, gboolean found_vlc) { 
   dv_block_t *bl; gint b;
 
@@ -200,9 +213,9 @@ static void dv_clear_mb_marks(dv_macroblock_t *mb, gboolean found_vlc) {
       if(found_vlc) bl->offset = bl->end;
     }
   }
-} // dv__clear_mb_marks
+} /* dv__clear_mb_marks */
 
-// For pass 3, we scan all blocks of a video segment for unused bits 
+/* For pass 3, we scan all blocks of a video segment for unused bits  */
 static gboolean dv_find_vs_unused_bits(dv_videosegment_t *seg, dv_block_t **lender) {
   dv_macroblock_t *mb;
   gint m;
@@ -210,14 +223,14 @@ static gboolean dv_find_vs_unused_bits(dv_videosegment_t *seg, dv_block_t **lend
   for(m=0,mb=seg->mb;
       m<5;
       m++,mb++) {
-    if((mb->eob_count == 6) && // We only borrow bits from macroblocks that are themselves complete
+    if((mb->eob_count == 6) && /* We only borrow bits from macroblocks that are themselves complete */
        dv_find_mb_unused_bits(mb,lender)) 
       return(TRUE);
-  } // for
+  } /* for */
   return(FALSE);
-} // dv_find_vs_unused_bits
+} /* dv_find_vs_unused_bits */
 
-// For pass 3, the trail of lenders can span the whole video segment
+/* For pass 3, the trail of lenders can span the whole video segment */
 static void dv_clear_vs_marks(dv_videosegment_t *seg,gboolean found_vlc) {
   dv_macroblock_t *mb;
   gint m;
@@ -226,12 +239,12 @@ static void dv_clear_vs_marks(dv_videosegment_t *seg,gboolean found_vlc) {
       m<5;
       m++,mb++) 
     dv_clear_mb_marks(mb,found_vlc);
-} // dv_clear_vs_marks
+} /* dv_clear_vs_marks */
 
-// For passes 2 and 3, vlc data that didn't fit in the area of a block
-// are put in space borrowed from other blocks.  Pass 2 borrows from
-// blocks of the same macroblock.  Pass 3 uses space from blocks of
-// other macroblocks of the videosegment.
+/* For passes 2 and 3, vlc data that didn't fit in the area of a block
+ * are put in space borrowed from other blocks.  Pass 2 borrows from
+ * blocks of the same macroblock.  Pass 3 uses space from blocks of
+ * other macroblocks of the videosegment. */
 static gint dv_find_spilled_vlc(dv_videosegment_t *seg, dv_macroblock_t *mb, dv_block_t **bl_lender, gint pass) {
   dv_vlc_t vlc;
   dv_block_t *bl_new_lender;
@@ -251,15 +264,15 @@ static gint dv_find_spilled_vlc(dv_videosegment_t *seg, dv_macroblock_t *mb, dv_
   while(found_bits && (!found_vlc)) {
     bitstream_seek_set(bs, bl_new_lender->offset);
     found_bits_left = bl_new_lender->end - bl_new_lender->offset;
-    if(bits_left) // prepend broken vlc if there is one
+    if(bits_left) /* prepend broken vlc if there is one */
       bitstream_unget(bs, broken_vlc, bits_left);
     dv_peek_vlc(bs, found_bits_left + bits_left, &vlc);
     if(vlc.len >= 0) {
-      // found a vlc, set things up to return to the main coeff loop
+      /* found a vlc, set things up to return to the main coeff loop */
       save_offset = bl_new_lender->offset - bits_left;
       found_vlc = TRUE;
     } else if(vlc.len == VLC_NOBITS) {
-      // still no vlc
+      /* still no vlc */
       bits_left += found_bits_left;
       broken_vlc = bitstream_get(bs, bits_left);
       if(pass == 1) 
@@ -270,16 +283,16 @@ static gint dv_find_spilled_vlc(dv_videosegment_t *seg, dv_macroblock_t *mb, dv_
       if(pass == 1) dv_clear_mb_marks(mb,found_vlc); 
       else dv_clear_vs_marks(seg,found_vlc);
       return(-1);
-    } // else
-  } // while
+    } /* else */
+  } /* while */
   if(pass == 1) dv_clear_mb_marks(mb,found_vlc); 
   else dv_clear_vs_marks(seg,found_vlc);
   if(found_vlc) {
-    bl_new_lender->offset = save_offset; // fixup offset clobbered by clear marks 
+    bl_new_lender->offset = save_offset; /* fixup offset clobbered by clear marks  */
     *bl_lender = bl_new_lender;
   }
   return(found_vlc);
-} // dv_find_spilled_vlc
+} /* dv_find_spilled_vlc */
 
 
 gint dv_parse_ac_coeffs(dv_videosegment_t *seg) {
@@ -294,7 +307,7 @@ gint dv_parse_ac_coeffs(dv_videosegment_t *seg) {
   bitstream_t     *bs;
 
   bs = seg->bs;
-  // Phase 2:  do the 3 pass AC vlc decode
+  /* Phase 2:  do the 3 pass AC vlc decode */
   vlc_error = FALSE;
   for (pass=1;pass<3;pass++) {
     vlc_trace("P%d",pass);
@@ -302,7 +315,7 @@ gint dv_parse_ac_coeffs(dv_videosegment_t *seg) {
     for (m=0,mb=seg->mb;
 	 m<5;
 	 m++,mb++) {
-      // if(vlc_error) goto abort_segment;
+      /* if(vlc_error) goto abort_segment; */
       vlc_trace("\nM%d",m);
       if((pass == 1) && mb->vlc_error) continue;
       for (b=0,bl=mb->b;
@@ -315,12 +328,12 @@ gint dv_parse_ac_coeffs(dv_videosegment_t *seg) {
 	reorder = &bl->reorder;
 	reorder_sentinel = bl->reorder_sentinel;
 	bl_bit_source = bl;
-	// Main coeffient parsing loop
+	/* Main coeffient parsing loop */
 	while(1) {
 	  bits_left = bl_bit_source->end - bl_bit_source->offset;
 	  dv_peek_vlc(bs,bits_left,&vlc);
 	  if(vlc.run < 0) goto bh;
-	  // complete, valid vlc found
+	  /* complete, valid vlc found */
 	  vlc_trace("(%d,%d,%d)",vlc.run,vlc.amp,vlc.len);
 	  bl_bit_source->offset += vlc.len;
 	  bitstream_flush(bs,vlc.len);
@@ -330,13 +343,13 @@ gint dv_parse_ac_coeffs(dv_videosegment_t *seg) {
 	  } else {
 	    vlc_trace("! vlc code overran coeff block");
 	    goto vlc_error;
-	  } // else 
+	  } /* else  */
 	  continue;
 	bh:
 	  if(vlc.amp == 0) {
-	    // found eob vlc
+	    /* found eob vlc */
 	    vlc_trace("#");
-	    // EOb -- zero out the rest of block
+	    /* EOb -- zero out the rest of block */
 	    *reorder = reorder_sentinel;
 	    bl_bit_source->offset += 4;
 	    bitstream_flush(bs,4);
@@ -346,20 +359,20 @@ gint dv_parse_ac_coeffs(dv_videosegment_t *seg) {
 	  } else if(vlc.len == VLC_NOBITS) {
 	    bl_bit_source->mark = TRUE;
 	    switch(dv_find_spilled_vlc(seg,mb,&bl_bit_source,pass)) {
-	    case 1: // found: keep parsing
+	    case 1: /* found: keep parsing */
 	      break;
-	    case 0: // not found: move on to next block
+	    case 0: /* not found: move on to next block */
 	      if(pass==1) goto mb_done;
 	      else goto seg_done;
 	      break;
 	    case -1: 
 	      goto vlc_error;
 	      break;
-	    } // switch
+	    } /* switch */
 	  } else if(vlc.len == VLC_ERROR) {
 	    goto vlc_error;
-	  } // else (used == ?) 
-	} // while !bl->eob
+	  } /* else (used == ?)  */
+	} /* while !bl->eob */
 	goto bl_done;
   vlc_error:
 	vlc_trace("X\n");
@@ -375,19 +388,19 @@ gint dv_parse_ac_coeffs(dv_videosegment_t *seg) {
 	  for(x=bits_left-1;x>=0;x--) 
 	    vlc_trace("%s", (bitstream_get(bs,1)) ? "1" : "0");
 	} else { vlc_trace("\n\tno unused bits"); }
-#endif // PARSE_VLC_TRACE
-      } // for b 
+#endif /* PARSE_VLC_TRACE */
+	; } /* for b  */
   mb_done: 
-    } // for m 
+      ; } /* for m  */
     vlc_trace("\n");
-  } // for pass 
+  } /* for pass  */
   vlc_trace("Segment OK.  ");
   goto seg_done;
  abort_segment:
   vlc_trace("Segment aborted. ");
  seg_done:
 #if 0
-  // zero out remaining coeffs 
+  /* zero out remaining coeffs  */
   x = 0;
   for(m=0,mb=seg->mb;
       m<5;
@@ -401,9 +414,9 @@ gint dv_parse_ac_coeffs(dv_videosegment_t *seg) {
       while((*reorder) < reorder_sentinel) { 
 	SET_COEFF(coeffs,(*reorder),0);
 	x++;
-      } // while
-    } // for b 
-  } // for m 
+      } /* while */
+    } /* for b  */
+  } /* for m  */
   vlc_trace("%d coeffs lost\n", x);
   return(x);
 #else
@@ -417,11 +430,11 @@ gint dv_parse_ac_coeffs(dv_videosegment_t *seg) {
     if(!(x%10)) vlc_trace("\n");
     print_byte(data[(m*80)+dv_parse_blockstart[b]+x]);
     vlc_trace(" ");
-  } // for 
+  } /* for  */
   vlc_trace("\n");
   exit(0);
 #endif
-} // dv_parse_ac_coeffs
+} /* dv_parse_ac_coeffs */
 
 void dv_parse_ac_coeffs_pass0(bitstream_t *bs,
 			      dv_macroblock_t *mb,
@@ -435,8 +448,8 @@ __inline__ void dv_parse_ac_coeffs_pass0(bitstream_t *bs,
   gint             bits_left;
   guint32 bits;
 
-  vlc_trace("\nB%d",b);
-  // Main coeffient parsing loop
+  /* vlc_trace("\nB%d",b); */
+  /* Main coeffient parsing loop */
   memset(&bl->coeffs[1],'\0',sizeof(bl->coeffs)-sizeof(bl->coeffs[0]));
   while(1) {
     bits_left = bl->end - bl->offset;
@@ -446,17 +459,17 @@ __inline__ void dv_parse_ac_coeffs_pass0(bitstream_t *bs,
     else
       dv_decode_vlc(bits, bits_left,&vlc);
     if(vlc.run < 0) break;
-    // complete, valid vlc found
+    /* complete, valid vlc found */
     vlc_trace("(%d,%d,%d)",vlc.run,vlc.amp,vlc.len);
     bl->offset += vlc.len;
     bitstream_flush(bs,vlc.len);
     bl->reorder += vlc.run;
     SET_COEFF(bl->coeffs,bl->reorder,vlc.amp);
-  } // while
+  } /* while */
   if(vlc.amp == 0) {
-    // found eob vlc
+    /* found eob vlc */
     vlc_trace("#");
-    // EOb -- zero out the rest of block
+    /* EOb -- zero out the rest of block */
     bl->reorder = bl->reorder_sentinel;
     bl->offset += 4;
     bitstream_flush(bs,4);
@@ -465,7 +478,7 @@ __inline__ void dv_parse_ac_coeffs_pass0(bitstream_t *bs,
   } else if(vlc.len == VLC_ERROR) {
     vlc_trace("X\n");
     mb->vlc_error = TRUE;
-  } // else
+  } /* else */
 #if PARSE_VLC_TRACE
   if((bits_left = bl->end - bl->offset)) {
     gint x;
@@ -474,9 +487,9 @@ __inline__ void dv_parse_ac_coeffs_pass0(bitstream_t *bs,
     for(x=bits_left-1;x>=0;x--) 
       vlc_trace("%s", (bitstream_get(bs,1)) ? "1" : "0");
   } else { vlc_trace("\n\tno unused bits"); }
-#endif // PARSE_VLC_TRACE
+#endif /* PARSE_VLC_TRACE */
   vlc_trace("\n");
-} // dv_parse_ac_coeffs_pass0
+} /* dv_parse_ac_coeffs_pass0 */
 #endif
 
 /* DV requires vlc decode of AC coefficients for each block in three passes:
@@ -503,7 +516,7 @@ gint dv_parse_video_segment(dv_videosegment_t *seg, guint quality) {
   guint n_blocks;
 
   vlc_trace("S[%d,%d]\n", seg->i,seg->k);
-  // Phase 1:  initialize data structures, and get the DC
+  /* Phase 1:  initialize data structures, and get the DC */
   bs = seg->bs;
 
   if (quality & DV_QUALITY_COLOR)
@@ -516,19 +529,19 @@ gint dv_parse_video_segment(dv_videosegment_t *seg, guint quality) {
       m++,mb++,mb_start+=(80*8)) {
 #if STRICT_SYNTAX
     bitstream_seek_set(bs,mb_start);
-    g_return_val_if_fail(((bitstream_get(bs,3) == DV_SCT_VIDEO)),6*64); // SCT
+    g_return_val_if_fail(((bitstream_get(bs,3) == DV_SCT_VIDEO)),6*64); /* SCT */
     bitstream_flush(bs,5);
 
     g_return_val_if_fail((bitstream_get(bs,4) == seg->i),6*64);
     g_return_val_if_fail((bitstream_get(bs,1) == DV_FSC_0),6*64);
     bitstream_flush(bs,3);
 
-    bitstream_flush(bs,8); // DBN -- could check this
+    bitstream_flush(bs,8); /* DBN -- could check this */
     mb->sta = bitstream_get(bs,4);
 #else
     bitstream_seek_set(bs,mb_start+28);
 #endif
-    // first get the macroblock-wide data
+    /* first get the macroblock-wide data */
     mb->qno = bitstream_get(bs,4);
     mb->vlc_error = 0;
     mb->eob_count = 0;
@@ -541,22 +554,22 @@ gint dv_parse_video_segment(dv_videosegment_t *seg, guint quality) {
 	  b < n_blocks;
 	  b++,bl++) {
 	memset(bl->coeffs, 0, sizeof(bl->coeffs));
-	dc = bitstream_get(bs,9);  // DC coefficient (twos complement)
+	dc = bitstream_get(bs,9);  /* DC coefficient (twos complement) */
 	if(dc > 255) dc -= 512;
 	bl->coeffs[0] = dc;
 	vlc_trace("DC [%d,%d,%d,%d] = %d\n",mb->i,mb->j,mb->k,b,dc);
 	bl->dct_mode = bitstream_get(bs,1);
 	bl->class_no = bitstream_get(bs,2);
 	bitstream_seek_set(bs, mb_start + dv_parse_bit_end[b]);
-      } // for b
+      } /* for b */
     } else {
       /* quality is DV_QUALITY_AC_1 or DV_QUALITY_AC_2 */
       for(b=0,bl=mb->b;
 	  b < n_blocks;
 	  b++,bl++) {
-	// Pass 0, read bits from individual blocks 
-	// Get DC coeff, mode, and class from start of block
-	dc = bitstream_get(bs,9);  // DC coefficient (twos complement)
+	/* Pass 0, read bits from individual blocks  */
+	/* Get DC coeff, mode, and class from start of block */
+	dc = bitstream_get(bs,9);  /* DC coefficient (twos complement) */
 	if(dc > 255) dc -= 512;
 	bl->coeffs[0] = dc;
 	vlc_trace("DC [%d,%d,%d,%d] = %d\n",mb->i,mb->j,mb->k,b,dc);
@@ -569,15 +582,15 @@ gint dv_parse_video_segment(dv_videosegment_t *seg, guint quality) {
 	bl->reorder_sentinel = bl->reorder + 63;
 	dv_parse_ac_coeffs_pass0(bs,mb,bl);
 	bitstream_seek_set(bs,bl->end);
-      } // for b
-    } // if quality
-  } // for m
-  // Phase 2:  do the 3 pass AC vlc decode
+      } /* for b */
+    } /* if quality */
+  } /* for m */
+  /* Phase 2:  do the 3 pass AC vlc decode */
   if ((quality & DV_QUALITY_AC_MASK) == DV_QUALITY_AC_2)
     return(dv_parse_ac_coeffs(seg));
   else
     return 0;
-} // dv_parse_video_segment 
+} /* dv_parse_video_segment  */
 #endif
 
 static void
@@ -624,7 +637,7 @@ dv_parse_id(bitstream_t *bs,dv_id_t *id) {
   bitstream_flush(bs,3);
   id->dbn = bitstream_get(bs,8);
   return 0;
-} // dv_parse_id
+} /* dv_parse_id */
 
 gint
 dv_parse_header(dv_decoder_t *dv, guchar *buffer) {
@@ -636,9 +649,9 @@ dv_parse_header(dv_decoder_t *dv, guchar *buffer) {
   if(!(bs = bitstream_init())) goto no_bitstream;
   bitstream_new_buffer(bs,buffer,6*80);
   dv_parse_id(bs,&id);
-  if (id.sct != 0) goto parse_error;            // error, if not header
+  if (id.sct != 0) goto parse_error;            /* error, if not header */
   header->dsf = bitstream_get(bs,1);
-  if (bitstream_get(bs,1) != 0) goto parse_error; // error, bit incorrect
+  if (bitstream_get(bs,1) != 0) goto parse_error; /* error, bit incorrect */
   bitstream_flush(bs,11);
   header->apt = bitstream_get(bs,3);
   header->tf1 = bitstream_get(bs,1);
@@ -650,7 +663,7 @@ dv_parse_header(dv_decoder_t *dv, guchar *buffer) {
   header->tf3 = bitstream_get(bs,1);
   bitstream_flush(bs,4);
   header->ap3 = bitstream_get(bs,3);
-  bitstream_flush_large(bs,576);		// skip rest of DIF block
+  bitstream_flush_large(bs,576);		/* skip rest of DIF block */
 
   /* 
    * parse vaux data now to check if there is a inconsistanciy between
@@ -671,21 +684,21 @@ dv_parse_header(dv_decoder_t *dv, guchar *buffer) {
     dv->std = ((header->apt) ? e_dv_std_smpte_314m : e_dv_std_iec_61834);
     break;
   case 1:
-    // NTSC
+    /* NTSC */
     dv->system = e_dv_system_525_60;
-    dv->std = e_dv_std_smpte_314m;  // arbitrary
+    dv->std = e_dv_std_smpte_314m;  /* arbitrary */
     break;
   case 2:
-    // PAL/IEC 68134
+    /* PAL/IEC 68134 */
     dv->system = e_dv_system_625_50;
-    dv->system = e_dv_std_iec_61834;
+    dv->std = e_dv_std_iec_61834;
     break;
   case 3:
-    // PAL/SMPTE 314M
+    /* PAL/SMPTE 314M */
     dv->system = e_dv_system_625_50;
     dv->std = e_dv_std_smpte_314m;  
     break;
-  } // switch 
+  } /* switch  */
 
   dv->width = 720;
   dv->sampling = ((dv->system == e_dv_system_625_50) && (dv->std == e_dv_std_iec_61834)) ? e_dv_sample_420 : e_dv_sample_411;
@@ -697,18 +710,18 @@ dv_parse_header(dv_decoder_t *dv, guchar *buffer) {
     dv->num_dif_seqs = 10;
     dv->height = 480;
     dv->frame_size = 10 * 150 * 80;
-  } // else
+  } /* else */
 
-  dv_parse_id(bs,&id);				// should be SC1
+  dv_parse_id(bs,&id);				/* should be SC1 */
   bitstream_flush_large(bs,616);
-  dv_parse_id(bs,&id);				// should be SC2
+  dv_parse_id(bs,&id);				/* should be SC2 */
   bitstream_flush_large(bs,616);
 
-  dv_parse_id(bs,&id);				// should be VA1
+  dv_parse_id(bs,&id);				/* should be VA1 */
   bitstream_flush_large(bs,616);
-  dv_parse_id(bs,&id);				// should be VA2
+  dv_parse_id(bs,&id);				/* should be VA2 */
   bitstream_flush_large(bs,616);
-  dv_parse_id(bs,&id);				// should be VA3
+  dv_parse_id(bs,&id);				/* should be VA3 */
   bitstream_flush_large(bs,616);
 
   dv_parse_audio_header(dv, buffer);
@@ -718,5 +731,5 @@ dv_parse_header(dv_decoder_t *dv, guchar *buffer) {
  parse_error:
  no_bitstream:
   return(-1);
-} // dv_parse_header
+} /* dv_parse_header */
 

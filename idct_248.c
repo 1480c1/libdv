@@ -85,6 +85,8 @@ static gdouble tickC(gint u)
   return(result);
 } // tickC
 
+#if ARCH_X86 && defined(__GNUC__)
+
 static inline gint32 fixed_multiply(gint32 a, gint32 b) {
   register gint32 eax asm("ax");
   register gint32 edx asm("dx");
@@ -97,6 +99,19 @@ static inline gint32 fixed_multiply(gint32 a, gint32 b) {
 	  "0" (eax));
   return(edx << 2);
 } // fixed_multiply
+
+#else
+
+/* Will this actually compile?  I dunno */
+static inline gint32 fixed_multiply(gint32 a, gint32 b) {
+  gint64 product;
+
+  product = (gint64)a * (gint64)b;
+  product >>= (32 - 2);
+  return(product);
+} // fixed_multiply
+
+#endif
 
 /* Compute the prescale vector.
  * (verify against  matlab result for kron(inv(D2),D))

@@ -62,16 +62,16 @@ dv_decoder_popt_callback(poptContext con, enum poptCallbackReason reason,
 
   if((decoder->arg_video_system < 0) || (decoder->arg_video_system > 3)) {
     dv_opt_usage(con, decoder->option_table, DV_DECODER_OPT_SYSTEM);
-  } // if
+  } /* if */
   
-} // dv_decoder_popt_callback 
-#endif // HAVE_LIBPOPT
+} /* dv_decoder_popt_callback  */
+#endif /* HAVE_LIBPOPT */
 
 dv_decoder_t * 
 dv_decoder_new(void) {
   dv_decoder_t *result;
   
-  result = calloc(1,sizeof(dv_decoder_t));
+  result = (dv_decoder_t *)calloc(1,sizeof(dv_decoder_t));
   if(!result) goto no_mem;
   
   result->video = dv_video_new();
@@ -92,27 +92,27 @@ dv_decoder_new(void) {
     " 3=625/50 4:1:1 (PAL,SMPTE 314M DV)",
     argDescrip: "(0|1|2|3)",
     arg: &result->arg_video_system,
-  }; // system
+  }; /* system */
 
   result->option_table[DV_DECODER_OPT_VIDEO_INCLUDE] = (struct poptOption) {
     argInfo: POPT_ARG_INCLUDE_TABLE,
     descrip: "Video decode options",
     arg: &result->video->option_table[0],
-  }; // video include
+  }; /* video include */
 
   result->option_table[DV_DECODER_OPT_AUDIO_INCLUDE] = (struct poptOption) {
     argInfo: POPT_ARG_INCLUDE_TABLE,
     descrip: "Audio decode options",
     arg: result->audio->option_table,
-  }; // audio include
+  }; /* audio include */
 
   result->option_table[DV_DECODER_OPT_CALLBACK] = (struct poptOption){
     argInfo: POPT_ARG_CALLBACK|POPT_CBFLAG_POST,
     arg:     dv_decoder_popt_callback,
-    descrip: (char *)result, // data passed to callback
-  }; // callback
+    descrip: (char *)result, /* data passed to callback */
+  }; /* callback */
 
-#endif // HAVE_LIBPOPT
+#endif /* HAVE_LIBPOPT */
 
   return(result);
 
@@ -123,7 +123,7 @@ dv_decoder_new(void) {
   result=NULL;
  no_mem:
   return(result);
-} // dv_decoder_new
+} /* dv_decoder_new */
 
 void dv_init(dv_decoder_t *dv) {
 #if ARCH_X86
@@ -156,13 +156,13 @@ dv_decode_macroblock(dv_decoder_t *dv, dv_macroblock_t *mb, guint quality) {
 #if ARCH_X86
       quant_88_inverse_x86(mb->b[i].coeffs,mb->qno,mb->b[i].class_no);
       idct_88(mb->b[i].coeffs);
-#else // ARCH_X86
+#else /* ARCH_X86 */
       quant_88_inverse(mb->b[i].coeffs,mb->qno,mb->b[i].class_no);
       weight_88_inverse(mb->b[i].coeffs);
       idct_88(mb->b[i].coeffs);
-#endif // ARCH_X86
-    } // else
-  } // for b
+#endif /* ARCH_X86 */
+    } /* else */
+  } /* for b */
 } /* dv_decode_macroblock */
 
 void 
@@ -186,28 +186,28 @@ dv_decode_video_segment(dv_decoder_t *dv, dv_videosegment_t *seg, guint quality)
 	quant_88_inverse_x86(bl->coeffs,mb->qno,bl->class_no);
 	weight_88_inverse(bl->coeffs);
 	idct_88(bl->coeffs);
-#else // ARCH_X86
+#else /* ARCH_X86 */
 	quant_88_inverse(bl->coeffs,mb->qno,bl->class_no);
 	weight_88_inverse(bl->coeffs);
 	idct_88(bl->coeffs);
-#endif // ARCH_X86
-      } // else
-    } // for b
-  } // for mb
+#endif /* ARCH_X86 */
+      } /* else */
+    } /* for b */
+  } /* for mb */
 } /* dv_decode_video_segment */
 
 static inline void
 dv_render_macroblock_rgb(dv_decoder_t *dv, dv_macroblock_t *mb, guchar *pixels, gint pitch ) {
   if(dv->sampling == e_dv_sample_411) {
     if(mb->x >= 704) {
-      dv_mb411_right_rgb(mb, pixels, pitch); // Right edge are 16x16
+      dv_mb411_right_rgb(mb, pixels, pitch); /* Right edge are 16x16 */
     } else {
       dv_mb411_rgb(mb, pixels, pitch);
-    } // else
+    } /* else */
   } else {
     dv_mb420_rgb(mb, pixels, pitch);
-  } // else
-} // dv_render_macroblock_rgb
+  } /* else */
+} /* dv_render_macroblock_rgb */
 
 void
 dv_render_video_segment_rgb(dv_decoder_t *dv, dv_videosegment_t *seg, guchar *pixels, gint pitch ) {
@@ -218,28 +218,28 @@ dv_render_video_segment_rgb(dv_decoder_t *dv, dv_videosegment_t *seg, guchar *pi
        m++,mb++) {
     if(dv->sampling == e_dv_sample_411) {
       if(mb->x >= 704) {
-	dv_mb411_right_rgb(mb, pixels, pitch); // Right edge are 16x16
+	dv_mb411_right_rgb(mb, pixels, pitch); /* Right edge are 16x16 */
       } else {
 	dv_mb411_rgb(mb, pixels, pitch);
-      } // else
+      } /* else */
     } else {
       dv_mb420_rgb(mb, pixels, pitch);
-    } // else
-  } // for   
+    } /* else */
+  } /* for    */
 } /* dv_render_video_segment_rgb */
 
 static inline void
 dv_render_macroblock_bgr0(dv_decoder_t *dv, dv_macroblock_t *mb, guchar *pixels, gint pitch ) {
   if(dv->sampling == e_dv_sample_411) {
     if(mb->x >= 704) {
-      dv_mb411_right_bgr0(mb, pixels, pitch); // Right edge are 16x16
+      dv_mb411_right_bgr0(mb, pixels, pitch); /* Right edge are 16x16 */
     } else {
       dv_mb411_bgr0(mb, pixels, pitch);
-    } // else
+    } /* else */
   } else {
     dv_mb420_bgr0(mb, pixels, pitch);
-  } // else
-} // dv_render_macroblock_bgr0
+  } /* else */
+} /* dv_render_macroblock_bgr0 */
 
 void
 dv_render_video_segment_bgr0(dv_decoder_t *dv, dv_videosegment_t *seg, guchar *pixels, gint pitch ) {
@@ -250,14 +250,14 @@ dv_render_video_segment_bgr0(dv_decoder_t *dv, dv_videosegment_t *seg, guchar *p
        m++,mb++) {
     if(dv->sampling == e_dv_sample_411) {
       if(mb->x >= 704) {
-	dv_mb411_right_bgr0(mb, pixels, pitch); // Right edge are 16x16
+	dv_mb411_right_bgr0(mb, pixels, pitch); /* Right edge are 16x16 */
       } else {
 	dv_mb411_bgr0(mb, pixels, pitch);
-      } // else
+      } /* else */
     } else {
       dv_mb420_bgr0(mb, pixels, pitch);
-    } // else
-  } // for   
+    } /* else */
+  } /* for    */
 } /* dv_render_video_segment_bgr0 */
 
 #if ARCH_X86
@@ -267,24 +267,24 @@ dv_render_macroblock_yuv(dv_decoder_t *dv, dv_macroblock_t *mb, guchar **pixels,
   if(dv->use_mmx) {
     if(dv->sampling == e_dv_sample_411) {
       if(mb->x >= 704) {
-	dv_mb411_right_YUY2_mmx(mb, pixels[0], pitches[0]); // Right edge are 420!
+	dv_mb411_right_YUY2_mmx(mb, pixels[0], pitches[0]); /* Right edge are 420! */
       } else {
 	dv_mb411_YUY2_mmx(mb, pixels[0], pitches[0]);
-      } // else
+      } /* else */
     } else {
       DV_MB420_YUV_MMX(mb, pixels, pitches);
-    } // else
+    } /* else */
   } else {
     if(dv->sampling == e_dv_sample_411) {
       if(mb->x >= 704) {
-	dv_mb411_right_YUY2(mb, pixels[0], pitches[0]); // Right edge are 420!
+	dv_mb411_right_YUY2(mb, pixels[0], pitches[0]); /* Right edge are 420! */
       } else {
 	dv_mb411_YUY2(mb, pixels[0], pitches[0]);
-      } // else
+      } /* else */
     } else {
       DV_MB420_YUV(mb, pixels, pitches);
-    } // else
-  } // else
+    } /* else */
+  } /* else */
 } /* dv_render_macroblock_yuv */
 
 void
@@ -297,40 +297,40 @@ dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, guchar **p
     if(dv->use_mmx) {
       if(dv->sampling == e_dv_sample_411) {
 	if(mb->x >= 704) {
-	  dv_mb411_right_YUY2_mmx(mb, pixels[0], pitches[0]); // Right edge are 420!
+	  dv_mb411_right_YUY2_mmx(mb, pixels[0], pitches[0]); /* Right edge are 420! */
 	} else {
 	  dv_mb411_YUY2_mmx(mb, pixels[0], pitches[0]);
-	} // else
+	} /* else */
       } else {
 	DV_MB420_YUV_MMX(mb, pixels, pitches);
-      } // else
+      } /* else */
     } else {
       if(dv->sampling == e_dv_sample_411) {
 	if(mb->x >= 704) {
-	  dv_mb411_right_YUY2(mb, pixels[0], pitches[0]); // Right edge are 420!
+	  dv_mb411_right_YUY2(mb, pixels[0], pitches[0]); /* Right edge are 420! */
 	} else {
 	  dv_mb411_YUY2(mb, pixels[0], pitches[0]);
-	} // else
+	} /* else */
       } else {
 	DV_MB420_YUV(mb, pixels, pitches);
-      } // else
-    } // else
-  } // for   
+      } /* else */
+    } /* else */
+  } /* for    */
 } /* dv_render_video_segment_yuv */
 
-#else // ARCH_X86
+#else /* ARCH_X86 */
 
 static inline void
 dv_render_macroblock_yuv(dv_decoder_t *dv, dv_macroblock_t *mb, guchar **pixels, guint16 *pitches) {
   if(dv->sampling == e_dv_sample_411) {
     if(mb->x >= 704) {
-      dv_mb411_right_YUY2(mb, pixels[0], pitches[0]); // Right edge are 420!
+      dv_mb411_right_YUY2(mb, pixels[0], pitches[0]); /* Right edge are 420! */
     } else {
       dv_mb411_YUY2(mb, pixels[0], pitches[0]);
-    } // else
+    } /* else */
   } else {
     DV_MB420_YUV(mb, pixels, pitches);
-  } // else
+  } /* else */
 } /* dv_render_macroblock_yuv */
 
 void
@@ -342,17 +342,17 @@ dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, guchar **p
        m++,mb++) {
     if(dv->sampling == e_dv_sample_411) {
       if(mb->x >= 704) {
-	dv_mb411_right_YUY2(mb, pixels[0], pitches[0]); // Right edge are 420!
+	dv_mb411_right_YUY2(mb, pixels[0], pitches[0]); /* Right edge are 420! */
       } else {
 	dv_mb411_YUY2(mb, pixels[0], pitches[0]);
-      } // else
+      } /* else */
     } else {
       DV_MB420_YUV(mb, pixels, pitches);
-    } // else
-  } // for   
+    } /* else */
+  } /* for    */
 } /* dv_render_video_segment_yuv */
 
-#endif // ! ARCH_X86
+#endif /* ! ARCH_X86 */
 
 static gint32 ranges[6][2];
 
@@ -383,12 +383,12 @@ dv_decode_full_frame(dv_decoder_t *dv, guchar *buffer,
     seg->bs = bitstream_init();
     if(!seg->bs) 
       goto no_mem;
-  } // if
+  } /* if */
   seg->isPAL = (dv->system == e_dv_system_625_50);
 
-  // each DV frame consists of a sequence of DIF segments 
+  /* each DV frame consists of a sequence of DIF segments  */
   for (ds=0; ds < dv->num_dif_seqs; ds++) { 
-    // Each DIF segment conists of 150 dif blocks, 135 of which are video blocks
+    /* Each DIF segment conists of 150 dif blocks, 135 of which are video blocks */
     /* A video segment consists of 5 video blocks, where each video
        block contains one compressed macroblock.  DV bit allocation
        for the VLC stage can spill bits between blocks in the same
@@ -396,19 +396,19 @@ dv_decode_full_frame(dv_decoder_t *dv, guchar *buffer,
        the VLC data */
     dif += 6;
     audio=0;
-    // Loop through video segments 
+    /* Loop through video segments  */
     for (v=0;v<27;v++) {
-      // skip audio block - interleaved before every 3rd video segment
+      /* skip audio block - interleaved before every 3rd video segment */
       if(!(v % 3)) {
-	//dv_dump_aaux_as(buffer+(dif*80), ds, audio);
+	/*dv_dump_aaux_as(buffer+(dif*80), ds, audio); */
 	dif++; 
 	audio++;
-      } // if
-      // stage 1: parse and VLC decode 5 macroblocks that make up a video segment
+      } /* if */
+      /* stage 1: parse and VLC decode 5 macroblocks that make up a video segment */
       offset = dif * 80;
       bitstream_new_buffer(seg->bs, buffer + offset, 80*5); 
       dv_parse_video_segment(seg, dv->quality);
-      // stage 2: dequant/unweight/iDCT blocks, and place the macroblocks
+      /* stage 2: dequant/unweight/iDCT blocks, and place the macroblocks */
       dif+=5;
       seg->i = ds;
       seg->k = v;
@@ -420,7 +420,7 @@ dv_decode_full_frame(dv_decoder_t *dv, guchar *buffer,
 	  dv_decode_macroblock(dv, mb, dv->quality);
 	  dv_place_macroblock(dv, seg, mb, m);
 	  dv_render_macroblock_yuv(dv, mb, pixels, pitches);
-	} // for m
+	} /* for m */
 	break;
       case e_dv_color_bgr0:
 	for (m=0,mb = seg->mb;
@@ -429,7 +429,7 @@ dv_decode_full_frame(dv_decoder_t *dv, guchar *buffer,
 	  dv_decode_macroblock(dv, mb, dv->quality);
 	  dv_place_macroblock(dv, seg, mb, m);
 	  dv_render_macroblock_bgr0(dv, mb, pixels[0], pitches[0]);
-	} // for m
+	} /* for m */
         break;
       case e_dv_color_rgb:
 	for (m=0,mb = seg->mb;
@@ -441,11 +441,11 @@ dv_decode_full_frame(dv_decoder_t *dv, guchar *buffer,
 	  dv_check_coeff_ranges(mb);
 #endif
 	  dv_render_macroblock_rgb(dv, mb, pixels[0], pitches[0]);
-	} // for m
+	} /* for m */
 	break;
-      } // switch
-    } // for v
-  } // ds
+      } /* switch */
+    } /* for v */
+  } /* ds */
 #if RANGE_CHECKING
   for(i=0;i<6;i++) {
     fprintf(stderr, "range[%d] min %d max %d\n", i, ranges[i][0], ranges[i][1]);
@@ -455,7 +455,7 @@ dv_decode_full_frame(dv_decoder_t *dv, guchar *buffer,
  no_mem:
   fprintf(stderr,"no memory for bitstream!\n");
   exit(-1);
-} // dv_decode_full_frame 
+} /* dv_decode_full_frame  */
 
 gboolean 
 dv_decode_full_audio(dv_decoder_t *dv, guchar *buffer, gint16 **outbufs)
@@ -471,14 +471,14 @@ dv_decode_full_audio(dv_decoder_t *dv, guchar *buffer, gint16 **outbufs)
     for(audio_dif=0; audio_dif<9; audio_dif++) {
       if((result = dv_decode_audio_block(dv->audio, buffer+(dif *80), ds, audio_dif, outbufs))) goto fail;
       dif+=16;
-    } // for 
-  } // for
+    } /* for  */
+  } /* for */
 
   if(dv->audio->emphasis) {
     for(ch=0; ch< dv->audio->num_channels; ch++) {
       dv_audio_deemphasis(dv->audio, outbufs[ch]);
-    } // for 
-  } // if
+    } /* for  */
+  } /* if */
   
   return(TRUE);
   
@@ -486,15 +486,13 @@ dv_decode_full_audio(dv_decoder_t *dv, guchar *buffer, gint16 **outbufs)
  no_audio:
   return(FALSE);
   
-} // dv_decode_full_audio
+} /* dv_decode_full_audio */
 
 
-/* ---------------------------------------------------------------------------
+/*
  * query functions based upon vaux data
  */
 
-/* ---------------------------------------------------------------------------
- */
 int
 dv_get_vaux_pack (dv_decoder_t *dv, guint8 pack_id, guint8 *data)
 {
@@ -503,10 +501,8 @@ dv_get_vaux_pack (dv_decoder_t *dv, guint8 pack_id, guint8 *data)
     return -1;
   memcpy (data, dv -> vaux_data [id], 4);
   return 0;
-} // dv_get_vaux_pack
+} /* dv_get_vaux_pack */
 
-/* ---------------------------------------------------------------------------
- */
 int
 dv_frame_is_color (dv_decoder_t *dv)
 {
@@ -521,8 +517,6 @@ dv_frame_is_color (dv_decoder_t *dv)
   return -1;
 }
 
-/* ---------------------------------------------------------------------------
- */
 int
 dv_system_50_fields (dv_decoder_t *dv)
 {
@@ -537,8 +531,6 @@ dv_system_50_fields (dv_decoder_t *dv)
   return -1;
 }
 
-/* ---------------------------------------------------------------------------
- */
 int
 dv_format_normal (dv_decoder_t *dv)
 {
@@ -553,8 +545,6 @@ dv_format_normal (dv_decoder_t *dv)
   return -1;
 }
 
-/* ---------------------------------------------------------------------------
- */
 int
 dv_format_wide (dv_decoder_t *dv)
 {
@@ -569,8 +559,6 @@ dv_format_wide (dv_decoder_t *dv)
   return -1;
 }
 
-/* ---------------------------------------------------------------------------
- */
 int
 dv_frame_changed (dv_decoder_t *dv)
 {

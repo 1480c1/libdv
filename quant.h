@@ -14,14 +14,14 @@
 extern "C" {
 #endif
 
-extern void quant(dv_coeff_t *block,int qno,int class);
-extern void quant_88_inverse(dv_coeff_t *block,int qno,int class);
-extern void (*quant_248_inverse) (dv_coeff_t *block,int qno,int class,
+extern void quant(dv_coeff_t *block,int qno,int klass);
+extern void quant_88_inverse(dv_coeff_t *block,int qno,int klass);
+extern void (*quant_248_inverse) (dv_coeff_t *block,int qno,int klass,
                                   dv_248_coeff_t *co);
-extern void quant_88_inverse_x86(dv_coeff_t *block,int qno,int class);
+extern void quant_88_inverse_x86(dv_coeff_t *block,int qno,int klass);
 extern void dv_quant_init (dv_decoder_t *dv);
 #ifdef __cplusplus
 }
 #endif
 
-#endif // DV_QUANT_H
+#endif /* DV_QUANT_H */

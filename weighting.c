@@ -31,7 +31,7 @@
 
 #include "weighting.h"
 
-dv_coeff_t preSC[64] __attribute__ ((aligned (32))) = {
+dv_coeff_t preSC[64] ALIGN32 = {
 	16384,22725,21407,19266, 16384,12873,8867,4520,
 	22725,31521,29692,26722, 22725,17855,12299,6270,
 	21407,29692,27969,25172, 21407,16819,11585,5906,
@@ -43,7 +43,7 @@ dv_coeff_t preSC[64] __attribute__ ((aligned (32))) = {
 	18081,25080,23624,21261, 18081,14206,9785,4988
 };
 
-dv_coeff_t postSC[64] __attribute__ ((aligned (32)));
+dv_coeff_t postSC[64] ALIGN32;
 
 static double W[8];
 

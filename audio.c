@@ -73,25 +73,40 @@ static int dv_audio_unshuffle_50[6][9] = {
    sampling rate (32 kHz, 44.1 kHz, 48 kHz) */
 
 static gint min_samples[2][3] = {
-  { 1580, 1452, 1053 }, // 60 fields (NTSC)
-  { 1896, 1742, 1264 }, // 50 fields (PAL)
+  { 1580, 1452, 1053 }, /* 60 fields (NTSC) */
+  { 1896, 1742, 1264 }, /* 50 fields (PAL) */
 };
 
 static gint max_samples[2][3] = {
-  { 1620, 1489, 1080 }, // 60 fields (NTSC)
-  { 1944, 1786, 1296 }, // 50 fields (PAL)
+  { 1620, 1489, 1080 }, /* 60 fields (NTSC) */
+  { 1944, 1786, 1296 }, /* 50 fields (PAL) */
 };
 
 static gint frequency[3] = {
   48000, 44100, 32000
 };
 
+
+#ifdef __GNUC__
 static gint quantization[8] = {
   [0] 16,
   [1] 12,
   [2] 20,
   [3 ... 7] = -1,
 };
+#else /* ! __GNUC__ */
+static gint quantization[8] = {
+  16,
+  12,
+  20,
+  -1,
+  -1,
+  -1,
+  -1,
+  -1,
+};
+#endif /* ! __GNUC__ */
+
 
 
 #if HAVE_LIBPOPT
@@ -103,18 +118,18 @@ dv_audio_popt_callback(poptContext con, enum poptCallbackReason reason,
 
   if((audio->arg_audio_frequency < 0) || (audio->arg_audio_frequency > 3)) {
     dv_opt_usage(con, audio->option_table, DV_AUDIO_OPT_FREQUENCY);
-  } // if
+  } /* if */
   
   if((audio->arg_audio_quantization < 0) || (audio->arg_audio_quantization > 2)) {
     dv_opt_usage(con, audio->option_table, DV_AUDIO_OPT_QUANTIZATION);
-  } // if
+  } /* if */
 
   if((audio->arg_audio_emphasis < 0) || (audio->arg_audio_emphasis > 2)) {
     dv_opt_usage(con, audio->option_table, DV_AUDIO_OPT_EMPHASIS);
-  } // if
+  } /* if */
 
-} // dv_audio_popt_callback 
-#endif // HAVE_LIBPOPT
+} /* dv_audio_popt_callback  */
+#endif /* HAVE_LIBPOPT */
 
 static gint 
 dv_audio_samples_per_frame(dv_aaux_as_t *dv_aaux_as, gint freq) {
@@ -150,7 +165,7 @@ dv_audio_samples_per_frame(dv_aaux_as_t *dv_aaux_as, gint freq) {
   fprintf(stderr, "libdv(%s):  frequency %d not supported\n",
 	  __FUNCTION__, freq);
   goto done;
-} // dv_audio_samples_per_frame
+} /* dv_audio_samples_per_frame */
 
 /* Take a DV 12bit audio sample upto 16 bits. 
  * See IEC 61834-2, Figure 16, on p. 129 */
@@ -161,6 +176,8 @@ dv_upsample(gint32 sample) {
   
   shift = (sample & 0xf00) >> 8;
   switch(shift) {
+
+#ifdef __GNUC__
   case 0x2 ... 0x7:
     shift--;
     result = (sample - (256 * shift)) << shift;
@@ -169,19 +186,40 @@ dv_upsample(gint32 sample) {
     shift = 0xe - shift;
     result = ((sample + ((256 * shift) + 1)) << shift) - 1;
     break;
+#else /* ! __GNUC__ */
+  case 0x2:
+  case 0x3:
+  case 0x4:
+  case 0x5:
+  case 0x6:
+  case 0x7:
+    shift--;
+    result = (sample - (256 * shift)) << shift;
+    break;
+  case 0x8:
+  case 0x9:
+  case 0xa:
+  case 0xb:
+  case 0xc:
+  case 0xd:
+    shift = 0xe - shift;
+    result = ((sample + ((256 * shift) + 1)) << shift) - 1;
+    break;
+#endif /* ! __GNUC__ */
+
   default:
     result = sample;
     break;
-  } // switch
+  } /* switch */
   return(result);
-} // dv_upsample
+} /* dv_upsample */
 
 dv_audio_t *
 dv_audio_new(void)
 {
   dv_audio_t *result;
   
-  if(!(result = calloc(1,sizeof(dv_audio_t)))) goto no_mem;
+  if(!(result = (dv_audio_t *)calloc(1,sizeof(dv_audio_t)))) goto no_mem;
 
 #if HAVE_LIBPOPT
   result->option_table[DV_AUDIO_OPT_FREQUENCY] = (struct poptOption){ 
@@ -191,7 +229,7 @@ dv_audio_new(void)
     arg:        &result->arg_audio_frequency,
     descrip:    "audio frequency: 0=autodetect [default], 1=32 kHz, 2=44.1 kHz, 3=48 kHz",
     argDescrip: "(0|1|2|3)"
-  }; // freq
+  }; /* freq */
 
   result->option_table[DV_AUDIO_OPT_QUANTIZATION] = (struct poptOption){ 
     longName:   "quantization", 
@@ -200,7 +238,7 @@ dv_audio_new(void)
     arg:        &result->arg_audio_quantization,
     descrip:    "audio quantization: 0=autodetect [default], 1=12 bit, 2=16bit",
     argDescrip: "(0|1|2)"
-  }; // quant
+  }; /* quant */
 
   result->option_table[DV_AUDIO_OPT_EMPHASIS] = (struct poptOption){ 
     longName:   "emphasis", 
@@ -209,30 +247,30 @@ dv_audio_new(void)
     arg:        &result->arg_audio_emphasis,
     descrip:    "first-order preemphasis of 50/15 us: 0=autodetect [default], 1=on, 2=off",
     argDescrip: "(0|1|2)"
-  }; // quant
+  }; /* quant */
 
   result->option_table[DV_AUDIO_OPT_CALLBACK] = (struct poptOption){
     argInfo: POPT_ARG_CALLBACK|POPT_CBFLAG_POST,
     arg:     dv_audio_popt_callback,
-    descrip: (char *)result, // data passed to callback
-  }; // callback
+    descrip: (char *)result, /* data passed to callback */
+  }; /* callback */
 
-#endif // HAVE_LIBPOPT
+#endif /* HAVE_LIBPOPT */
   return(result);
 
  no_mem:
   return(result);
-} // dv_audio_new
+} /* dv_audio_new */
 
 void 
 dv_dump_aaux_as(void *buffer, int ds, int audio_dif) 
 {
   dv_aaux_as_t *dv_aaux_as;
 
-  dv_aaux_as = buffer + 3;
+  dv_aaux_as = (dv_aaux_as_t *)buffer + 3; /* Is this correct after cast? */
 
   if(dv_aaux_as->pc0 == 0x50) {
-    // AAUX AS 
+    /* AAUX AS  */
 
     printf("DS %d, Audio DIF %d, AAUX AS pack: ", ds, audio_dif);
 
@@ -257,9 +295,9 @@ dv_dump_aaux_as(void *buffer, int ds, int audio_dif)
 
     fprintf(stderr, "libdv(%s):  Missing AAUX AS PACK!\n", __FUNCTION__);
 
-  } // else
+  } /* else */
 
-} // dv_dump_aaux_as
+} /* dv_dump_aaux_as */
 
 gboolean
 dv_parse_audio_header(dv_decoder_t *decoder, guchar *inbuf)
@@ -272,11 +310,11 @@ dv_parse_audio_header(dv_decoder_t *decoder, guchar *inbuf)
   if((dv_aaux_as->pc0 != 0x50) || (dv_aaux_asc->pc0 != 0x51)) goto bad_id;
 
   audio->max_samples =  max_samples[dv_aaux_as->pc3.system][dv_aaux_as->pc4.smp];
-  // For now we assume that 12bit = 4 channels
+  /* For now we assume that 12bit = 4 channels */
   if(dv_aaux_as->pc4.qu > 1) goto unsupported_quantization;
-//audio->num_channels = (dv_aaux_as->pc4.qu+1) * 2; // TODO verify this is right with known 4-channel input
+  /*audio->num_channels = (dv_aaux_as->pc4.qu+1) * 2; // TODO verify this is right with known 4-channel input */
 
-  audio->num_channels = 2; // TODO verify this is right with known 4-channel input
+  audio->num_channels = 2; /* TODO verify this is right with known 4-channel input */
 
   switch(audio->arg_audio_frequency) {
   case 0:
@@ -291,7 +329,7 @@ dv_parse_audio_header(dv_decoder_t *decoder, guchar *inbuf)
   case 3:
     audio->frequency = 44100;
     break;
-  }  // switch 
+  }  /* switch  */
 
   switch(audio->arg_audio_quantization) {
   case 0:
@@ -303,7 +341,7 @@ dv_parse_audio_header(dv_decoder_t *decoder, guchar *inbuf)
   case 2:
     audio->quantization = 16;
     break;
-  }  // switch 
+  }  /* switch  */
 
   switch(audio->arg_audio_emphasis) {
   case 0:
@@ -312,7 +350,7 @@ dv_parse_audio_header(dv_decoder_t *decoder, guchar *inbuf)
     } else if(decoder->std == e_dv_std_iec_61834) {
       audio->emphasis = (dv_aaux_asc->pc1.ss == 1);
     } else {
-      // TODO: should never happen...
+      /* TODO: should never happen... */
     }
     break;
   case 1:
@@ -321,7 +359,7 @@ dv_parse_audio_header(dv_decoder_t *decoder, guchar *inbuf)
   case 2:
     audio->emphasis = FALSE;
     break;
-  } // switch 
+  } /* switch  */
 
   audio->samples_this_frame = dv_audio_samples_per_frame(dv_aaux_as,audio->frequency);
 
@@ -332,15 +370,15 @@ dv_parse_audio_header(dv_decoder_t *decoder, guchar *inbuf)
     normal_speed = (dv_aaux_asc->pc3.speed == 0x20);
   } else if(decoder->std == e_dv_std_iec_61834) {
     if(dv_aaux_as->pc3.system) {
-      // PAL
+      /* PAL */
       normal_speed = (dv_aaux_asc->pc3.speed == 0x64);
     } else {
-      // NTSC
+      /* NTSC */
       normal_speed = (dv_aaux_asc->pc3.speed == 0x78);
-    } // else
-  } // else
+    } /* else */
+  } /* else */
 
-  return(normal_speed); // don't do audio if speed is not 1
+  return(normal_speed); /* don't do audio if speed is not 1 */
 
  bad_id:
   return(FALSE);
@@ -350,7 +388,7 @@ dv_parse_audio_header(dv_decoder_t *decoder, guchar *inbuf)
 	  __FUNCTION__, audio->aaux_as.pc4.qu);
   return(FALSE);
 
-} // dv_parse_audio_header
+} /* dv_parse_audio_header */
 
 gboolean
 dv_update_num_samples(dv_audio_t *dv_audio, guint8 *inbuf) {
@@ -364,7 +402,7 @@ dv_update_num_samples(dv_audio_t *dv_audio, guint8 *inbuf) {
  bad_id:
   return(FALSE);
 
-} // dv_update_num_samples
+} /* dv_update_num_samples */
 
 /* This code originates from cdda2wav, by way of Giovanni Iachello <g.iachello@iol.it>
    to Arne Schirmacher <arne@schirmacher.de>. */
@@ -388,9 +426,9 @@ dv_audio_deemphasis(dv_audio_t *audio, gint16 *outbuf)
   double b0 = (1.0 + (1.0 - a1) * H0/2.0);
   double b1 = (a1 + (a1 - 1.0) * H0/2.0);
 
-  // For 48Khz: a1= -0.659065 b0= 0.449605 b1= -0.108670
-  // For 44.1Khz: a1=-0.62786881719628784282  b0=	0.45995451989513153057 b1=-0.08782333709141937339
-  // For 32kHZ ?
+  /* For 48Khz: a1= -0.659065 b0= 0.449605 b1= -0.108670 
+   * For 44.1Khz: a1=-0.62786881719628784282  b0=	0.45995451989513153057 b1=-0.08782333709141937339
+   * For 32kHZ ? */
 
   for (pmm = (short *)outbuf, i=0; 
        i < audio->samples_this_frame; 
@@ -398,9 +436,9 @@ dv_audio_deemphasis(dv_audio_t *audio, gint16 *outbuf)
     lastout[0] = *pmm * b0 + lastin[0] * b1 - lastout[0] * a1;
     lastin[0] = *pmm;
     *pmm++ = lastout[0] > 0.0 ? lastout[0] + 0.5 : lastout[0] - 0.5;
-  } // for
+  } /* for */
 
-} // dv_audio_deemphasis
+} /* dv_audio_deemphasis */
 
 
 gint 
@@ -423,17 +461,17 @@ dv_decode_audio_block(dv_audio_t *dv_audio, guint8 *inbuf, gint ds, gint audio_d
   } else {
     channel = 1;
     ds -= half_ds;
-  } // else
+  } /* else */
 
   if(dv_audio->aaux_as.pc3.system) {
-    // PAL
+    /* PAL */
     i_base = dv_audio_unshuffle_50[ds][audio_dif];
     stride = 54;
   } else {
-    // NTSC
+    /* NTSC */
     i_base = dv_audio_unshuffle_60[ds][audio_dif];
     stride = 45;
-  } // else
+  } /* else */
 
   if(dv_audio->quantization == 16) {
 
@@ -444,11 +482,11 @@ dv_decode_audio_block(dv_audio_t *dv_audio, guint8 *inbuf, gint ds, gint audio_d
       i = i_base + (bp - 8)/2 * stride;
       samples[i] = ((gint16)inbuf[bp] << 8) | inbuf[bp+1];
 
-    } // for
+    } /* for */
 
   } else if(dv_audio->quantization == 12) {
 
-    // See 61834-2 figure 18, and text of section 6.5.3 and 6.7.2
+    /* See 61834-2 figure 18, and text of section 6.5.3 and 6.7.2 */
 
     ysamples = outbufs[channel * 2];
     zsamples = outbufs[1 + channel * 2];
@@ -468,11 +506,11 @@ dv_decode_audio_block(dv_audio_t *dv_audio, guint8 *inbuf, gint ds, gint audio_d
 
       ysamples[i] = dv_upsample(y); 
       zsamples[i] = dv_upsample(z);
-    } //for 
+    } /* for  */
 
   } else {
     goto unsupported_sampling;
-  } // else
+  } /* else */
 
   return(0);
 
@@ -486,4 +524,4 @@ dv_decode_audio_block(dv_audio_t *dv_audio, guint8 *inbuf, gint ds, gint audio_d
   return(-1);
 #endif
   
-} // dv_decode_audio_block
+} /* dv_decode_audio_block */

@@ -86,14 +86,14 @@ dv_display_popt_callback(poptContext con, enum poptCallbackReason reason,
   } /* if */
   
 } /* dv_display_popt_callback */
-#endif // HAVE_LIBPOPT
+#endif /* HAVE_LIBPOPT */
 
 dv_display_t *
 dv_display_new(void) 
 {
   dv_display_t *result;
 
-  result = calloc(1,sizeof(dv_display_t));
+  result = (dv_display_t *)calloc(1,sizeof(dv_display_t));
   if(!result) goto no_mem;
 
 #if HAVE_LIBPOPT
@@ -104,19 +104,19 @@ dv_display_new(void)
     arg:        &result->arg_display,
     descrip:    "video display method: 0=autoselect [default], 1=gtk, 2=Xv, 3=SDL",
     argDescrip: "(0|1|2|3)",
-  }; // display method
+		  }; /* display method */
 
   result->option_table[DV_DISPLAY_OPT_CALLBACK] = (struct poptOption){
     argInfo: POPT_ARG_CALLBACK|POPT_CBFLAG_POST,
     arg:     dv_display_popt_callback,
-    descrip: (char *)result, // data passed to callback
-  }; // callback
+	       descrip: (char *)result, /* data passed to callback */
+	       }; /* callback */
 
-#endif // HAVE_LIBPOPT
+#endif /* HAVE_LIBPOPT */
 
  no_mem:
   return(result);
-} // dv_display_new
+} /* dv_display_new */
 
 void
 dv_display_show(dv_display_t *dv_dpy) {
@@ -133,7 +133,7 @@ dv_display_show(dv_display_t *dv_dpy) {
 		  dv_dpy->lwidth, dv_dpy->lheight,	        /* dw, dh */
 		  True);
     XFlush(dv_dpy->dpy);
-#endif // HAVE_LIBXV
+#endif /* HAVE_LIBXV */
     break;
   case e_dv_dpy_XShm:
     break;
@@ -148,7 +148,7 @@ dv_display_show(dv_display_t *dv_dpy) {
       gtk_main_iteration();
     } /* while */
     gdk_flush();
-#endif // HAVE_GTK
+#endif /* HAVE_GTK */
     break;
   case e_dv_dpy_SDL:
 #if HAVE_SDL
@@ -159,7 +159,7 @@ dv_display_show(dv_display_t *dv_dpy) {
     break;
   default:
     break;
-  } // switch
+  } /* switch */
 } /* dv_display_show */
 
 void
@@ -179,7 +179,7 @@ dv_display_exit(dv_display_t *dv_dpy) {
 
     if(dv_dpy->xv_image)
       free(dv_dpy->xv_image);
-#endif // HAVE_LIBXV
+#endif /* HAVE_LIBXV */
     break;
   case e_dv_dpy_gtk:
     /* TODO: cleanup gtk and gdk stuff */
@@ -194,7 +194,7 @@ dv_display_exit(dv_display_t *dv_dpy) {
   case e_dv_dpy_SDL:
     SDL_Quit();
     break;
-  } // switch
+  } /* switch */
 
   free(dv_dpy);
 } /* dv_display_exit */
@@ -203,7 +203,7 @@ static gboolean
 dv_display_gdk_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv) {
 
 #if HAVE_GTK
-  dv_dpy->pixels[0] = calloc(1,dv_dpy->width * dv_dpy->height * 3);
+  dv_dpy->pixels[0] = (guchar *)calloc(1,dv_dpy->width * dv_dpy->height * 3);
   if(!dv_dpy) goto no_mem;
   gtk_init(argc, argv);
   gdk_rgb_init();
@@ -225,7 +225,7 @@ dv_display_gdk_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv) {
 
   return TRUE;
  no_mem:
-#endif // HAVE_GTK
+#endif /* HAVE_GTK */
   return FALSE;
 } /* dv_display_gdk_init */
 
@@ -243,8 +243,8 @@ dv_display_event (dv_display_t *dv_dpy) {
 	break;
       default:
 	break;
-    } // switch
-  } // while
+    } /* switch */
+  } /* while */
 } /* dv_display_event */
 
 #endif /* HAVE_LIBXV */
@@ -401,7 +401,7 @@ dv_display_Xv_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name, int flags
     } /* for */
 
   } else {
-    // Xv extension probably not present
+    /* Xv extension probably not present */
     return 0;
   } /* else */
 
@@ -485,7 +485,7 @@ dv_display_Xv_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name, int flags
   dv_dpy->xv_image = XvShmCreateImage(dv_dpy->dpy, dv_dpy->port,
 					 dv_dpy->format, dv_dpy->pixels[0],
 					 720, 576,
-//					 dv_dpy->width, dv_dpy->height,
+				      /*					 dv_dpy->width, dv_dpy->height, */
 					 &dv_dpy->shminfo);
 
   dv_dpy->shminfo.shmid = shmget(IPC_PRIVATE,
@@ -501,7 +501,7 @@ dv_display_Xv_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name, int flags
   ret = 1;
 #else
   fprintf(stderr, "libdv was compiled without Xv support\n");
-#endif // HAVE_LIBXV
+#endif /* HAVE_LIBXV */
   return ret;
 } /* dv_display_Xv_init */
 
@@ -527,9 +527,9 @@ dv_center_window(SDL_Surface *screen)
             y = (h - screen->h)/2;
             XMoveWindow(info.info.x11.display, info.info.x11.wmwindow, x, y);
             info.info.x11.unlock_func();
-        } // if
-    } // if 
-} // dv_center_window
+        } /* if */
+    } /* if  */
+} /* dv_center_window */
 
 static int
 dv_display_SDL_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name) {
@@ -547,16 +547,16 @@ dv_display_SDL_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name) {
   default:
     video_bpp = 16;
     break;
-  } // switch 
+  } /* switch  */
   dv_dpy->sdl_screen = SDL_SetVideoMode(dv_dpy->width,dv_dpy->height,
 					video_bpp,SDL_HWSURFACE);
   SDL_WM_SetCaption(w_name, i_name);
   dv_dpy->overlay = SDL_CreateYUVOverlay(dv_dpy->width, dv_dpy->height, dv_dpy->format,
 					 dv_dpy->sdl_screen);
-  if((!dv_dpy->overlay || (!dv_dpy->overlay->hw_overlay) ||  // we only want HW overlays
+  if((!dv_dpy->overlay || (!dv_dpy->overlay->hw_overlay) ||  /* we only want HW overlays */
       SDL_LockYUVOverlay(dv_dpy->overlay)<0)) {
     goto no_overlay;
-  } // if
+  } /* if */
   dv_center_window(dv_dpy->sdl_screen);
   dv_dpy->rect.x = 0;
   dv_dpy->rect.y = 0;
@@ -587,15 +587,15 @@ dv_display_SDL_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name) {
   return(FALSE);
 } /* dv_display_SDL_init */
 
-#endif // HAVE_SDL
+#endif /* HAVE_SDL */
 
 static void
 dv_display_exit_handler(int code, void *arg)
 {
   if(code && arg) {
     dv_display_exit(arg);
-  } // if
-} // dv_display_exit_handler
+  } /* if */
+} /* dv_display_exit_handler */
 
 
 gboolean
@@ -629,7 +629,7 @@ dv_display_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv, gint width, gin
   default:
     /* Not possible */
     break;
-  } // switch
+  } /* switch */
 
   switch(dv_dpy->arg_display) {
   case 0:
@@ -641,7 +641,7 @@ dv_display_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv, gint width, gin
       goto SDL_ok;
     } else {
       goto use_gtk;
-    } // else
+    } /* else */
     break;
   case 1:
     /* Gtk */
@@ -667,7 +667,7 @@ dv_display_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv, gint width, gin
     break;
   default:
     break;
-  } // switch
+  } /* switch */
 
  Xv_ok:
   fprintf(stderr, " Using Xv for display\n");
@@ -694,7 +694,7 @@ dv_display_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv, gint width, gin
     dv_dpy->pitches[1] = width / 2;
     dv_dpy->pitches[2] = width / 2;
     break;
-  } // switch
+  } /* switch */
 
   goto ok;
 
@@ -707,7 +707,7 @@ dv_display_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv, gint width, gin
   if(!dv_display_gdk_init(dv_dpy, argc, argv)) {
     fprintf(stderr,"Attempt to use gtk for display failed\n");
     goto fail;
-  } // if 
+  } /* if  */
   dv_dpy->pitches[0] = width * 3;
   fprintf(stderr, " Using gtk for display\n");
 

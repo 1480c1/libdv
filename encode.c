@@ -155,7 +155,7 @@ static inline guint put_bits(unsigned char *s, guint offset,
 	s[1] |= (value >> 8) & 0xff;
 	s[2] |= value & 0xff;
 	return offset + len;
-#else
+#else /* ARCH_X86 */
 	s += (offset >> 3);
 	value <<= 32 - len - (offset & 7);
 	__asm__("bswap %0" : "=r" (value) : "0" (value));
@@ -163,7 +163,7 @@ static inline guint put_bits(unsigned char *s, guint offset,
 	*((unsigned long*) s) |= value;
 	return offset + len;
 
-#endif
+#endif /* ARCH_X86 */
 }
 
 inline gint f2b(float f)
@@ -297,7 +297,7 @@ static dv_vlc_encode_t dv_vlc_test_table[89] = {
 	{ 1,  15, 0xfbd, 12 },
 	{ 1,  16, 0xfbe, 12 },
 	{ 1,  17, 0xfbf, 12 },
-}; // dv_vlc_test_table
+}; /* dv_vlc_test_table */
 
 static dv_vlc_encode_t * vlc_test_lookup[512];
 
@@ -510,7 +510,7 @@ guint vlc_encode_block(unsigned char *vsbuffer, guint bit_offset,
 			sign = 1;
 		}
 
-		//printf("run=%d, amp=%d, sign=%d\n", run, amp, sign);
+		/*printf("run=%d, amp=%d, sign=%d\n", run, amp, sign); */
 		bits_left -= vlc_num_bits(run, amp, sign);
 		if (bits_left < 4) {
 			break;
@@ -746,7 +746,7 @@ static void convert_to_yuv(unsigned char* img_rgb, int height,
 				(f2sb(cy) - 128 + 16) * fac;
 			tmp_cr[y][x] = cr * fac;
 			tmp_cb[y][x] = cb * fac;
-			//printf("%02x\n", img_y[y][x]);
+			/*printf("%02x\n", img_y[y][x]); */
 		}
 	}
 	for (y = 0; y < height; y++) {
@@ -858,7 +858,7 @@ static void do_dct(dv_macroblock_t *mb)
 
 	for (b = 0; b < 6; b++) {
 		dv_block_t *bl = &mb->b[b];
-		static short tblock[64] __attribute__ ((aligned (64)));
+		static short tblock[64] ALIGN64;
 		
 		memcpy(tblock, &bl->coeffs, 64*sizeof(short));
 		bl->dct_mode = DV_DCT_88;
@@ -880,7 +880,7 @@ long modes_used[50];
 static void do_quant(dv_macroblock_t * mb)
 {
 	guint b;
-	gint class;
+	gint klass;
 
 	struct {
 		int qno, class;
@@ -1009,12 +1009,12 @@ Second table:
 	modes_used[highest_mode]++;
 #endif
 	mb->qno = modes[highest_mode].qno;
-	class = modes[highest_mode].class;
+	klass = modes[highest_mode].class;
 	if (highest_mode == 0) { /* Things are cheap these days ;-) */
 		for (b = 0; b < 6; b++) {
 			dv_block_t *bl = &mb->b[b];
 			*bl = bb[b];
-			bl->class_no = class;
+			bl->class_no = klass;
 		}
 	} else {
 #if 0 /* should give higher quality but doesn't ? */
@@ -1038,8 +1038,8 @@ Second table:
 #else
 		for (b = 0; b < 6; b++) {
 			dv_block_t *bl = &mb->b[b];
-			quant(bl->coeffs, mb->qno, class);
-			bl->class_no = class;
+			quant(bl->coeffs, mb->qno, klass);
+			bl->class_no = klass;
 		}
 #endif
 	}
@@ -1089,7 +1089,7 @@ static void process_videosegment(
 static void encode(short* img_y, short* img_cr, short* img_cb, 
 		   int isPAL, unsigned char* target)
 {
-	static dv_videosegment_t videoseg __attribute__ ((aligned (64)));
+	static dv_videosegment_t videoseg ALIGN64;
 
 	gint numDIFseq;
 	gint ds;
@@ -1110,7 +1110,7 @@ static void encode(short* img_y, short* img_cr, short* img_cb,
 	for (ds = 0; ds < numDIFseq; ds++) { 
 		/* Each DIF segment conists of 150 dif blocks, 
 		   135 of which are video blocks */
-		dif += 6; // skip the first 6 dif blocks in a dif sequence 
+	  dif += 6; /* skip the first 6 dif blocks in a dif sequence  */
 		/* A video segment consists of 5 video blocks, where each video
 		   block contains one compressed macroblock.  DV bit allocation
 		   for the VLC stage can spill bits between blocks in the same
@@ -1536,7 +1536,7 @@ int main(int argc, char *argv[])
 	 * have it yet, it's at: ftp://ftp.redhat.com/pub/redhat/code/popt 
 	 */
 	filename = argv[1];
-#endif // HAVE_LIBPOPT
+#endif /* HAVE_LIBPOPT */
 
 	weight_init();  
 	dct_init();

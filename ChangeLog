@@ -1,5 +1,15 @@
 2001-02-07  Charles 'Buck' Krasic  <krasic@acm.org>
 
+	* Version 0.4.
+
+	* Cosmetic nit:  move to consistent use of C style comments.
+
+	* Integrate patch from Scott F. Johnston for non-gcc non-x86
+	  architectures.  Add untested fixed_multiply to idct_248.c for
+	  non-gcc non-x86 architectures.  Also disable popt on non-gcc,
+	  since our popt code uses gcc struct initialization extension
+	  heavily.
+
 	* Integrate patch from Stefan Lucke for aspect-ratio handling
 	  with Xv based display.
 

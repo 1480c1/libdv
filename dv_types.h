@@ -37,6 +37,22 @@
 #include <stdlib.h>
 #include <glib.h>
 
+// For now assume ARCH_X86 means GCC with hints.
+#define HAVE_GCC ARCH_X86
+//#define HAVE_GCC 0
+
+#if HAVE_GCC
+#define ALIGN64 __attribute__ ((aligned (64)))
+#define ALIGN32 __attribute__ ((aligned (32)))
+#define ALIGN8 __attribute__ ((aligned (8)))
+#else
+#define ALIGN64
+#define ALIGN32
+#define ALIGN8
+#define __inline__ inline
+#define __FUNCTION__ __FILE__ // Less specific info, but it's a string.
+#endif
+
 #define DV_AUDIO_MAX_SAMPLES 1920
 
 #define DV_AUDIO_OPT_FREQUENCY    0
@@ -155,7 +171,7 @@ typedef struct {
 } dv_header_t;
 
 typedef struct {
-  dv_coeff_t   coeffs[64] __attribute__ ((aligned (8)));
+  dv_coeff_t   coeffs[64] ALIGN8;
   gint         dct_mode;
   gint         class_no;
   gint8        *reorder;

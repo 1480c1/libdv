@@ -79,7 +79,7 @@ dv_player_new(void)
 {
   dv_player_t *result;
   
-  if(!(result = calloc(1,sizeof(dv_player_t)))) goto no_mem;
+  if(!(result = (dv_player_t *)calloc(1,sizeof(dv_player_t)))) goto no_mem;
   if(!(result->display = dv_display_new())) goto no_display;
   if(!(result->oss = dv_oss_new())) goto no_oss;
   if(!(result->decoder = dv_decoder_new())) goto no_decoder;
@@ -146,7 +146,7 @@ dv_player_new(void)
     descrip: "Help options",
   }; /* autohelp */
 
-#endif // HAVE_LIBPOPT
+#endif /* HAVE_LIBPOPT */
 
   return(result);
 

@@ -31,13 +31,24 @@
 
 #include "dct.h"
 #include "weighting.h"
+
+#if ARCH_X86
 #include "mmx.h"
+#endif /* ARCH_X86 */
+
+typedef short var;
 
 static double KC248[8][4][4][8];
 static double KC88[8][8][8][8];
 static double C[8];
 
-extern dv_coeff_t postSC[64] __attribute__ ((aligned (32)));
+#if ARCH_X86
+void idct_block_mmx(gint16 *block);
+void dct_block_mmx(gint16* in_block, gint16* out_block);
+void dct_block_mmx_postscale(gint16* block, gint16* postscale_matrix);
+#endif /* ARCH_X86 */
+
+extern dv_coeff_t postSC[64] ALIGN32;
 
 static inline short int_val(float f)
 {
@@ -76,11 +87,6 @@ void dct_init(void) {
   } /* for i */
 
 }
-
-void idct_block_mmx(gint16 *block);
-void dct_block_mmx(gint16* in_block, gint16* out_block);
-void dct_block_mmx_postscale(gint16* block, gint16* postscale_matrix);
-typedef short var;
 
 #if 0
 Optimized out using integer fixpoint
@@ -192,7 +198,7 @@ static inline void dct_aan(short *s_in, short *s_out)
 {
   int i,j,r,c;
 
-  for( c=0; c<64; c += 8 ) // columns
+  for( c=0; c<64; c += 8 ) /* columns */
     dct_aan_line(s_in + c, s_in + c);
 
   for ( i=0; i < 8; i++) {
@@ -201,7 +207,7 @@ static inline void dct_aan(short *s_in, short *s_out)
     }
   }
 
-  for( r=0; r<64; r+= 8 ) // then rows
+  for( r=0; r<64; r+= 8 ) /* then rows */
     dct_aan_line(s_out + r, s_out + r);
 
 }
@@ -319,7 +325,7 @@ void idct_248(double *block)
 				       -- fixup later */
 
 #if 0
-  // This is to identify visually where 248 blocks are...
+  /* This is to identify visually where 248 blocks are... */
   for(i=0;i<64;i++) {
     block[i] = 235 - 128;
   }
@@ -371,4 +377,4 @@ void idct_248(double *block)
 }
 
 
-#endif // BRUTE_FORCE_248
+#endif /* BRUTE_FORCE_248 */

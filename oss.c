@@ -43,7 +43,7 @@ dv_oss_new(void)
 {
   dv_oss_t *result;
   
-  result = calloc(1,sizeof(dv_oss_t));
+  result = (dv_oss_t *)calloc(1,sizeof(dv_oss_t));
   if(!result) goto no_mem;
 
 #if HAVE_LIBPOPT
@@ -53,7 +53,7 @@ dv_oss_new(void)
     arg:        &result->arg_audio_device,
     descrip:    "target audio device; e.g. /dev/dsp [default]",
     argDescrip: "devicename",
-  }; // device
+  }; /* device */
 
   result->option_table[DV_OSS_OPT_FILE] = (struct poptOption) {
     longName:   "audio-file", 
@@ -61,12 +61,12 @@ dv_oss_new(void)
     arg:        &result->arg_audio_file,
     descrip:    "send raw decoded audio to file, skipping audio ioctls",
     argDescrip: "filename",
-  }; // file
+  }; /* file */
 #endif // HAVE_LIBPOPT
 
  no_mem:
   return(result);
-} // dv_oss_new
+} /* dv_oss_new */
 
 /* Very simplistic for sound output using the OSS API */
 gboolean
@@ -145,7 +145,7 @@ dv_oss_init(dv_audio_t *audio, dv_oss_t *oss)
  fail:
   dv_oss_close(oss);
   return(FALSE);
-} // dv_oss_init
+} /* dv_oss_init */
 
 gboolean
 dv_oss_play(dv_audio_t *audio, dv_oss_t *oss, gint16 **out)
@@ -156,8 +156,8 @@ dv_oss_play(dv_audio_t *audio, dv_oss_t *oss, gint16 **out)
   for(i=0; i < audio->samples_this_frame; i++) {
     for(ch=0; ch < audio->num_channels; ch++) {
       oss->buffer[j++] = out[ch][i];
-    } // for
-  } // for
+    } /* for */
+  } /* for */
 
   /* Send the audio to the device */
   total = audio->samples_this_frame * audio->num_channels * sizeof(gint16);
@@ -168,7 +168,7 @@ dv_oss_play(dv_audio_t *audio, dv_oss_t *oss, gint16 **out)
   } while(total > written);
   if(!oss->arg_audio_file) {
     if (ioctl(oss->fd, SNDCTL_DSP_POST, NULL) == -1) goto post_ioctl;
-  } // if
+  } /* if */
 
   return(TRUE);
 
@@ -180,7 +180,7 @@ dv_oss_play(dv_audio_t *audio, dv_oss_t *oss, gint16 **out)
   perror("SNDCTL_DSP_POST");
   return(FALSE);
 
-} // dv_oss_play
+} /* dv_oss_play */
 
 void
 dv_oss_close(dv_oss_t *oss) 
@@ -188,9 +188,9 @@ dv_oss_close(dv_oss_t *oss)
   if(oss->fd != -1) {
     close(oss->fd);
     oss->fd = -1;
-  } // if
+  } /* if */
   if(oss->buffer) {
     oss->buffer = NULL;
     free(oss->buffer);
-  } // if
-} // dv_oss_close
+  } /* if */
+} /* dv_oss_close */
