@@ -41,7 +41,7 @@
 #include <popt.h>
 #endif
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <stdarg.h>
 
 #include "libdv/headers.h"

@@ -45,7 +45,7 @@
 #include <popt.h>
 #endif
 
-#include <malloc.h>
+#include <stdlib.h>
 
 static long cip_n_ntsc = 2436;
 static long cip_d_ntsc = 38400;
@@ -845,6 +845,7 @@ int send_raw(const char*const* filenames, int channel, int nbuffers,
 
 int rt_raisepri (int pri)
 {
+#ifdef _SC_PRIORITY_SCHEDULING
 	struct sched_param scp;
 
 	/*
@@ -862,6 +863,7 @@ int rt_raisepri (int pri)
 			return (-1);
 		}
 	}
+#endif
 	return (0);
 }
 

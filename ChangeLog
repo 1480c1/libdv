@@ -8,6 +8,8 @@
 	* encodedv/Makefile.am: build and install insert_audio.c as dubdv.
 	* encodedv/dvdub.1, dvconnect.1: added man pages.
 	* encodedv/dvconnect.c: make default video1394 device now /dev/video1394/0.
+	* encodedv/dvavi.c, dvconnect.c: OS/X build fixes from Steven Schultz.
+	* bump release version to 0.100 and increment libtool versions.
 
 2004-01-04  Dan Dennedy <dan@dennedy.org>
 	* encodedv/dvconnect.c, libdv/dv1394.h: fix for kernel 2.6 compatibility,
