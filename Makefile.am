@@ -71,12 +71,12 @@ testvlc_LDADD=libdv.la
 
 testbitstream_SOURCES= testbitstream.c bitstream.c bitstream.h
 
-encode_SOURCES= encode.c 
+encode_SOURCES= encode.c headers.c
 encode_LDADD= libdv.la
 
-insert_audio_SOURCES = insert_audio.c
+insert_audio_SOURCES = insert_audio.c headers.c
 
-fix_headers_SOURCES = fix_headers.c
+fix_headers_SOURCES = fix_headers.c headers.c
 
 scan_packet_headers_SOURCES = scan_packet_headers.c
 

@@ -183,87 +183,122 @@ copy_y_block_mmx:
 	ret
 				
 		
-.global copy_c_block_mmx
-copy_c_block_mmx:
+.global copy_pal_c_block_mmx
+copy_pal_c_block_mmx:
 				
 	pushl   %ebp
 	movl    %esp, %ebp
 	pushl   %esi
 	pushl	%edi
-	pushl	%edx
 	pushl	%ebx
 	
 	movl    8(%ebp), %edi          # dest
 	movl    12(%ebp), %esi         # src
-	movl	16(%ebp), %edx         # ofs
-	shll	$2, %edx
-	movl	%edx, %ebx
-	shll	$1, %ebx
 
-	movq	(%esi), %mm0
-	movq	(%esi,%edx), %mm2
-	movq	%mm0, %mm1
-	movq	%mm2, %mm3
-	addl	%ebx, %esi
-	punpcklwd %mm0, %mm0
-	punpckhwd %mm1, %mm1
-	punpcklwd %mm2, %mm2
-	punpckhwd %mm3, %mm3
-	movq	%mm0, 0*8(%edi)
-	movq	%mm1, 1*8(%edi)
-	movq	%mm2, 2*8(%edi)
-	movq	%mm3, 3*8(%edi)
+	movl	$4, %ebx	
 
-	movq	(%esi), %mm0
-	movq	(%esi,%edx), %mm2
-	movq	%mm0, %mm1
-	movq	%mm2, %mm3
-	addl	%ebx, %esi
-	punpcklwd %mm0, %mm0
-	punpckhwd %mm1, %mm1
-	punpcklwd %mm2, %mm2
-	punpckhwd %mm3, %mm3
-	movq	%mm0, 4*8(%edi)
-	movq	%mm1, 5*8(%edi)
-	movq	%mm2, 6*8(%edi)
-	movq	%mm3, 7*8(%edi)
+copy_pal_c_block_mmx_loop:	
+	
+	movq	          (%esi), %mm0
+	movq	DV_WIDTH/2(%esi), %mm1
+	movq               8(%esi), %mm2
+	movq	DV_WIDTH/2+8(%esi), %mm3
 
-	movq	(%esi), %mm0
-	movq	(%esi,%edx), %mm2
-	movq	%mm0, %mm1
-	movq	%mm2, %mm3
-	addl	%ebx, %esi
-	punpcklwd %mm0, %mm0
-	punpckhwd %mm1, %mm1
-	punpcklwd %mm2, %mm2
-	punpckhwd %mm3, %mm3
-	movq	%mm0, 8*8(%edi)
-	movq	%mm1, 9*8(%edi)
-	movq	%mm2, 10*8(%edi)
-	movq	%mm3, 11*8(%edi)
+	paddw	%mm0, %mm1
+	paddw	%mm2, %mm3
+	psraw	$1, %mm1
+	psraw	$1, %mm3
 
-	movq	(%esi), %mm0
-	movq	(%esi,%edx), %mm2
-	movq	%mm0, %mm1
-	movq	%mm2, %mm3
-	punpcklwd %mm0, %mm0
-	punpckhwd %mm1, %mm1
-	punpcklwd %mm2, %mm2
-	punpckhwd %mm3, %mm3
-	movq	%mm0, 12*8(%edi)
-	movq	%mm1, 13*8(%edi)
-	movq	%mm2, 14*8(%edi)
-	movq	%mm3, 15*8(%edi)
+	movq	%mm1, 0*8(%edi)
+	movq	%mm3, 1*8(%edi)
 
+	addl	$DV_WIDTH, %esi
+	addl	$16, %edi
+
+	movq	          (%esi), %mm0
+	movq	DV_WIDTH/2(%esi), %mm1
+	movq               8(%esi), %mm2
+	movq	DV_WIDTH/2+8(%esi), %mm3
+
+	paddw	%mm0, %mm1
+	paddw	%mm2, %mm3
+	psraw	$1, %mm1
+	psraw	$1, %mm3
+
+	movq	%mm1, 0*8(%edi)
+	movq	%mm3, 1*8(%edi)
+
+	addl	$DV_WIDTH, %esi
+	addl	$16, %edi
+
+	decl	%ebx
+	jnz	copy_pal_c_block_mmx_loop
+				
 	pop	%ebx
-	pop	%edx
 	pop	%edi
 	pop	%esi
 	pop	%ebp
 	ret
 
-# FIXME: reorder_block_mmx isn't really _that_ faster than the C version... 
-#	 don't know why...
+.global copy_ntsc_c_block_mmx
+copy_ntsc_c_block_mmx:
+				
+	pushl   %ebp
+	movl    %esp, %ebp
+	pushl   %esi
+	pushl	%edi
+	pushl	%ebx
+	
+	movl    8(%ebp), %edi          # dest
+	movl    12(%ebp), %esi         # src
+
+	movl	$4, %ebx	
+
+copy_ntsc_c_block_mmx_loop:	
+	
+	movq	(%esi), %mm0
+	movq    8(%esi), %mm1
+	movq	16(%esi), %mm2
+	movq	24(%esi), %mm3
+
+	paddw	%mm0, %mm1
+	paddw	%mm2, %mm3
+	psraw	$1, %mm1
+	psraw	$1, %mm3
+
+	movq	%mm1, 0*8(%edi)
+	movq	%mm3, 1*8(%edi)
+
+	addl	$DV_WIDTH/2, %esi
+	addl	$16, %edi
+
+	movq	(%esi), %mm0
+	movq    8(%esi), %mm1
+	movq	16(%esi), %mm2
+	movq	24(%esi), %mm3
+
+	paddw	%mm0, %mm1
+	paddw	%mm2, %mm3
+	psraw	$1, %mm1
+	psraw	$1, %mm3
+
+	movq	%mm1, 0*8(%edi)
+	movq	%mm3, 1*8(%edi)
+
+	addl	$DV_WIDTH/2, %esi
+	addl	$16, %edi
+
+	decl	%ebx
+	jnz	copy_ntsc_c_block_mmx_loop
+				
+	pop	%ebx
+	pop	%edi
+	pop	%esi
+	pop	%ebp
+	ret
+
+/* FIXME: reorder_block_mmx isn't really _that_ faster than the C version... 
+	 don't know why... */
 	
 .global reorder_block_mmx
 reorder_block_mmx:
@@ -386,8 +421,10 @@ need_dct_248_mmx:
 	pushl   %ebp
 	movl    %esp, %ebp
 	pushl   %esi
+	pushl	%edi
 
 	movl	8(%ebp), %esi      # source
+	movl	12(%ebp), %edi	   # thres_mask
 
 	movq	(0*8+0)*2(%esi), %mm0
 	movq	(0*8+4)*2(%esi), %mm1
@@ -401,6 +438,8 @@ need_dct_248_mmx:
 	pxor	%mm3, %mm1
 	psubw	%mm2, %mm0
 	psubw	%mm3, %mm1
+	pand	(%edi), %mm0
+	pand	(%edi), %mm1
 	
 	movq	(1*8+0)*2(%esi), %mm4
 	movq	(1*8+4)*2(%esi), %mm5
@@ -415,6 +454,9 @@ need_dct_248_mmx:
 	psubw	%mm6, %mm4
 	psubw	%mm7, %mm5
 
+	pand	(%edi), %mm4
+	pand	(%edi), %mm5
+	
 	paddw	%mm4, %mm0
 	paddw	%mm5, %mm1
 
@@ -431,6 +473,9 @@ need_dct_248_mmx:
 	psubw	%mm6, %mm4
 	psubw	%mm7, %mm5
 
+	pand	(%edi), %mm4
+	pand	(%edi), %mm5
+	
 	paddw	%mm4, %mm0
 	paddw	%mm5, %mm1
 
@@ -447,6 +492,9 @@ need_dct_248_mmx:
 	psubw	%mm6, %mm4
 	psubw	%mm7, %mm5
 
+	pand	(%edi), %mm4
+	pand	(%edi), %mm5
+	
 	paddw	%mm4, %mm0
 	paddw	%mm5, %mm1
 
@@ -463,6 +511,9 @@ need_dct_248_mmx:
 	psubw	%mm6, %mm4
 	psubw	%mm7, %mm5
 
+	pand	(%edi), %mm4
+	pand	(%edi), %mm5
+	
 	paddw	%mm4, %mm0
 	paddw	%mm5, %mm1
 
@@ -479,6 +530,9 @@ need_dct_248_mmx:
 	psubw	%mm6, %mm4
 	psubw	%mm7, %mm5
 
+	pand	(%edi), %mm4
+	pand	(%edi), %mm5
+	
 	paddw	%mm4, %mm0
 	paddw	%mm5, %mm1
 
@@ -495,6 +549,9 @@ need_dct_248_mmx:
 	psubw	%mm6, %mm4
 	psubw	%mm7, %mm5
 
+	pand	(%edi), %mm4
+	pand	(%edi), %mm5
+	
 	paddw	%mm4, %mm0
 	paddw	%mm5, %mm1
 
@@ -507,10 +564,12 @@ need_dct_248_mmx:
 	
 	movd	%mm0, %eax
 	
+	popl	%edi
 	popl	%esi
 	popl	%ebp
 
 	ret
+
 
 
 

@@ -111,14 +111,14 @@ static void postscale248_init(double* post_sc)
 		*/
 		for( j = 0; j < 8; j++) {
 			cj = j==0 ? 1/(8*sqrt(2.)) : 1.0/16.0;
-			post_sc[i * 16 + j] = 4.0*2.0 * ci * cj / 
+			post_sc[i * 8 + j] = 4.0*2.0 * ci * cj / 
 				(cos(i*M_PI/8)*cos(j*M_PI/16));
-			post_sc[i * 16 + 8 + j] = 4.0*2.0 * ci * cj / 
+			post_sc[i * 8 + 32 + j] = 4.0*2.0 * ci * cj / 
 				(cos(i*M_PI/8)*cos(j*M_PI/16));
 			/* israelh. patch the first 4.0? */
 		}
 	}
-	post_sc[63-8] = 1.0;    
+	post_sc[63-32] = 1.0;    
 	post_sc[63] = 1.0;    
 }
 
@@ -190,8 +190,6 @@ void weight_init(void)
 		postSC248[i]= int_val(temp_postsc[i]* temp[i] * 32768.0 * 2.0);
 #endif
 	}
-	postSC248[63-8] = temp[63] * 32768 * 2.0;    
-	postSC248[63]   = temp[63] * 32768 * 2.0;    
 
 	for (z=0;z<4;z++) {
 		for (x=0;x<8;x++) {
@@ -259,6 +257,7 @@ static void weight_248_float(double *block)
 		}
 	}
 	block[0] = dc / 4;
+	block[32] = dc / 4;
 }
 
 

@@ -36,9 +36,6 @@
 #define PRECISION  1
 #define FIXPSHIFT  CONSTSHIFT-PRECISION
 	
-# MISMATCH: "ITLE rgbtoyuv"
-# .486P: 
-# .MODEL FLAT
 .global rgbtoyuv_mmx
 
 .data
@@ -119,279 +116,254 @@ VBG0B:  .long   0,0
 
 rgbtoyuv_mmx:
 
-pushl   %ebp
-movl    %esp, %ebp
-pushl   %eax
-pushl   %ebx
-pushl   %ecx
-pushl   %edx
-pushl   %esi
-pushl   %edi
+	pushl   %ebp
+	movl    %esp, %ebp
+	pushl   %eax
+	pushl   %ebx
+	pushl   %ecx
+	pushl   %edx
+	pushl   %esi
+	pushl   %edi
 
-leal    ZEROSX, %eax    #This section gets around a bug
-movq    (%eax), %mm0    #unlikely to persist
-movq    %mm0, ZEROS
-leal    OFFSETDX, %eax
-movq    (%eax), %mm0
-movq    %mm0, OFFSETD
-leal    OFFSETWX, %eax
-movq    (%eax), %mm0
-movq    %mm0, OFFSETW
-leal    OFFSETBX, %eax
-movq    (%eax), %mm0
-movq    %mm0, OFFSETB
-leal    YR0GRX, %eax
-movq    (%eax), %mm0
-movq    %mm0, YR0GR
-leal    YBG0BX, %eax
-movq    (%eax), %mm0
-movq    %mm0, YBG0B
-leal    UR0GRX, %eax
-movq    (%eax), %mm0
-movq    %mm0, UR0GR
-leal    UBG0BX, %eax
-movq    (%eax), %mm0
-movq    %mm0, UBG0B
-leal    VR0GRX, %eax
-movq    (%eax), %mm0
-movq    %mm0, VR0GR
-leal    VBG0BX, %eax
-movq    (%eax), %mm0
-movq    %mm0, VBG0B
-
-movl    _rows(%ebp), %eax
-movl    _columns(%ebp), %ebx
-mull    %ebx            #number pixels
-shrl    $3, %eax        #number of loops
-movl    %eax, %edi      #loop counter in edi
-movl    _inPtr(%ebp), %eax
-movl    _outyPtr(%ebp), %ebx
-movl    _outuPtr(%ebp), %ecx
-movl    _outvPtr(%ebp), %edx
-subl    $4, %edx        #incremented before write
-
+	leal    ZEROSX, %eax    #This section gets around a bug
+	movq    (%eax), %mm0    #unlikely to persist
+	movq    %mm0, ZEROS
+	leal    OFFSETDX, %eax
+	movq    (%eax), %mm0
+	movq    %mm0, OFFSETD
+	leal    OFFSETWX, %eax
+	movq    (%eax), %mm0
+	movq    %mm0, OFFSETW
+	leal    OFFSETBX, %eax
+	movq    (%eax), %mm0
+	movq    %mm0, OFFSETB
+	leal    YR0GRX, %eax
+	movq    (%eax), %mm0
+	movq    %mm0, YR0GR
+	leal    YBG0BX, %eax
+	movq    (%eax), %mm0
+	movq    %mm0, YBG0B
+	leal    UR0GRX, %eax
+	movq    (%eax), %mm0
+	movq    %mm0, UR0GR
+	leal    UBG0BX, %eax
+	movq    (%eax), %mm0
+	movq    %mm0, UBG0B
+	leal    VR0GRX, %eax
+	movq    (%eax), %mm0
+	movq    %mm0, VR0GR
+	leal    VBG0BX, %eax
+	movq    (%eax), %mm0
+	movq    %mm0, VBG0B
+	
+	movl    _rows(%ebp), %eax
+	movl    _columns(%ebp), %ebx
+	mull    %ebx            #number pixels
+	shrl    $3, %eax        #number of loops
+	movl    %eax, %edi      #loop counter in edi
+	movl    _inPtr(%ebp), %eax
+	movl    _outyPtr(%ebp), %ebx
+	movl    _outuPtr(%ebp), %ecx
+	movl    _outvPtr(%ebp), %edx
 RGBtoYUV: 
-movq    (%eax), %mm1    #load G2R2B1G1R1B0G0R0
-pxor    %mm6, %mm6      #0 -> mm6
+	movq    (%eax), %mm1    #load G2R2B1G1R1B0G0R0
+	pxor    %mm6, %mm6      #0 -> mm6
 
-movq    %mm1, %mm0      #G2R2B1G1R1B0G0R0 -> mm0
-psrlq   $16, %mm1       #00G2R2B1G1R1B0-> mm1
+	movq    %mm1, %mm0      #G2R2B1G1R1B0G0R0 -> mm0
+	psrlq   $16, %mm1       #00G2R2B1G1R1B0-> mm1
 
-punpcklbw %mm6, %mm0     #R1B0G0R0 -> mm0
-movq    %mm1, %mm7      #00G2R2B1G1R1B0-> mm7
+	punpcklbw %mm6, %mm0     #R1B0G0R0 -> mm0
+	movq    %mm1, %mm7      #00G2R2B1G1R1B0-> mm7
 
-punpcklbw %mm6, %mm1     #B1G1R1B0 -> mm1
-movq    %mm0, %mm2      #R1B0G0R0 -> mm2
+	punpcklbw %mm6, %mm1     #B1G1R1B0 -> mm1
+	movq    %mm0, %mm2      #R1B0G0R0 -> mm2
 
-pmaddwd YR0GR, %mm0     #yrR1,ygG0+yrR0 -> mm0
-movq    %mm1, %mm3      #B1G1R1B0 -> mm3
+	pmaddwd YR0GR, %mm0     #yrR1,ygG0+yrR0 -> mm0
+	movq    %mm1, %mm3      #B1G1R1B0 -> mm3
 
-pmaddwd YBG0B, %mm1     #ybB1+ygG1,ybB0 -> mm1
-movq    %mm2, %mm4      #R1B0G0R0 -> mm4
+	pmaddwd YBG0B, %mm1     #ybB1+ygG1,ybB0 -> mm1
+	movq    %mm2, %mm4      #R1B0G0R0 -> mm4
 
-pmaddwd UR0GR, %mm2     #urR1,ugG0+urR0 -> mm2
-movq    %mm3, %mm5      #B1G1R1B0 -> mm5
+	pmaddwd UR0GR, %mm2     #urR1,ugG0+urR0 -> mm2
+	movq    %mm3, %mm5      #B1G1R1B0 -> mm5
 
-pmaddwd UBG0B, %mm3     #ubB1+ugG1,ubB0 -> mm3
-punpckhbw       %mm6, %mm7 #    00G2R2 -> mm7
+	pmaddwd UBG0B, %mm3     #ubB1+ugG1,ubB0 -> mm3
+	punpckhbw       %mm6, %mm7 #    00G2R2 -> mm7
 
-pmaddwd VR0GR, %mm4     #vrR1,vgG0+vrR0 -> mm4
-paddd   %mm1, %mm0      #Y1Y0 -> mm0
+	pmaddwd VR0GR, %mm4     #vrR1,vgG0+vrR0 -> mm4
+	paddd   %mm1, %mm0      #Y1Y0 -> mm0
 
-pmaddwd VBG0B, %mm5     #vbB1+vgG1,vbB0 -> mm5
+	pmaddwd VBG0B, %mm5     #vbB1+vgG1,vbB0 -> mm5
 
-movq    8(%eax), %mm1   #R5B4G4R4B3G3R3B2 -> mm1
-paddd   %mm3, %mm2      #U1U0 -> mm2
+	movq    8(%eax), %mm1   #R5B4G4R4B3G3R3B2 -> mm1
+	paddd   %mm3, %mm2      #U1U0 -> mm2
 
-movq    %mm1, %mm6      #R5B4G4R4B3G3R3B2 -> mm6
+	movq    %mm1, %mm6      #R5B4G4R4B3G3R3B2 -> mm6
 
-punpcklbw       ZEROS, %mm1     #B3G3R3B2 -> mm1
-paddd   %mm5, %mm4      #V1V0 -> mm4
+	punpcklbw       ZEROS, %mm1     #B3G3R3B2 -> mm1
+	paddd   %mm5, %mm4      #V1V0 -> mm4
 
-movq    %mm1, %mm5      #B3G3R3B2 -> mm5
-psllq   $32, %mm1       #R3B200 -> mm1
+	movq    %mm1, %mm5      #B3G3R3B2 -> mm5
+	psllq   $32, %mm1       #R3B200 -> mm1
 
-paddd   %mm7, %mm1      #R3B200+00G2R2=R3B2G2R2->mm1
+	paddd   %mm7, %mm1      #R3B200+00G2R2=R3B2G2R2->mm1
 
-punpckhbw       ZEROS, %mm6     #R5B4G4R3 -> mm6
-movq    %mm1, %mm3      #R3B2G2R2 -> mm3
+	punpckhbw       ZEROS, %mm6     #R5B4G4R3 -> mm6
+	movq    %mm1, %mm3      #R3B2G2R2 -> mm3
 
-pmaddwd YR0GR, %mm1     #yrR3,ygG2+yrR2 -> mm1
-movq    %mm5, %mm7      #B3G3R3B2 -> mm7
+	pmaddwd YR0GR, %mm1     #yrR3,ygG2+yrR2 -> mm1
+	movq    %mm5, %mm7      #B3G3R3B2 -> mm7
 
-pmaddwd YBG0B, %mm5     #ybB3+ygG3,ybB2 -> mm5
-psrad   $FIXPSHIFT, %mm0       #32-bit scaled Y1Y0 -> mm0
+	pmaddwd YBG0B, %mm5     #ybB3+ygG3,ybB2 -> mm5
+	psrad   $FIXPSHIFT, %mm0       #32-bit scaled Y1Y0 -> mm0
 
-movq    %mm6, TEMP0     #R5B4G4R4 -> TEMP0
-movq    %mm3, %mm6      #R3B2G2R2 -> mm6
-pmaddwd UR0GR, %mm6     #urR3,ugG2+urR2 -> mm6
-psrad   $FIXPSHIFT, %mm2       #32-bit scaled U1U0 -> mm2
+	movq    %mm6, TEMP0     #R5B4G4R4 -> TEMP0
+	movq    %mm3, %mm6      #R3B2G2R2 -> mm6
+	pmaddwd UR0GR, %mm6     #urR3,ugG2+urR2 -> mm6
+	psrad   $FIXPSHIFT, %mm2       #32-bit scaled U1U0 -> mm2
 
-paddd   %mm5, %mm1      #Y3Y2 -> mm1
-movq    %mm7, %mm5      #B3G3R3B2 -> mm5
-pmaddwd UBG0B, %mm7     #ubB3+ugG3,ubB2
-psrad   $FIXPSHIFT, %mm1 #32-bit scaled Y3Y2 -> mm1
+	paddd   %mm5, %mm1      #Y3Y2 -> mm1
+	movq    %mm7, %mm5      #B3G3R3B2 -> mm5
+	pmaddwd UBG0B, %mm7     #ubB3+ugG3,ubB2
+	psrad   $FIXPSHIFT, %mm1 #32-bit scaled Y3Y2 -> mm1
 
-pmaddwd VR0GR, %mm3     #vrR3,vgG2+vgR2
-packssdw        %mm1, %mm0      #Y3Y2Y1Y0 -> mm0
+	pmaddwd VR0GR, %mm3     #vrR3,vgG2+vgR2
+	packssdw        %mm1, %mm0      #Y3Y2Y1Y0 -> mm0
 
-pmaddwd VBG0B, %mm5     #vbB3+vgG3,vbB2 -> mm5
-psrad   $FIXPSHIFT, %mm4       #32-bit scaled V1V0 -> mm4
+	pmaddwd VBG0B, %mm5     #vbB3+vgG3,vbB2 -> mm5
+	psrad   $FIXPSHIFT, %mm4       #32-bit scaled V1V0 -> mm4
 
-movq    16(%eax), %mm1  #B7G7R7B6G6R6B5G5 -> mm7
-paddd   %mm7, %mm6      #U3U2 -> mm6    
+	movq    16(%eax), %mm1  #B7G7R7B6G6R6B5G5 -> mm7
+	paddd   %mm7, %mm6      #U3U2 -> mm6    
 
-movq    %mm1, %mm7      #B7G7R7B6G6R6B5G5 -> mm1
-psrad   $FIXPSHIFT, %mm6       #32-bit scaled U3U2 -> mm6
+	movq    %mm1, %mm7      #B7G7R7B6G6R6B5G5 -> mm1
+	psrad   $FIXPSHIFT, %mm6       #32-bit scaled U3U2 -> mm6
 
-paddd   %mm5, %mm3      #V3V2 -> mm3
-psllq   $16, %mm7       #R7B6G6R6B5G500 -> mm7
+	paddd   %mm5, %mm3      #V3V2 -> mm3
+	psllq   $16, %mm7       #R7B6G6R6B5G500 -> mm7
 
-movq    %mm7, %mm5      #R7B6G6R6B5G500 -> mm5
-psrad   $FIXPSHIFT, %mm3       #32-bit scaled V3V2 -> mm3
+	movq    %mm7, %mm5      #R7B6G6R6B5G500 -> mm5
+	psrad   $FIXPSHIFT, %mm3       #32-bit scaled V3V2 -> mm3
 
-paddw	OFFSETY, %mm0
-# movq    %mm0, TEMPY     #32-bit scaled Y3Y2Y1Y0 -> TEMPY
-movq    %mm0, (%ebx)     #store Y3Y2Y1Y0 
-packssdw %mm6, %mm2      #32-bit scaled U3U2U1U0 -> mm2
+	paddw	OFFSETY, %mm0
+	movq    %mm0, (%ebx)     #store Y3Y2Y1Y0 
+	packssdw %mm6, %mm2      #32-bit scaled U3U2U1U0 -> mm2
 
-movq    TEMP0, %mm0     #R5B4G4R4 -> mm0
-addl	$8, %ebx
+	movq    TEMP0, %mm0     #R5B4G4R4 -> mm0
+	addl	$8, %ebx
 	
-punpcklbw       ZEROS, %mm7     #B5G500 -> mm7
-movq    %mm0, %mm6      #R5B4G4R4 -> mm6
+	punpcklbw       ZEROS, %mm7     #B5G500 -> mm7
+	movq    %mm0, %mm6      #R5B4G4R4 -> mm6
 
-movq    %mm2, TEMPU     #32-bit scaled U3U2U1U0 -> TEMPU
-psrlq   $32, %mm0       #00R5B4 -> mm0
+	movq    %mm2, TEMPU     #32-bit scaled U3U2U1U0 -> TEMPU
+	psrlq   $32, %mm0       #00R5B4 -> mm0
 
-paddw   %mm0, %mm7      #B5G5R5B4 -> mm7
-movq    %mm6, %mm2      #B5B4G4R4 -> mm2
+	paddw   %mm0, %mm7      #B5G5R5B4 -> mm7
+	movq    %mm6, %mm2      #B5B4G4R4 -> mm2
 
-pmaddwd YR0GR, %mm2     #yrR5,ygG4+yrR4 -> mm2
-movq    %mm7, %mm0      #B5G5R5B4 -> mm0
+	pmaddwd YR0GR, %mm2     #yrR5,ygG4+yrR4 -> mm2
+	movq    %mm7, %mm0      #B5G5R5B4 -> mm0
 
-pmaddwd YBG0B, %mm7     #ybB5+ygG5,ybB4 -> mm7
-packssdw        %mm3, %mm4      #32-bit scaled V3V2V1V0 -> mm4
+	pmaddwd YBG0B, %mm7     #ybB5+ygG5,ybB4 -> mm7
+	packssdw        %mm3, %mm4      #32-bit scaled V3V2V1V0 -> mm4
 
-addl    $24, %eax       #increment RGB count
-addl    $4, %edx        #increment V count
+	addl    $24, %eax       #increment RGB count
 
-movq    %mm4, TEMPV     #(V3V2V1V0)/256 -> mm4
-movq    %mm6, %mm4      #B5B4G4R4 -> mm4
+	movq    %mm4, TEMPV     #(V3V2V1V0)/256 -> mm4
+	movq    %mm6, %mm4      #B5B4G4R4 -> mm4
 
-pmaddwd UR0GR, %mm6     #urR5,ugG4+urR4
-movq    %mm0, %mm3      #B5G5R5B4 -> mm0
+	pmaddwd UR0GR, %mm6     #urR5,ugG4+urR4
+	movq    %mm0, %mm3      #B5G5R5B4 -> mm0
 
-pmaddwd UBG0B, %mm0     #ubB5+ugG5,ubB4
-paddd   %mm7, %mm2      #Y5Y4 -> mm2
+	pmaddwd UBG0B, %mm0     #ubB5+ugG5,ubB4
+	paddd   %mm7, %mm2      #Y5Y4 -> mm2
 
-pmaddwd         VR0GR, %mm4     #vrR5,vgG4+vrR4 -> mm4
-pxor    %mm7, %mm7      #0 -> mm7
+	pmaddwd         VR0GR, %mm4     #vrR5,vgG4+vrR4 -> mm4
+	pxor    %mm7, %mm7      #0 -> mm7
 
-pmaddwd VBG0B, %mm3     #vbB5+vgG5,vbB4 -> mm3
-punpckhbw       %mm7, %mm1      #B7G7R7B6 -> mm1
+	pmaddwd VBG0B, %mm3     #vbB5+vgG5,vbB4 -> mm3
+	punpckhbw       %mm7, %mm1      #B7G7R7B6 -> mm1
 
-paddd   %mm6, %mm0      #U5U4 -> mm0
-movq    %mm1, %mm6      #B7G7R7B6 -> mm6
+	paddd   %mm6, %mm0      #U5U4 -> mm0
+	movq    %mm1, %mm6      #B7G7R7B6 -> mm6
 
-pmaddwd YBG0B, %mm6     #ybB7+ygG7,ybB6 -> mm6
-punpckhbw       %mm7, %mm5      #R7B6G6R6 -> mm5
+	pmaddwd YBG0B, %mm6     #ybB7+ygG7,ybB6 -> mm6
+	punpckhbw       %mm7, %mm5      #R7B6G6R6 -> mm5
 
-movq    %mm5, %mm7      #R7B6G6R6 -> mm7
-paddd   %mm4, %mm3      #V5V4 -> mm3
+	movq    %mm5, %mm7      #R7B6G6R6 -> mm7
+	paddd   %mm4, %mm3      #V5V4 -> mm3
 
-pmaddwd YR0GR, %mm5     #yrR7,ygG6+yrR6 -> mm5
-movq    %mm1, %mm4      #B7G7R7B6 -> mm4
+	pmaddwd YR0GR, %mm5     #yrR7,ygG6+yrR6 -> mm5
+	movq    %mm1, %mm4      #B7G7R7B6 -> mm4
 
-pmaddwd UBG0B, %mm4     #ubB7+ugG7,ubB6 -> mm4
-psrad   $FIXPSHIFT, %mm0       #32-bit scaled U5U4 -> mm0
+	pmaddwd UBG0B, %mm4     #ubB7+ugG7,ubB6 -> mm4
+	psrad   $FIXPSHIFT, %mm0       #32-bit scaled U5U4 -> mm0
 
-# paddd   OFFSETW, %mm0           #add offset to U5U4 -> mm0
-psrad   $FIXPSHIFT, %mm2       #32-bit scaled Y5Y4 -> mm2
+	psrad   $FIXPSHIFT, %mm2       #32-bit scaled Y5Y4 -> mm2
 
-paddd   %mm5, %mm6      #Y7Y6 -> mm6
-movq    %mm7, %mm5      #R7B6G6R6 -> mm5
+	paddd   %mm5, %mm6      #Y7Y6 -> mm6
+	movq    %mm7, %mm5      #R7B6G6R6 -> mm5
 
-pmaddwd UR0GR, %mm7     #urR7,ugG6+ugR6 -> mm7
-psrad   $FIXPSHIFT, %mm3       #32-bit scaled V5V4 -> mm3
+	pmaddwd UR0GR, %mm7     #urR7,ugG6+ugR6 -> mm7
+	psrad   $FIXPSHIFT, %mm3       #32-bit scaled V5V4 -> mm3
 
-pmaddwd VBG0B, %mm1     #vbB7+vgG7,vbB6 -> mm1
-psrad   $FIXPSHIFT, %mm6       #32-bit scaled Y7Y6 -> mm6
+	pmaddwd VBG0B, %mm1     #vbB7+vgG7,vbB6 -> mm1
+	psrad   $FIXPSHIFT, %mm6 #32-bit scaled Y7Y6 -> mm6
 
-# paddd   OFFSETD, %mm4   #add offset to U7U6 
-packssdw        %mm6, %mm2      #Y7Y6Y5Y4 -> mm2
+	packssdw %mm6, %mm2     #Y7Y6Y5Y4 -> mm2
 
-pmaddwd VR0GR, %mm5     #vrR7,vgG6+vrR6 -> mm5
-paddd   %mm4, %mm7      #U7U6 -> mm7    
+	pmaddwd VR0GR, %mm5     #vrR7,vgG6+vrR6 -> mm5
+	paddd   %mm4, %mm7      #U7U6 -> mm7    
 
-psrad   $FIXPSHIFT, %mm7       #32-bit scaled U7U6 -> mm7
-paddw	OFFSETY, %mm2
-movq	%mm2, (%ebx)    #store Y7Y6Y5Y4 
+	psrad   $FIXPSHIFT, %mm7       #32-bit scaled U7U6 -> mm7
+	paddw	OFFSETY, %mm2
+	movq	%mm2, (%ebx)    #store Y7Y6Y5Y4 
 
-movq	ALLONE, %mm6
-# movq    TEMPY, %mm6     #32-bit scaled Y3Y2Y1Y0 -> mm6
-packssdw        %mm7, %mm0      #32-bit scaled U7U6U5U4 -> mm0
+	movq	ALLONE, %mm6
+	packssdw %mm7, %mm0     #32-bit scaled U7U6U5U4 -> mm0
 
-movq    TEMPU, %mm4     #32-bit scaled U3U2U1U0 -> mm4
-# packuswb        %mm2, %mm6      #all 8 Y values -> mm6
-pmaddwd	%mm6, %mm0      #U7U6U5U4 averaged -> (U7U6)(U5U4) = UU3 UU2 -> mm0
+	movq    TEMPU, %mm4     #32-bit scaled U3U2U1U0 -> mm4
+	pmaddwd	%mm6, %mm0      #U7U6U5U4 averaged -> (U7U6)(U5U4)=UU3 UU2->mm0
 	
-# movq    OFFSETW, %mm7   #128,0,128,0 -> mm7
-pmaddwd	%mm6, %mm4      #U3U2U1U0 averaged -> (U3U2)(U1U0) = UU1 UU0 -> mm4
+	pmaddwd	%mm6, %mm4      #U3U2U1U0 averaged -> (U3U2)(U1U0)=UU1 UU0->mm4
 
-paddd   %mm5, %mm1      #V7V6 -> mm1
-packssdw %mm0, %mm4     #UU3UU2UU1UU0 -> mm4
+	paddd   %mm5, %mm1      #V7V6 -> mm1
+	packssdw %mm0, %mm4     #UU3UU2UU1UU0 -> mm4
 
-psrad   $FIXPSHIFT, %mm1       #32-bit scaled V7V6 -> mm1
-pmaddwd %mm6, %mm4      #UU3UU2UU1UU0 averaged -> UUUU1 UUUU0 -> mm4
+	psrad   $FIXPSHIFT, %mm1       #32-bit scaled V7V6 -> mm1
+	psraw	$1, %mm4 	#divide UU3 UU2 UU1 UU0 by 2 -> mm4
 		
-movq    TEMPV, %mm5     #32-bit scaled V3V2V1V0 -> mm5
-psrad	$2, %mm4 	#divide UUUU1 UUUU0 by 4 -> mm4
+	movq    TEMPV, %mm5     #32-bit scaled V3V2V1V0 -> mm5
 
-pmaddwd %mm6, %mm5	#V3V2V1V0 averaged -> VV1 VV0 -> mm5
-# paddw   %mm7, %mm4      #add offset to U3U2U1U0/256 
-packssdw        %mm1, %mm3      #V7V6V5V4 -> mm3
+	movq	%mm4, (%ecx)    # store U	
 
-packssdw %mm4, %mm4     # UUUU1 UUUU0 -> 16 bit -> mm4
-# paddw   %mm7, %mm4      #add offset to UUUU1 UUUU0/256 
-pmaddwd %mm6, %mm3	#V7V6V5V4 averaged -> VV3 VV2 -> mm3
+	pmaddwd %mm6, %mm5	#V3V2V1V0 averaged -> VV1 VV0 -> mm5
+	packssdw %mm1, %mm3     #V7V6V5V4 -> mm3
 
-packssdw %mm3, %mm5     # VV3 VV2 VV1 VV0 -> mm5
-movd	%mm4,	(%ecx)  #store U	
+	pmaddwd %mm6, %mm3	#V7V6V5V4 averaged -> VV3 VV2 -> mm3
 
-pmaddwd %mm6, %mm5      #V averaged -> VVVV1 VVVV0
-addl    $8, %ebx        #increment Y count
-addl    $4, %ecx        #increment U count
+	packssdw %mm3, %mm5     # VV3 VV2 VV1 VV0 -> mm5
+	psraw	$1, %mm5
 
-psrad	$2, %mm5
+	addl    $8, %ebx        #increment Y count
+	addl    $8, %ecx        #increment U count
 
-packssdw %mm5, %mm5
-# paddw	%mm7, %mm5
-					
-# movq    %mm6, (%ebx)    #store Y
-# packuswb        %mm0, %mm4      #all 8 U values -> mm4
+	movq    %mm5, (%edx)    #store V
 
-# paddw   %mm7, %mm5      #add offset to  V3V2V1V0
-# paddw   %mm7, %mm3      #add offset to  V7V6V5V4
+	addl    $8, %edx        #increment V count
+	
+	decl    %edi            #decrement loop counter
+	jnz     RGBtoYUV        #do 24 more bytes if not 0
 
-# movq    %mm4, (%ecx)    #store U
-# packuswb        %mm3, %mm5      #ALL 8 V values -> mm5
+	popl    %edi
+	popl    %esi
+	popl    %edx
+	popl    %ecx
+	popl    %ebx
+	popl    %eax
+	popl    %ebp
 
-movd    %mm5, (%edx)    #store V
+	ret     $0
 
-decl    %edi            #decrement loop counter
-jnz     RGBtoYUV        #do 24 more bytes if not 0
-
-popl    %edi
-popl    %esi
-popl    %edx
-popl    %ecx
-popl    %ebx
-popl    %eax
-popl    %ebp
-
-ret     $0
-
-#_rgbtoyuv ENDP
 
 

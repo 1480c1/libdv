@@ -373,7 +373,7 @@ void dct_248(dv_coeff_t *block)
   }
 
   for (i=0;i<64;i++)
-	  block_out[i] = temp[i] / factor;
+	  block[i] = temp[i] / factor;
 #else /* BRUTE_FORCE_DCT_248 */
   dct248_aan(block);
   postscale248(block);

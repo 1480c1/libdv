@@ -1,4 +1,28 @@
-# Copyright (C) 1995-99 -  Intel Corporation all rights reserved
+/* 
+ *  dct_block_mmx.S
+ *
+ *     Copyright (C) Peter Schlaile - February 2001
+ *
+ *  This file is part of libdv, a free DV (IEC 61834/SMPTE 314M)
+ *  codec.
+ *
+ *  libdv is free software; you can redistribute it and/or modify it
+ *  under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your
+ *  option) any later version.
+ *   
+ *  libdv is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  General Public License for more details.
+ *   
+ *  You should have received a copy of the GNU General Public License
+ *  along with GNU Make; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *
+ *  The libdv homepage is http://libdv.sourceforge.net/.  
+ */
+
 # esi - input and output data pointer
 # the input data each 16 bit element in the 8x8 matrix is left aligned:
 # the output data is tranposed and each 16 bit element in the 8x8 matrix is left aligned:
