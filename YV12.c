@@ -24,14 +24,9 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
-#include <glib.h>
 #include <stdlib.h>
 
-#include "dv.h"
+#include "dv_types.h"
 #include "YV12.h"
 
 #if ARCH_X86

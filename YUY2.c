@@ -27,14 +27,9 @@
 /* Most of this file is derived from patch 101018 submitted by Stefan
  * Lucke <lucke@berlin.snafu.de> */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
-#include <glib.h>
 #include <stdlib.h>
 
-#include "dv.h"
+#include "dv_types.h"
 #include "YUY2.h"
 
 #if ARCH_X86

@@ -24,12 +24,7 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif // HAVE_CONFIG_H
-
 #include <stdlib.h>
-#include <glib.h>
 #include <stdio.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -37,15 +32,11 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <fcntl.h>
-#if HAVE_LIBPOPT
-#include <popt.h>
-#endif // HAVE_LIBPOPT
 
+#include "dv_types.h"
 #include "dv.h"
 #include "display.h"
 #include "oss.h"
-#include "bitstream.h"
-#include "place.h"
 
 #define DV_PLAYER_OPT_VERSION         0
 #define DV_PLAYER_OPT_DISABLE_AUDIO   1
@@ -260,14 +251,11 @@ main(int argc,char *argv[])
 			 dv_player->decoder->sampling, "playdv", "playdv")) goto no_display;
   } // if
 
-  if(!dv_player->arg_disable_audio) {
-    if(!dv_oss_init(dv_player->decoder->audio, dv_player->oss)) {
-      dv_player->decoder->audio->num_channels = 0;
-    } // if
+  dv_player->arg_disable_audio = 
+    dv_player->arg_disable_audio || (!dv_oss_init(dv_player->decoder->audio, dv_player->oss));
 
-    for(i=0; i < 4; i++) {
-      if(!(audio_buffers[i] = malloc(DV_AUDIO_MAX_SAMPLES*sizeof(gint16)))) goto no_mem;
-    } // for
+  for(i=0; i < 4; i++) {
+    if(!(audio_buffers[i] = malloc(DV_AUDIO_MAX_SAMPLES*sizeof(gint16)))) goto no_mem;
   } // if
 
   gettimeofday(dv_player->tv+0,NULL);

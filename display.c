@@ -27,18 +27,15 @@
 /* Most of this file is derived from patches 101018 and 101136 submitted by
  * Stefan Lucke <lucke@berlin.snafu.de> */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
 
-#include <glib.h>
-#include <math.h>
-#include "dv.h"
-#include "display.h"
-
+#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
+#include <math.h>
+
+#include "dv_types.h"
+#include "util.h"
+#include "display.h"
 
 #if HAVE_LIBXV
 #include <sys/ipc.h>
@@ -480,6 +477,14 @@ dv_display_SDL_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name) {
 
 #endif // HAVE_SDL
 
+static void
+dv_display_exit_handler(int code, void *arg)
+{
+  if(code && arg) {
+    dv_display_exit(arg);
+  } // if
+} // dv_display_exit_handler
+
 
 /* ----------------------------------------------------------------------------
  */
@@ -586,6 +591,7 @@ dv_display_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv, gint width, gin
   fprintf(stderr, " Using gtk for display\n");
 
  ok:
+  on_exit(dv_display_exit_handler, dv_dpy);
   return(TRUE);
 
  fail:

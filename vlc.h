@@ -49,6 +49,10 @@ typedef struct dv_vlc_tab_s {
 } dv_vlc_tab_t;
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern const gint8 *dv_vlc_classes[17];
 extern const gint dv_vlc_class_index_mask[17];
 extern const gint dv_vlc_class_index_rshift[17];
@@ -72,5 +76,9 @@ extern __inline__ void dv_peek_vlc(bitstream_t *bs,gint maxbits, dv_vlc_t *resul
   else
     __dv_decode_vlc(bitstream_show(bs,16),result);
 } // dv_peek_vlc
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // DV_VLC_H

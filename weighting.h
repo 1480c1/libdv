@@ -29,10 +29,18 @@
 
 #include "dv_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void weight_init(void);
 void weight_88(dv_coeff_t *block);
 void weight_248(dv_coeff_t *block);
 void weight_88_inverse(dv_coeff_t *block);
 void weight_248_inverse(dv_coeff_t *block);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // DV_WEIGHTING_H

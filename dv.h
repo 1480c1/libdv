@@ -38,35 +38,15 @@
 extern "C" {
 #endif
 
-#if HAVE_LIBPOPT
-extern inline void
-dv_opt_usage(poptContext con, struct poptOption *opt, gint num)
-{
-  struct poptOption *o = opt + num;
-  if(o->shortName && o->longName) {
-    fprintf(stderr,"-%c, --%s", o->shortName, o->longName);
-  } else if(o->shortName) {
-    fprintf(stderr,"-%c", o->shortName);
-  } else if(o->longName) {
-    fprintf(stderr,"--%s", o->longName);
-  } // if
-  if(o->argDescrip) {
-    fprintf(stderr, "=%s\n", o->argDescrip);
-  } else {
-    fprintf(stderr, ": invalid usage\n");
-  } // else
-  exit(-1);
-} // dv_opt_usage
-#endif // HAVE_LIBPOPT
-
 /* Main API */
-extern dv_decoder_t *dv_decoder_new(void);
-extern void dv_init(dv_decoder_t *dv);
-extern gint dv_parse_header(dv_decoder_t *dv, guchar *buffer);
-extern void dv_decode_full_frame(dv_decoder_t *dv, guchar *buffer, 
-				 dv_color_space_t color_space, guchar **pixels, guint16 *pitches);
-
-extern gint dv_decode_full_audio(dv_decoder_t *dv, guchar *buffer, gint16 **outbufs);
+extern dv_decoder_t *dv_decoder_new      (void);
+extern void          dv_init             (dv_decoder_t *dv);
+extern gint          dv_parse_header     (dv_decoder_t *dv, guchar *buffer);
+extern void          dv_decode_full_frame(dv_decoder_t *dv, 
+					  guchar *buffer, dv_color_space_t color_space, 
+					  guchar **pixels, guint16 *pitches);
+extern gint          dv_decode_full_audio(dv_decoder_t *dv, 
+					  guchar *buffer, gint16 **outbufs);
 
 /* Low level API */
 extern gint dv_parse_video_segment(dv_videosegment_t *seg, guint quality);

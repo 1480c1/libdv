@@ -29,8 +29,15 @@
 
 #include "dv_types.h"
 
-extern dv_video_t *dv_video_new(void);
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-extern void dv_parse_init(void);
+extern dv_video_t *dv_video_new(void);
+extern void        dv_parse_init(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // DV_PARSE_H

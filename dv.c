@@ -6,6 +6,7 @@
 #include <stdlib.h>
 
 #include "dv.h"
+#include "util.h"
 #include "dct.h"
 #include "audio.h"
 #include "idct_248.h"

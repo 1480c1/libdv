@@ -1,3 +1,19 @@
+2001-01-14  Charles 'Buck' Krasic  <krasic@acm.org>
+	* Add command line option interface to playdv, using popt.
+
+	* Add more audio code structure; pre-emphasis, speed detection
+	  (only play normal speed audio).
+
+	* Header file re-structuring.  Move types to new dv_types.h;
+	  enclose declarations in extern "C" for C++ compatibility;
+	  replace leading '_' from preprocessor symbols with 'DV_'
+	  prefix.  
+
+	* Add exit() handler to avoid Sys V shmem leak with Xv.  (Still
+	  have to do SDL, and gtk).
+
+	* Add _GNU_SOURCE define, enabling large (>2GB) file support.
+	
 2001-01-08  Charles 'Buck' Krasic  <krasic@acm.org>
 
 	* Add preliminary support for audio.  New files are audio.[ch]

@@ -43,6 +43,10 @@
  * DV is NTSC or SMPTE PAL.  Older IEC 61834 PAL DV is completely 420
  * sampled, so it is better to convert that to YV12 format.  */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern void dv_YUY2_init(void);
 
 /* scalar versions */
@@ -54,5 +58,9 @@ extern void dv_mb411_right_YUY2(dv_macroblock_t *mb, guchar *pixels, gint pitch)
 extern void dv_mb411_YUY2_mmx(dv_macroblock_t *mb, guchar *pixels, gint pitch);
 extern void dv_mb411_right_YUY2_mmx(dv_macroblock_t *mb, guchar *pixels, gint pitch);
 #endif // ARCH_X86
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // DV_YUY2_H

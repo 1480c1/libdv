@@ -42,6 +42,10 @@
  * DV is IEC 61834 PAL.  SMPTE 314M PAL uses 411, so it is better to
  * upsample that to YUY2.  */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern void dv_YV12_init(void);
 
 /* scalar version */
@@ -51,5 +55,9 @@ extern void dv_mb420_YV12(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches
 /* pentium architecture mmx version */
 extern void dv_mb420_YV12_mmx(dv_macroblock_t *mb, guchar **pixels, guint16 *pitches); 
 #endif // ARCH_X86
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DV_YV12_H */

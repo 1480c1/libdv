@@ -32,7 +32,7 @@
 #endif // HAVE_LIBPOPT
 
 #include <math.h>
-#include "dv.h"
+#include "dv_types.h"
 #include "audio.h"
 
 /*

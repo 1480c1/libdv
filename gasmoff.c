@@ -1,15 +1,8 @@
 
-#include <glib.h>
 #include <stdio.h>
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
+#include "dv_types.h"
 #include "bitstream.h"
-#include "dv.h"
-#include "vlc.h"
-#include "parse.h"
 
 #define offsetof(S, M) \
     ((int)&(((S*)NULL)->M))

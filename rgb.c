@@ -24,13 +24,9 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
 
-#include <glib.h>
 #include <math.h>
-#include "dv.h"
+#include "dv_types.h"
 
 #define COLOR_FRACTION_BITS 10
 #define COLOR_FRACTION_MUL  (1 << COLOR_FRACTION_BITS)

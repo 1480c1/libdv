@@ -1,8 +1,7 @@
 /* 
- *  dct.h
+ *  util.c
  *
- *     Copyright (C) Charles 'Buck' Krasic - April 2000
- *     Copyright (C) Erik Walthinsen - April 2000
+ *     Copyright (C) Charles 'Buck' Krasic - January 2001
  *
  *  This file is part of libdv, a free DV (IEC 61834/SMPTE 314M)
  *  decoder.
@@ -23,31 +22,26 @@
  *
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
- 
-#ifndef DV_DCT_H
-#define DV_DCT_H
 
-#include "dv_types.h"
+#include "util.h"
 
-#define DCT_YUV_PRECISION 2        /* means fixpoint with YUV_PRECISION bits 
-				      after the point (if you change this,
-				      change rgbtoyuv.S accordingly) */
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-void dct_init(void);
-/* Input is transposed ! */
-void dct_88(dv_coeff_t *block, dv_coeff_t * block_out);
-void dct_248(dv_coeff_t *block);
-void idct_88(dv_coeff_t *block);
-#if BRUTE_FORCE_248
-void idct_248(double *block);
-#endif
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif // DV_DCT_H
+#if HAVE_LIBPOPT
+void
+dv_opt_usage(poptContext con, struct poptOption *opt, gint num)
+{
+  struct poptOption *o = opt + num;
+  if(o->shortName && o->longName) {
+    fprintf(stderr,"-%c, --%s", o->shortName, o->longName);
+  } else if(o->shortName) {
+    fprintf(stderr,"-%c", o->shortName);
+  } else if(o->longName) {
+    fprintf(stderr,"--%s", o->longName);
+  } // if
+  if(o->argDescrip) {
+    fprintf(stderr, "=%s\n", o->argDescrip);
+  } else {
+    fprintf(stderr, ": invalid usage\n");
+  } // else
+  exit(-1);
+} // dv_opt_usage
+#endif // HAVE_LIBPOPT

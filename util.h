@@ -1,8 +1,7 @@
 /* 
- *  dct.h
+ *  util.h
  *
- *     Copyright (C) Charles 'Buck' Krasic - April 2000
- *     Copyright (C) Erik Walthinsen - April 2000
+ *     Copyright (C) Charles 'Buck' Krasic - January 2001
  *
  *  This file is part of libdv, a free DV (IEC 61834/SMPTE 314M)
  *  decoder.
@@ -23,31 +22,20 @@
  *
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
- 
-#ifndef DV_DCT_H
-#define DV_DCT_H
+
+#ifndef DV_UTIL_H
+#define DV_UTIL_H
 
 #include "dv_types.h"
-
-#define DCT_YUV_PRECISION 2        /* means fixpoint with YUV_PRECISION bits 
-				      after the point (if you change this,
-				      change rgbtoyuv.S accordingly) */
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void dct_init(void);
-/* Input is transposed ! */
-void dct_88(dv_coeff_t *block, dv_coeff_t * block_out);
-void dct_248(dv_coeff_t *block);
-void idct_88(dv_coeff_t *block);
-#if BRUTE_FORCE_248
-void idct_248(double *block);
-#endif
+extern void dv_opt_usage(poptContext con, struct poptOption *opt, gint num);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // DV_DCT_H
+#endif // DV_UTIL_H

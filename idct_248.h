@@ -29,7 +29,15 @@
 
 #include "dv_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern void dv_dct_248_init(void);
 extern void dv_idct_248(dv_248_coeff_t *x248);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // IDCT_248_H
