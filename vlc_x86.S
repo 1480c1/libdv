@@ -495,7 +495,7 @@ blkloop:
 
 	addl	$dv_block_t_size,%ebp
 	incl	%ebx
-	cmpl	$4,%ebx
+	cmpl	$6,%ebx
 	jnz	blkloop
 
 	movl	m,%eax
@@ -511,9 +511,6 @@ blkloop:
 	popl	%edi
 	popl	%ebx
 
-	movl	$0,%eax
-	ret
-	
 	emms
 
 	jmp	dv_parse_ac_coeffs	
