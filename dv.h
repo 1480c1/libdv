@@ -41,6 +41,12 @@
 #define DV_FSC_0         (0)
 #define DV_FSC_1         (1)
 
+#if USE_MMX_ASM
+#define DV_WEIGHT_BIAS	 6
+#else
+#define DV_WEIGHT_BIAS	 0
+#endif
+
 typedef enum sample_s { 
   e_dv_sample_411,
     e_dv_sample_420,

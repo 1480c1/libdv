@@ -19,6 +19,8 @@ and shifting all the appropriate array elements.
 	
 */
 
+#define DV_WEIGHT_BIAS	 6
+	
 /*
 void quant_88_inverse(dv_coeff_t *block,int qno,int class)
 */
@@ -52,6 +54,7 @@ quant_88_inverse:
 	subl	$3,%ebx		/* -3  -2  -1   0 */
 	sarl	$31,%ebx	/* -1  -1  -1   0 */
 	incl	%ebx		/*  0   0   0   1 */
+	addl	$DV_WEIGHT_BIAS,%ebx
 				/* ebx is extra */
 
 	movl	ARGn(0),%esi	/* esi is block */
@@ -63,6 +66,9 @@ quant_88_inverse:
 #define ADDR(row,col)	(2*(8*row+col))(%esi)
 #define MSHIFT(row,col)	\
 	shlw	%cl,ADDR(row,col)
+
+	movl	$DV_WEIGHT_BIAS,%ecx
+	MSHIFT(0,0)
 	
 	/* 0 */
 	movzbl	(%edx),%ecx
