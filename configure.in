@@ -54,29 +54,41 @@ fi
 AM_CONDITIONAL(HOST_X86, $arch_x86)
 
 dnl Checks for libraries.
-AM_PATH_GLIB(,
-[
-	AC_DEFINE(HAVE_GLIB)
-	LIBS="$LIBS $GLIB_LIBS"
-	CFLAGS="$CFLAGS $GLIB_CFLAGS"
-],
-[
-	AC_MSG_ERROR([No glib. Bad. Go get it.])
+
+ifdef([AM_PATH_GLIB],[
+	AM_PATH_GLIB(,
+	[
+		AC_DEFINE(HAVE_GLIB)
+		LIBS="$LIBS $GLIB_LIBS"
+		CFLAGS="$CFLAGS $GLIB_CFLAGS"
+	],
+	[
+		AC_MSG_ERROR([No glib. Bad.  Get it at:  http://www.gtk.org/.])
+	])
+],[
+	AC_MSG_ERROR([No glib. Bad. Get it at:  http://www.gtk.org/])
 ])
-AM_PATH_GTK(,
-[
-	AC_DEFINE(HAVE_GTK)
-	LIBS="$LIBS $GTK_LIBS"
-	CFLAGS="$CFLAGS $GTK_CFLAGS"
+
+ifdef([AM_PATH_GTK],[
+	AM_PATH_GTK(,
+	[
+		AC_DEFINE(HAVE_GTK)
+		LIBS="$LIBS $GTK_LIBS"
+		CFLAGS="$CFLAGS $GTK_CFLAGS"
+	])
 ])
-if $use_sdl; then
-      AM_PATH_SDL(1.1.6,
-      [
-              AC_DEFINE(HAVE_SDL)
-              LIBS="$LIBS $SDL_LIBS"
-              CFLAGS="$CFLAGS $SDL_CFLAGS"
-      ])
-fi
+
+ifdef([AM_PATH_SDL],[
+	if $use_sdl; then
+      		AM_PATH_SDL(1.1.6,
+		 [
+	              AC_DEFINE(HAVE_SDL)
+	              LIBS="$LIBS $SDL_LIBS"
+	              CFLAGS="$CFLAGS $SDL_CFLAGS"
+		 ])
+	fi
+])
+
 if $use_xv; then
       AC_CHECK_LIB(Xv,XvQueryAdaptors,)
 fi
