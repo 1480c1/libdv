@@ -39,6 +39,9 @@ AH_TEMPLATE([DEBUG],
 AH_TEMPLATE([HAVE_SDL], 
 	    [Define as 1 if you have libsdl])
 
+AH_TEMPLATE([HAVE_GTK], 
+	    [Define as 1 if you have gtk])
+
 AH_TEMPLATE([HAVE_LIBXV],
             [Define if you have the `Xv' library (-lXv).])
 
@@ -62,6 +65,14 @@ AC_ARG_ENABLE(sdl,
 [  --enable-sdl            enable use of SDL for display],
 [     if test "$enableval" = "yes"; then
                use_sdl=:
+       fi
+])
+
+use_gtk=:
+AC_ARG_ENABLE(gtk,
+[  --disable-gtk           disable use of gtk for display],
+[     if test "$enableval" = "no"; then
+               use_gtk=false
        fi
 ])
 
@@ -157,6 +168,13 @@ if $use_sdl; then
 		LIBS="$LIBS $SDL_LIBS" 
 		CFLAGS="$CFLAGS $SDL_CFLAGS"
  	])
+fi
+
+if $use_gtk; then
+	AM_PATH_GTK(1.2.4,
+	[
+		AC_DEFINE(HAVE_GTK)
+	])
 fi
 
 if $use_xv; then

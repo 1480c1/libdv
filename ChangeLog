@@ -1,3 +1,6 @@
+2002-05-23  Stefan Lucke <Stefan.Lucke1@epost.de>
+	* bugfix for #440048, compile playdv with gtk support
+
 2002-05-22  Stefan Lucke <Stefan.Lucke1@epost.de>
 	* added clamping for rgb render too. (green speckle bug)
 
