@@ -201,6 +201,15 @@ dnl
 AC_SUBST(PTHREAD_LIBS)
 AC_CHECK_LIB(pthread, pthread_create, [ PTHREAD_LIBS="-lpthread" ],,)
 
+OS_ARCH=`uname -s | sed -e 's|/|_|g'`
+# FreeBSD and OpenBSD have neither -lpthread nor integrated pthreads in libc.
+# Instead -pthread is used to the compiler/linker to get pthreads working right.
+if test x$OS_ARCH = xFreeBSD -o x$OS_ARCH = xOpenBSD; then
+   CFLAGS="$CFLAGS -pthread"
+   CXXFLAGS="$CXXFLAGS -pthread"
+fi
+
+
 AC_CHECK_LIB(m, sqrt)
 
 dnl Don't bother with popt on non-gcc build, because we make heavy use of 

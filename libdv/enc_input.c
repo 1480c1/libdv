@@ -256,7 +256,7 @@ static void finish_mb_mmx(dv_macroblock_t* mb)
 
 static int read_ppm_stream(FILE* f, int * isPAL, int * height_)
 {
-	int height, width;
+	int height, width, depth = 0;
 	char line[200];
 	fgets(line, sizeof(line), f);
 	if (feof(f)) {
@@ -265,7 +265,7 @@ static int read_ppm_stream(FILE* f, int * isPAL, int * height_)
 	do {
 		fgets(line, sizeof(line), f); /* P6 */
 	} while ((line[0] == '#'||(line[0] == '\n')) && !feof(f));
-	if (sscanf(line, "%d %d\n", &width, &height) != 2) {
+	if (sscanf(line, "%d %d %d\n", &width, &height, &depth) < 2) {
 		fprintf(stderr, "Bad PPM file!\n");
 		return -1;
 	}
@@ -278,7 +278,8 @@ static int read_ppm_stream(FILE* f, int * isPAL, int * height_)
 			width, height);
 		return -1;
 	}
-	fgets(line, sizeof(line), f);	/* 255 */
+	if (depth == 0)
+		fgets(line, sizeof(line), f);	/* 255 */
 	
 	fread(readbuf, 1, 3 * DV_WIDTH * height, f);
 
@@ -1375,4 +1376,3 @@ void _dv_ycb_fill_macroblock(dv_encoder_t *dv_enc, dv_macroblock_t *mb)
 	emms();
 #endif
 }
-

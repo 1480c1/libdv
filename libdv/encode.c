@@ -47,6 +47,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <pthread.h>
 
 #include "dv.h"
 #include "encode.h"
@@ -1707,6 +1708,7 @@ int dv_encode_full_frame(dv_encoder_t *dv_enc, uint8_t **in,
 	uint8_t *target = out;
 	time_t now;
 	now = time(NULL);
+	static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 	
 	if (dv_enc->vlc_encode_passes < 1 || dv_enc->vlc_encode_passes > 3)
 		dv_enc->vlc_encode_passes = 3;
@@ -1717,6 +1719,7 @@ int dv_encode_full_frame(dv_encoder_t *dv_enc, uint8_t **in,
 
 	memset(out, 0, 480 * (dv_enc->isPAL ? 300 : 250));
 
+	pthread_mutex_lock(&mutex);
 	switch (color_space) {
 	case e_dv_color_rgb:
 		dv_enc_rgb_to_ycb(in[0], (dv_enc->isPAL ? DV_PAL_HEIGHT : DV_NTSC_HEIGHT),
@@ -1732,6 +1735,7 @@ int dv_encode_full_frame(dv_encoder_t *dv_enc, uint8_t **in,
 	default:
 		fprintf(stderr, "Invalid value for color_space "
 			"specified: %d!\n", (int) color_space);
+		pthread_mutex_unlock(&mutex);
 		return -1;
 	}
 	
@@ -1794,6 +1798,7 @@ int dv_encode_full_frame(dv_encoder_t *dv_enc, uint8_t **in,
 
 			if (dv_encode_videosegment(dv_enc, &videoseg, target + offset) < 0) {
 				fprintf(stderr, "Enocder failed to process video segment.");
+				pthread_mutex_unlock(&mutex);
 				return -1;
 			}
 			
@@ -1802,6 +1807,8 @@ int dv_encode_full_frame(dv_encoder_t *dv_enc, uint8_t **in,
 	} 
 	
 	_dv_write_meta_data(target, dv_enc->frame_count++, dv_enc->isPAL, dv_enc->is16x9, &now);
+
+	pthread_mutex_unlock(&mutex);
 
 	return 0;
 }
@@ -1929,4 +1936,3 @@ int dv_calculate_samples( dv_encoder_t *encoder, int frequency, int frame_count 
 
 	return samples;
 }
-

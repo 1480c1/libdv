@@ -1,3 +1,10 @@
+2004-07-05  Dan Dennedy <dan@dennedy.org>
+	* libdv/encode.c: apply patch from Johannes Sixt to make encoder thread-safe
+	  by mutex locks.
+	* added libdv/enctest.c to test thread-safetiness of encoder (also from
+	  Johannes Sixt).
+	* libdv/enc_input.c: make ppm reader more compatible (specifically y4m2ppm).
+
 2004-06-10  Dan Dennedy <dan@dennedy.org>
 	* libdv/dv.c: apply patch from Johannes Sixt to fix race condition and bug
 	  using deallocated memory.
