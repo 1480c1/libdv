@@ -183,7 +183,7 @@ dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, guchar **p
 
 #else // USE_MMX_ASM
 
-statinc inline void
+static inline void
 dv_render_macroblock_yuv(dv_decoder_t *dv, dv_macroblock_t *mb, guchar **pixels, guint16 *pitches) {
   if(dv->sampling == e_dv_sample_411) {
     if(mb->x >= 704) {
