@@ -73,6 +73,7 @@ int main(int argc,char *argv[]) {
   static gint8 cb_frame[180*576]    __attribute__ ((aligned (64)));
   static dv_videosegment_t videoseg __attribute__ ((aligned (64)));
   FILE *f;
+  dv_sample_t sampling;
   gboolean isPAL = 0;
   gboolean is61834 = 0;
   gboolean displayinit = FALSE;
@@ -115,6 +116,10 @@ int main(int argc,char *argv[]) {
     if (fread(vsbuffer,sizeof(vsbuffer),1,f)<1) break;
     isPAL = vsbuffer[3] & 0x80;
     is61834 = vsbuffer[3] & 0x01;
+    if(isPAL && is61834)
+      sampling = e_dv_sample_420;
+    else
+      sampling = e_dv_sample_411;
 //    printf("video is %s-compliant %s\n",
 //           is61834?"IEC61834":"SMPTE314M",isPAL?"PAL":"NTSC");
     numDIFseq = isPAL ? 12 : 10;
@@ -183,7 +188,10 @@ int main(int argc,char *argv[]) {
 	      idct_88(bl->coeffs);
 	    } // else
 	  } // for b
-	  dv_place_macroblock(mb,y_frame,cr_frame,cb_frame,isPAL);
+	  if(sampling == e_dv_sample_411)
+	    dv_place_411_macroblock(mb,y_frame,cr_frame,cb_frame);
+	  else
+	    dv_place_420_macroblock(mb,y_frame,cr_frame,cb_frame);
         } // for mb
 	dif+=5;
       } // for s

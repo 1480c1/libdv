@@ -1,10 +1,15 @@
+2000-04-20  Charles 'Buck' Krasic  <krasic@acm.org>
+
+	* Add initial macroblock placement for 4:2:0 (IEC61834).  Initial
+ 	  test shows luma is OK, but color isn't working correctly.
+ 
+2000-04-19  Erik Walthinnsen (Omega)  <omega@cse.ogi.edu>
+
+	* Added rudimentary PAL decoding, as well as a way to
+ 	  differentiate between IEC61834 and SMPTE314M video, which is
+ 	  critical for dealing with PAL data.
+
 2000-04-18  Charles 'Buck' Krasic  <krasic@acm.org>
 
 	* Version 0.1 - first release at libdv.sourceforge.net
-
-2000-04-19  Erik Walthinnsen (Omega)  <omega@cse.ogi.edu>
-
-	* Added rudimentary PAL decoding, as well as a way todifferentiate
-	  between IEC61834 and SMPTE314M video, which is critical for
-	  dealing with PAL data.
 

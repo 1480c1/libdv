@@ -41,6 +41,12 @@
 #define DV_FSC_0         (0)
 #define DV_FSC_1         (1)
 
+typedef enum sample_s { 
+  e_dv_sample_411,
+    e_dv_sample_420,
+    e_dv_sample_422,
+} dv_sample_t;
+
 typedef gint16 dv_coeff_t;
 
 typedef struct dv_block_s {

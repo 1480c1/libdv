@@ -30,8 +30,10 @@
 #include "dv.h"
 
 void dv_place_init(void);
-void dv_place_macroblock(dv_macroblock_t *mb,guint8 *y_frame,
-                         guint8 *cr_frame,guint8 *cb_frame,
-                         gboolean isPAL);
+void dv_place_411_macroblock(dv_macroblock_t *mb,guint8 *y_frame,
+			     guint8 *cr_frame,guint8 *cb_frame);
+
+void dv_place_420_macroblock(dv_macroblock_t *mb,guint8 *y_frame,
+			     guint8 *cr_frame,guint8 *cb_frame);
 
 #endif // __PLACE_H__

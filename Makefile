@@ -1,8 +1,8 @@
 CPPFLAGS += -I. $(shell glib-config --cflags) $(shell gtk-config --cflags) 
 #CFLAGS += -mcpu=i686 -pg -O6 -funroll-all-loops -Wall  $(CPPFLAGS) # for regular profiling with gprof
 #CFLAGS += -mcpu=i686 -g -pg -ax -O6 -funroll-all-loops -Wall  $(CPPFLAGS) # for line by line profiling with gprof
-CFLAGS += -mcpu=i686 -s -O6 -funroll-all-loops -Wall  $(CPPFLAGS) # for maximum speed
-#CFLAGS += -mcpu=i686 -g -O -Wall  $(CPPFLAGS) # for debugging
+#CFLAGS += -mcpu=i686 -s -O6 -funroll-all-loops -Wall  $(CPPFLAGS) # for maximum speed
+CFLAGS += -mcpu=i686 -g -O -Wall  $(CPPFLAGS) # for debugging
 LDFLAGS += $(shell glib-config --libs) $(shell gtk-config --libs) -lm
 
 sources = playdv.c dct.c weighting.c quant.c vlc.c place.c parse.c bitstream.c ycrcb_to_rgb32.c
