@@ -62,7 +62,7 @@ int main(int argc, const char** argv)
 	time_t t = time(NULL);
 
 	while (read_frame(stdin, frame_buf, &isPAL)) {
-		write_info_blocks(frame_buf, frame_count++, isPAL, &t);
+		write_meta_data(frame_buf, frame_count++, isPAL, &t);
 		fwrite(frame_buf, 1, isPAL ? 144000 : 120000, stdout);
 	}
 	return 0;

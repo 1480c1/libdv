@@ -25,7 +25,6 @@
 
 #include "headers.h"
 #include <stdlib.h>
-#include <string.h>
 
 static void write_header_block(unsigned char* target, int ds, int isPAL)
 {
@@ -230,8 +229,7 @@ static void write_audio_headers(unsigned char* target, int frame, int ds)
 }
 
 
-void write_info_blocks(unsigned char* target, int frame, int isPAL,
-		       time_t * now)
+void write_meta_data(unsigned char* target, int frame, int isPAL, time_t * now)
 {
 	int numDIFseq;
 	int ds;
