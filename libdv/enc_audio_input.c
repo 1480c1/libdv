@@ -250,7 +250,7 @@ void wav_finish()
 int wav_load(dv_enc_audio_info_t * audio_info, int isPAL)
 {
 	int rval;
-	unsigned char data[1920 * 2 * 2];
+	unsigned char data[DV_AUDIO_MAX_SAMPLES * 2 * 2];
 
 	bytesperframe(audio_info, isPAL);
 
@@ -352,7 +352,7 @@ static void dsp_finish()
 static int dsp_load(dv_enc_audio_info_t * audio_info, int isPAL)
 {
 	int rval;
-	unsigned char data[1920 * 2 * 2];
+	unsigned char data[DV_AUDIO_MAX_SAMPLES * 2 * 2];
 	int wanted = audio_info->bytesperframe * dsp_bytes_per_sample / 4;
 
 	bytesperframe(audio_info, isPAL);

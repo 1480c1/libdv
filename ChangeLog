@@ -1,3 +1,8 @@
+2002-10-24  Dan Dennedy <dan@dennedy.org>
+	* enc_audio_input.[ch]: bugfix audio encoding due to change in
+	  max audio samples constant. Increase internal audio buffers to 
+	  4 channels to plan for future enhancement.
+
 2002-09-03  Dan Dennedy <dan@dennedy.org>
 	* bugfix to ignore ntsc setup option for PAL in lib encoder.
 
