@@ -61,7 +61,7 @@ void bitstream_next_buffer(bitstream_t * bs);
 void bitstream_new_buffer(bitstream_t *bs,guint8 *buf,guint32 len);
 void bitstream_byte_align(bitstream_t *bs);
 
-static inline void bitstream_next_word(bitstream_t *bs) {
+static void bitstream_next_word(bitstream_t *bs) {
   guint32 diff = bs->buflen - bs->bufoffset;
 
   if (diff == 0)
@@ -127,7 +127,7 @@ void static inline bitstream_flush_bh(bitstream_t *bs,guint32 num_bits) {
 
 static inline guint32 bitstream_show(bitstream_t * bs, guint32 num_bits) {
   if (num_bits <= bs->bits_left)
-    return (bs->current_word << (32 - bs->bits_left)) >> (32 - num_bits);
+    return (bs->current_word >> (bs->bits_left - num_bits));
 
   return bitstream_show_bh(bs,num_bits);
 }

@@ -30,15 +30,15 @@
 #include <glib.h>
 #include "bitstream.h"
 
-#define INLINE_DECODE_VLC 1
+#define USE_ASM_FOR_VLC 1
 
 #define VLC_NOBITS (-1)
 #define VLC_ERROR (-2)
 
 typedef struct dv_vlc_s {
-  gint run;
-  gint len;
-  gint amp;
+  gint8 run;
+  gint8 len;
+  gint16 amp;
 } dv_vlc_t;
 
 #if 1
@@ -51,7 +51,7 @@ typedef struct dv_vlc_tab_s {
 } dv_vlc_tab_t;
 #endif
 
-extern const gint *dv_vlc_classes[17];
+extern const gint8 *dv_vlc_classes[17];
 extern const gint dv_vlc_class_index_mask[17];
 extern const gint dv_vlc_class_index_rshift[17];
 extern const dv_vlc_tab_t dv_vlc_broken[1];
