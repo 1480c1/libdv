@@ -8,7 +8,7 @@ AUX_DIST                  = $(ac_aux_dir)/config.guess \
 AUX_DIST_EXTRA		  = $(ac_aux_dir)/ac_c_bigendian_cross.m4 \
                                    $(ac_aux_dir)/README
  
-EXTRA_DIST                = bootstrap
+EXTRA_DIST                = bootstrap COPYRIGHT
 
 MAINTAINERCLEANFILES      = Makefile.in aclocal.m4 configure config.h.in \
                             stamp-h.in $(AUX_DIST)
@@ -16,10 +16,10 @@ MAINTAINERCLEANFILES      = Makefile.in aclocal.m4 configure config.h.in \
 CLEANFILES                = asmoff.h $(EXTRA_PROGRAMS)
 
 lib_LTLIBRARIES= libdv.la
-bin_PROGRAMS= playdv
+bin_PROGRAMS= playdv encode
 
 BUILT_SOURCES = asmoff.h
-EXTRA_PROGRAMS= dovlc testvlc testbitstream encode gasmoff
+EXTRA_PROGRAMS= dovlc testvlc testbitstream gasmoff
 
 #
 # If HOST_X86 is set, we build all the x86 asm stuff..
@@ -64,6 +64,11 @@ testbitstream_SOURCES= testbitstream.c bitstream.c bitstream.h
 
 encode_SOURCES= encode.c 
 encode_LDADD= libdv.la
+
+rpm: @PACKAGE@.spec
+	make dist
+	mv @PACKAGE@-@VERSION@.tar.gz `rpm --eval %{_sourcedir}`
+	rpm -ba @PACKAGE@.spec
 
 dist-hook:
 	(cd $(distdir) && mkdir $(ac_aux_dir))

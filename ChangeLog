@@ -1,3 +1,9 @@
+2001-01-18  Charles 'Buck' Krasic  <krasic@acm.org>
+
+	* Create a rpm .spec.in file.  configure generates the .spec.
+	  Makefile.am has a rpm target.  Update the README.  Add a debug
+	  option to configure to control "-g" in CFLAGS.
+
 2001-01-16  Charles 'Buck' Krasic  <krasic@acm.org>
 
 	* Add alternate definitions of bitfield structs for architectures

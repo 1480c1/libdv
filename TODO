@@ -1,7 +1,3 @@
-Major features:
-  - PAL
-  - Audio
-
 
 Performance:
 
@@ -36,15 +32,8 @@ Performance:
           mmx registers for getbits state for the entire duration of parsing a video segment
              - note that bitstream state is re-initialized everytime we start a new video segment
 
-   - put in decent C version of idct, especially 248
-        - C version will let us eliminite last vestage of floating point math
-        - mmx version of 248 idct
+ - mmx version of 248 idct
 
-  - efficient interfaces to display (XShm, DGA, Xv)
-       - what about TV --> computer display sync?
-
-  - hardware assist where available?  (ATI 88 idct, full-screen scaling?)
-  
   - tune cache footprint: access input and output withouth polluting L1
 
   - get everything working in Windows and use VTune to analyze and

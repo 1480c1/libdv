@@ -35,4 +35,7 @@
 /* See glibc documentation.  This gives us large file support (LFS) */
 #define _GNU_SOURCE 0
 
+/* Define to indicate DEBUGGING is enabled possibly with a level */
+#define DEBUG 0
+
 #endif // DV_ACCONFIG_H
