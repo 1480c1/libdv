@@ -1,3 +1,9 @@
+2002-05-21  Stefan Lucke <Stefan.Lucke1@epost.de>
+	* avoid remaining shared memory segment after playdv crash
+	* avoid decoder crash (bug #231580, #558590 etc.). There are some
+	  viewable decoding errors now.
+	* new clamping for NTSC Xv mmx + half high render.
+
 2002-05-19  Stefan Lucke <Stefan.Lucke1@epost.de>
 	* new clamping and addtitional half high renderer of PAL Xv mmx.
 	* modified format of audio error reporting
