@@ -1,5 +1,5 @@
 /* 
- *  headers.h
+ *  enc_output
  *
  *     Copyright (C) Peter Schlaile - Feb 2001
  *
@@ -23,20 +23,34 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
  
-#ifndef DV_HEADERS_H
-#define DV_HEADERS_H
+#ifndef DV_ENC_OUTPUT_H
+#define DV_ENC_OUTPUT_H
 
-#include <sys/time.h>
+#include <time.h>
+#include "enc_audio_input.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+	#define DV_ENC_MAX_OUTPUT_FILTERS     32
 
-extern void write_meta_data(unsigned char* target, int frame, int isPAL,
-			    time_t * now);
+	typedef struct dv_enc_output_filter_s {
+		int (*init)();
+		void (*finish)();
+		int (*store)(unsigned char* encoded_data, 
+			     dv_enc_audio_info_t* audio_data,/* may be null */
+			     int isPAL, time_t now);
+
+		const char* filter_name;
+	} dv_enc_output_filter_t;
+
+	extern void dv_enc_register_output_filter(dv_enc_output_filter_t 
+						  filter);
+	extern int get_dv_enc_output_filters(dv_enc_output_filter_t ** filters,
+					     int * count);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // DV_HEADERS_H
+#endif // DV_ENC_OUTPUT_H

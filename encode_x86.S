@@ -27,10 +27,221 @@
 #define DV_WIDTH_2	720
 
 .data
-ALLONE:	.word 1,1,1,1
-	
+ALLONE:		.word 1,1,1,1
+VLCADDMASK:	.byte 255,0,0,0,255,0,0,0
+		
 .text
 
+.global vlc_encode_block_mmx
+vlc_encode_block_mmx:	
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	pushl	%ebp
+
+	xorl	%eax, %eax
+	xorl	%edx, %edx
+	movl	4+4*4(%esp), %edi                # src
+	movl	4+4*4+4(%esp), %edx              # &dst
+	movl	(%edx), %edx
+	addl	$2, %edi
+
+	movl	$63, %ecx
+
+	movl	vlc_encode_lookup, %esi
+
+	pxor	%mm0, %mm0
+	pxor	%mm2, %mm2
+	movq	VLCADDMASK, %mm1
+	xorl	%ebp, %ebp
+	subl	$8, %edx
+vlc_encode_block_mmx_loop:
+	pand	%mm1, %mm0
+	movw	(%edi), %ax
+	addl	$8, %edx
+	paddd	%mm0, %mm2
+	cmpw	$0, %ax
+	jz	vlc_encode_block_amp_zero
+	addw	$255, %ax
+	addl	$2, %edi
+	movq	(%esi, %eax, 8), %mm0
+	movq	%mm0, (%edx)
+	decl	%ecx
+	jnz	vlc_encode_block_mmx_loop
+	pand	%mm1, %mm0
+	paddd	%mm0, %mm2
+	jmp     vlc_encode_block_out
+	
+vlc_encode_block_amp_zero:
+        movl    %ecx, %ebp
+        incl    %ecx
+        repz    scasw
+        jecxz   vlc_encode_block_out
+        movw    -2(%edi), %ax
+        subl    %ecx, %ebp
+	addw	$255, %ax
+        shll    $9, %ebp
+	orl	%ebp, %eax
+	
+	movq	(%esi, %eax, 8), %mm0
+	movq	%mm0, (%edx)
+	
+	decl	%ecx
+	jnz	vlc_encode_block_mmx_loop
+
+	pand	%mm1, %mm0
+	paddd	%mm0, %mm2
+	
+vlc_encode_block_out:
+	movq	%mm2, %mm0
+	psrlq	$32, %mm0
+	paddd	%mm0, %mm2
+
+	movl	4+4*4+4(%esp), %ebx
+	movl	%edx, (%ebx)
+	
+	movd	%mm2, %eax
+	
+	popl	%ebp
+	popl	%edi	
+	popl	%esi
+	popl	%ebx
+	ret	
+
+.global vlc_num_bits_block_x86
+vlc_num_bits_block_x86:	
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	pushl	%ebp
+
+	xorl	%eax, %eax
+	xorl	%edx, %edx
+	xorl	%ebx, %ebx
+	xorl	%ebp, %ebp
+	
+	movl	4+4*4(%esp), %edi                # src
+	addl	$2, %edi
+
+	movl	$63, %ecx
+	movl	vlc_num_bits_lookup, %esi
+	
+vlc_num_bits_block_x86_loop:
+	movw	(%edi), %ax
+	addl	%ebx, %edx
+	cmpw	$0, %ax
+	jz	vlc_num_bits_block_amp_zero
+	addw	$255, %ax
+	addl	$2, %edi
+	movb	(%esi, %eax), %bl
+	
+	decl	%ecx
+	jnz	vlc_num_bits_block_x86_loop
+	addl	%ebx, %edx
+	jmp	vlc_num_bits_block_out
+	
+vlc_num_bits_block_amp_zero:
+        movl    %ecx, %ebp
+        incl    %ecx
+        repz    scasw
+        jecxz   vlc_num_bits_block_out
+	
+        subl    %ecx, %ebp
+        movw    -2(%edi), %ax
+        shll    $9, %ebp
+	addw	$255, %ax
+	orl	%ebp, %eax
+	movb	(%esi, %eax), %bl
+	
+	decl	%ecx
+	jnz	vlc_num_bits_block_x86_loop
+	addl	%ebx, %edx
+	
+vlc_num_bits_block_out:
+	movl	%edx, %eax
+		
+	popl	%ebp
+	popl	%edi	
+	popl	%esi
+	popl	%ebx
+	ret	
+
+.global vlc_encode_block_pass_1_x86	
+vlc_encode_block_pass_1_x86:	
+	pushl	%ebx
+	pushl	%esi
+	pushl	%edi
+	pushl	%ebp
+
+	subl	$4, %esp
+	
+	movl	1*4+5*4(%esp), %esi                # start
+	movl	(%esi), %esi
+	movl	2*4+5*4(%esp), %edi		   # end
+	movl	3*4+5*4(%esp), %eax                # bit_budget
+	movl	(%eax), %eax
+	movl	%eax, (%esp)
+	movl	4*4+5*4(%esp), %ebp		   # bit_offset
+	movl	(%ebp), %ebp
+	/*      5*4+5*4(%esp)                      # vsbuffer */
+	xorl	%ecx, %ecx
+	xorl	%edx, %edx
+	
+vlc_encode_block_pass_1_x86_loop:	
+	lodsl
+	movb	%al, %cl
+	
+	subl	%ecx, (%esp)             # bit_budget -= len
+	jl	vlc_encode_block_pass1_x86_out
+
+	movl	%ebp, %ebx               # bit_offset
+	negl	%ecx                     # -len
+	
+	andl	$7, %ebx                 # bit_offset & 7
+	addl	$32, %ecx                # 32-len
+	
+	movb	%al, %dl                 # len
+	subl	%ebx, %ecx               # 32-len-(bit_offset & 7)
+	
+	shrl	$8, %eax                 # value
+	movl	%ebp, %ebx               # bit_offset
+	
+	shll	%cl, %eax                # value <<= 32-len-(bit_offset & 7)
+	shrl	$3, %ebx                 # bit_offset >> 3
+	
+	bswap	%eax
+	addl	5*4+5*4(%esp), %ebx      # vsbuffer + bit_offset >> 3
+	
+	addl	%edx, %ebp               # bit_offset += len
+	orl	%eax, (%ebx)             # store value
+		
+	cmpl	%esi, %edi
+	jnz	vlc_encode_block_pass_1_x86_loop
+	
+	xorl	%ecx, %ecx
+	addl	$4, %esi
+	
+vlc_encode_block_pass1_x86_out:
+	subl	$4, %esi
+	addl	(%esp), %ecx            # bit_budget
+
+	movl	1*4+5*4(%esp), %eax     # start
+	movl	%esi, (%eax)
+	
+	movl	3*4+5*4(%esp), %eax     # bit_budget
+	movl	%ecx, (%eax)
+
+	movl	4*4+5*4(%esp), %eax     # bit_offset
+	movl	%ebp, (%eax)
+
+	addl	$4, %esp
+	
+	popl	%ebp	
+	popl	%edi
+	popl	%esi	
+	popl	%ebx	
+	ret		
+		
 .global classify_mmx
 classify_mmx:
 

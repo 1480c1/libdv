@@ -1,5 +1,5 @@
 /* 
- *  headers.h
+ *  encode.h
  *
  *     Copyright (C) Peter Schlaile - Feb 2001
  *
@@ -23,20 +23,17 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
  
-#ifndef DV_HEADERS_H
-#define DV_HEADERS_H
+#ifndef DV_ENCODE_H
+#define DV_ENCODE_H
 
-#include <sys/time.h>
+#include "dct.h"
 
-#ifdef __cplusplus
-extern "C" {
+#define DV_WIDTH       720
+#define DV_PAL_HEIGHT  576
+#define DV_NTSC_HEIGHT 480
+
+/* FIXME: Just guessed! */
+#define DCT_248_THRESHOLD ((8 * 8 * 8) << DCT_YUV_PRECISION)
+#define DCT_248_THRESMASK ((~63)       << DCT_YUV_PRECISION)
+
 #endif
-
-extern void write_meta_data(unsigned char* target, int frame, int isPAL,
-			    time_t * now);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif // DV_HEADERS_H

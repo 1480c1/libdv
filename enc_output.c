@@ -1,7 +1,7 @@
 /* 
- *  insert_audio.c
+ *  enc_output_filters
  *
- *     Copyright (C) Peter Schlaile - January 2001
+ *     Copyright (C) Peter Schlaile - Feb 2001
  *
  *  This file is part of libdv, a free DV (IEC 61834/SMPTE 314M)
  *  codec.
@@ -22,181 +22,24 @@
  *
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
-
-#include <dv_types.h>
-
+ 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
-#include <assert.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <time.h>
 
-#include "headers.h"
 #include "enc_audio_input.h"
+#include "enc_output.h"
+#include "headers.h"
 
-struct audio_info {
-	int channels;
-	int frequency;
-	int bitspersample;
-	int bytespersecond;
-	int bytealignment;
-};
 
-unsigned long read_long(FILE* in_wav)
+static int raw_init()
 {
-	unsigned char buf[4];
-
-	if (fread(buf, 1, 4, in_wav) != 4) {
-		fprintf(stderr, "WAV: Short read!\n");
-		exit(-1);
-	}
-
-	return buf[0] + (buf[1] << 8) + (buf[2] << 16) + (buf[3] << 24);
+	return 0;
 }
 
-unsigned long read_short(FILE* in_wav)
+static void raw_finish()
 {
-	unsigned char buf[2];
-	if (fread(buf, 1, 2, in_wav) != 2) {
-		fprintf(stderr, "WAV: Short read!\n");
-		exit(-1);
-	}
 
-	return buf[0] + (buf[1] << 8);
-}
-
-void read_header(FILE* in_wav, char* header)
-{
-	unsigned char buf[4];
-
-	if (fread(buf, 1, 4, in_wav) != 4) {
-		fprintf(stderr, "WAV: Short read!\n");
-		exit(-1);
-	}
-
-	if (memcmp(buf, header, 4) != 0) {
-		fprintf(stderr, "WAV: No %s header!\n", header);
-		exit(-1);
-	}
-}
-
-struct audio_info parse_wave_header(FILE* in_wav)
-{
-	struct audio_info res;
-	unsigned char fmt_header_junk[1024];
-	int header_len;
-
-	read_header(in_wav, "RIFF");
-	read_long(in_wav); /* ignore length, this is important,
-			      since stream generated wavs do not have a
-			      valid length! */
-
-	read_header(in_wav, "WAVE");
-	read_header(in_wav, "fmt ");
-	header_len = read_long(in_wav);
-	if (header_len > 1024) {
-		fprintf(stderr, "WAV: Header too large!\n");
-		exit(-1);
-	}
-	
-	read_short(in_wav); /* format tag */
-	res.channels = read_short(in_wav);
-	res.frequency = read_long(in_wav);
-	res.bytespersecond = read_long(in_wav); /* bytes per second */
-	res.bytealignment = read_short(in_wav); /* byte alignment */
-	res.bitspersample = read_short(in_wav);
-	if (header_len - 16) {
-		fread(fmt_header_junk, 1, header_len - 16, in_wav);
-	}
-	read_header(in_wav, "data");
-	read_long(in_wav); /* ignore length, this is important,
-			      since stream generated wavs do not have a
-			      valid length! */
-
-	switch (res.frequency) {
-	case 48000:
-	case 44100:
-		if (res.channels != 2) {
-			fprintf(stderr, 
-				"WAV: Unsupported channel count (%d) for "
-				"frequency %d!\n", res.channels,
-				res.frequency);
-			exit(-1);
-		}
-		break;
-	case 32000:
-		if (res.channels != 4 && res.channels != 2) {
-			fprintf(stderr, 
-				"WAV: Unsupported channel count (%d) for "
-				"frequency %d!\n", res.channels,
-				res.frequency);
-			exit(-1);
-		}
-		break;
-	default:
-		fprintf(stderr, "WAV: Unsupported frequency: %d\n",
-			res.frequency);
-		exit(-1);
-	}
-	if (res.bitspersample != 16) {
-		fprintf(stderr, "WAV: Unsupported bitspersample: %d Only 16 "
-			"bits are supported right now. (FIXME: just look in "
-			"audio.c and copy the code if you "
-			"really need this!)\n", res.bitspersample);
-		exit(-1);
-	}
-
-	fprintf(stderr, "Opening WAV file with:\n"
-		"Channels: %d\n"
-		"Frequency: %d\n"
-		"Bytes per second: %d\n"
-		"Byte alignment: %d\n"
-		"Bits per sample: %d\n",
-		res.channels, res.frequency, res.bytespersecond,
-		res.bytealignment, res.bitspersample);
-
-	return res;
-}
-
-void generate_empty_frame(unsigned char* frame_buf, int isPAL)
-{
-	static time_t t = 0;
-	static int frame_count = -1;
-	if (!t) {
-		t = time(NULL);
-	}
-	if (frame_count == -1) {
-		frame_count = isPAL ? 25 : 30;
-	}
-	if (!--frame_count) {
-		frame_count = isPAL ? 25 : 30;
-		t++;
-	}
-	memset(frame_buf, 0, isPAL ? 144000 : 120000);
-	write_meta_data(frame_buf, 0, isPAL, &t);
-}
-
-int read_frame(FILE* in_vid, unsigned char* frame_buf, int * isPAL)
-{
-	if (fread(frame_buf, 1, 120000, in_vid) != 120000) {
-		generate_empty_frame(frame_buf, *isPAL);
-		return 0;
-	}
-
-	*isPAL = (frame_buf[3] & 0x80);
-
-	if (*isPAL) {
-		if (fread(frame_buf + 120000, 1, 144000 - 120000, in_vid) !=
-		    144000 - 120000) {
-			generate_empty_frame(frame_buf, *isPAL);
-			return 0;
-		}
-	}
-	return 1;
 }
 
 static int dv_audio_unshuffle_60[5][9] = {
@@ -217,7 +60,7 @@ static int dv_audio_unshuffle_50[6][9] = {
 };
 
 void put_16_bit(unsigned char * target, unsigned char* wave_buf,
-		struct audio_info * audio, int dif_seg, int isPAL,
+		dv_enc_audio_info_t * audio, int dif_seg, int isPAL,
 		int channel)
 {
 	int bp;
@@ -230,10 +73,10 @@ void put_16_bit(unsigned char * target, unsigned char* wave_buf,
 				int i = dv_audio_unshuffle_50[dif_seg]
 					[audio_dif] + (bp - 8)/2 * 54;
 				p[bp] = wave_buf[
-					audio->bytealignment * i + 1
+					audio->bytealignment * i
 					+ 2*channel];
 				p[bp + 1] = wave_buf[
-					audio->bytealignment * i
+					audio->bytealignment * i + 1
 					+ 2*channel];
 				if (p[bp] == 0x80 && p[bp+1] == 0x00) {
 					p[bp+1] = 0x01;
@@ -247,10 +90,10 @@ void put_16_bit(unsigned char * target, unsigned char* wave_buf,
 				int i = dv_audio_unshuffle_60[dif_seg]
 					[audio_dif] + (bp - 8)/2 * 45;
 				p[bp] = wave_buf[
-					audio->bytealignment * i + 1
+					audio->bytealignment * i
 					+ 2*channel];
 				p[bp + 1] = wave_buf[
-					audio->bytealignment * i
+					audio->bytealignment * i + 1
 					+ 2*channel];
 				if (p[bp] == 0x80 && p[bp+1] == 0x00) {
 					p[bp+1] = 0x01;
@@ -262,47 +105,15 @@ void put_16_bit(unsigned char * target, unsigned char* wave_buf,
 }
 
 
-#if 0
-pond:
-
- 0  1  2  3  4
---------------
-50 d3 00 c0 c8 
-51 3f cf a0 ff 
-52 56 c3 e4 00
-53 ff c6 87 d4
-
-50 d4 01 c0 c8
-51 3f cf a0 ff
-52 56 c3 e4 00
-53 ff c6 87 d4
-
-eule:
-50 d0 30 e0 d1
-51 33 cf a0 ff
-52 ff c9 e1 01
-53 ff c1 99 d6
-
-50 d0 3f e0 d1
-51 3f ff a0 ff
-52 ff c9 e1 01
-53 ff c1 99 d6
-
-Programm:
-50 56 30 a0 08
-51 33 cf a0 9c
-52 ff 14 00 01
-53 ff 33 05 14
-#endif
-
-void insert_audio(unsigned char * frame_buf, unsigned char* wave_buf, 
-		  struct audio_info * audio, int isPAL)
+int raw_insert_audio(unsigned char * frame_buf, 
+		     dv_enc_audio_info_t * audio, int isPAL)
 {
 	int dif_seg;
 	int dif_seg_max = isPAL ? 12 : 10;
 	int samplesperframe = audio->frequency / (isPAL ? 25 : 30);
 	
 	int bits_per_sample = 16;
+	unsigned char* wave_buf = audio->data;
 
 	unsigned char head_50[5];
 	unsigned char head_51[5];
@@ -360,7 +171,7 @@ void insert_audio(unsigned char * frame_buf, unsigned char* wave_buf,
 			break;
 		default:
 			fprintf(stderr, "Impossible frequency??\n");
-			exit(-1);
+			return(-1);
 		}
 	} else {
 		head_50[3] = /* stype = */ 0 | (/* isPAL */ 0 << 5)
@@ -411,7 +222,7 @@ void insert_audio(unsigned char * frame_buf, unsigned char* wave_buf,
 			break;
 		default:
 			fprintf(stderr, "Impossible frequency??\n");
-			exit(-1);
+			return(-1);
 		}
 	}
 
@@ -463,7 +274,7 @@ void insert_audio(unsigned char * frame_buf, unsigned char* wave_buf,
 		switch(bits_per_sample) {
 		case 12:
 			fprintf(stderr, "Unsupported bits: 12\n FIXME!\n");
-			exit(-1);
+			return(-1);
 		case 16:
 			ds = dif_seg;
 			if(ds < dif_seg_max/2) {
@@ -477,66 +288,50 @@ void insert_audio(unsigned char * frame_buf, unsigned char* wave_buf,
 			break;
 		}
 	}
-	
-	
+	return 0;
 }
 
-int main(int argc, const char** argv)
+
+static int frame_counter = 0;
+
+static int raw_store(unsigned char* encoded_data, 
+		     dv_enc_audio_info_t* audio_data, 
+		     int isPAL, time_t now)
 {
-	FILE* in_wav;
-	FILE* in_vid;
-	FILE* out_vid;
-
-	unsigned char wave_buf[1920 * 2 * 2]; /* max 48000 Hz PAL */
-	unsigned char frame_buf[144000];
-	struct audio_info audio;
-	int isPAL = 1;
-	int bytesperframe = 0;
-	int gotframe = 0;
-	int have_pipes = 0;
-
-	if (argc != 3 && argc != 2) {
-		fprintf(stderr, "Usage: insert_audio audio.wav video.dv\n"
-			"or: insert_audio audio.wav <dv.file >dv.out\n");
-		return -1;
-	}
-	if (argc == 2) {
-		in_wav = fopen(argv[1], "r");
-		in_vid = stdin;
-		out_vid = stdout;
-		have_pipes = 1;
-	} else {
-		in_wav = fopen(argv[1], "r");
-		in_vid = fopen(argv[2], "r");
-		out_vid = fopen(argv[2], "r+");
-		have_pipes = 0;
-	}
-	if (!(in_vid != NULL && in_wav != NULL && out_vid != NULL)) {
-		perror("Error opening files");
-		exit(-1);
-	}
-
-	audio = parse_wave_header(in_wav);
-
-	for (;;) {
-		gotframe = read_frame(in_vid, frame_buf, &isPAL);
-		bytesperframe = audio.bytespersecond / (isPAL ? 25 : 30);
-		if (fread(wave_buf, 1, bytesperframe, in_wav) 
-		    != bytesperframe) {
-			if (have_pipes) {
-				while (gotframe) {
-					fwrite(frame_buf, 1,
-					       isPAL ? 144000 : 120000,
-					       out_vid);
-					gotframe = read_frame(
-						in_vid, frame_buf, &isPAL);
-				}
-			}
-			return 0;
+	write_meta_data(encoded_data, frame_counter, isPAL, &now);
+	if (audio_data) {
+		int rval = raw_insert_audio(encoded_data, audio_data, isPAL);
+		if (rval) {
+			return rval;
 		}
-		insert_audio(frame_buf, wave_buf, &audio, isPAL);
-		fwrite(frame_buf, 1, isPAL ? 144000 : 120000, out_vid);
 	}
+	fwrite(encoded_data, 1, isPAL ? 144000 : 120000, stdout);
+	frame_counter++;
+	return 0;
 }
+
+static dv_enc_output_filter_t filters[DV_ENC_MAX_OUTPUT_FILTERS] = {
+	{ raw_init, raw_finish, raw_store, "raw" },
+	{ NULL, NULL, NULL, NULL }};
+
+void dv_enc_register_output_filter(dv_enc_output_filter_t filter)
+{
+	dv_enc_output_filter_t * p = filters;
+	while (p->filter_name) p++;
+	*p = filter;
+}
+
+int get_dv_enc_output_filters(dv_enc_output_filter_t ** filters_,
+			      int * count)
+{
+	dv_enc_output_filter_t * p = filters;
+
+	*count = 0;
+	while (p->filter_name) p++, (*count)++;
+
+	*filters_ = filters;
+	return 0;
+}
+
 
 

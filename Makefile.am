@@ -16,7 +16,7 @@ MAINTAINERCLEANFILES      = Makefile.in aclocal.m4 configure config.h.in \
 CLEANFILES                = asmoff.h 
 
 lib_LTLIBRARIES= libdv.la
-bin_PROGRAMS= playdv encode
+bin_PROGRAMS= playdv encodedv
 
 if HOST_X86
 GASMOFF=gasmoff
@@ -71,8 +71,8 @@ testvlc_LDADD=libdv.la
 
 testbitstream_SOURCES= testbitstream.c bitstream.c bitstream.h
 
-encode_SOURCES= encode.c headers.c headers.h
-encode_LDADD= libdv.la
+encodedv_SOURCES= encode.c headers.c enc_output.c enc_input.c enc_audio_input.c
+encodedv_LDADD= libdv.la
 
 insert_audio_SOURCES = insert_audio.c headers.c
 

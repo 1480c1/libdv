@@ -50,7 +50,8 @@ static double KC88[8][8][8][8];
 #if ARCH_X86
 void idct_block_mmx(gint16 *block);
 void dct_88_block_mmx(gint16* block);
-void dct_block_mmx_postscale(gint16* block, gint16* postscale_matrix);
+void dct_block_mmx_postscale_88(gint16* block, gint16* postscale_matrix);
+void dct_block_mmx_postscale_248(gint16* block, gint16* postscale_matrix);
 void dct_248_block_mmx(gint16* block);
 void dct_248_block_mmx_post_sum(gint16* out_block);
 void transpose_mmx(short * dst);
@@ -341,7 +342,7 @@ void dct_88(dv_coeff_t *block) {
   dct_88_block_mmx(block);
   transpose_mmx(block);
   dct_88_block_mmx(block);
-  dct_block_mmx_postscale(block, postSC88);
+  dct_block_mmx_postscale_88(block, postSC88);
   emms(); 
 #endif /* ARCH_X86 */
 }
@@ -383,7 +384,7 @@ void dct_248(dv_coeff_t *block)
   transpose_mmx(block);
   dct_248_block_mmx(block);
   dct_248_block_mmx_post_sum(block);
-  dct_block_mmx_postscale(block, postSC248);
+  dct_block_mmx_postscale_248(block, postSC248);
   emms();
 #endif /* ARCH_X86 */
 }

@@ -268,18 +268,23 @@ dct_88_block_mmx:
 
 	ret     $0
 
+/* do mmx postscaling and reordering... */
+		
 .align 8	
-.global dct_block_mmx_postscale
-dct_block_mmx_postscale:
+.global dct_block_mmx_postscale_88
+dct_block_mmx_postscale_88:
 
 	pushl	 %ebp
 	movl	 %esp,%ebp
 	pushl	 %esi
 	pushl	 %edi
+	pushl	 %ebx
 
 	movl	 8(%ebp),%esi		# source matrix 
 	movl    12(%ebp), %edi          # postscale matrix 
 
+	subl	$128+2, %esp
+	
 	movq	0*8(%esi), %mm0
 	movq	1*8(%esi), %mm1
 	movq	2*8(%esi), %mm2
@@ -329,7 +334,6 @@ dct_block_mmx_postscale:
 	movq	%mm2, 2*8(%esi)
 	movq	%mm3, 3*8(%esi)
 
-	
 	movq	4*8(%esi), %mm0
 	movq	5*8(%esi), %mm1
 	movq	6*8(%esi), %mm2
@@ -337,99 +341,207 @@ dct_block_mmx_postscale:
 
 	movq	%mm0, %mm4
 	movq	%mm1, %mm5
+
+	movl	0*2(%esi), %eax
+	movw	2*2(%esi), %bx
+
 	movq	%mm2, %mm6
 	movq	%mm3, %mm7
+
+	movl	%eax, 1*2(%esp)
+	movw	%bx, 6*2(%esp)
+
 	psraw	$0xf, %mm4
 	psraw	$0xf, %mm5
+
+	movw	3*2(%esi), %ax
+	movw	4*2(%esi), %bx
+	
 	psraw	$0xf, %mm6
 	psraw	$0xf, %mm7
 
 	pxor	%mm4, %mm0
 	pxor	%mm5, %mm1
+
+	movw	%ax, 7*2(%esp)
+	movw	%bx, 15*2(%esp)
+
 	pxor	%mm6, %mm2
 	pxor	%mm7, %mm3
 
+	movw	5*2(%esi), %ax
+	movw	6*2(%esi), %bx
+	
 	psubw	%mm4, %mm0
 	psubw	%mm5, %mm1
+
+	movw	%ax, 16*2(%esp)
+	movw	%bx, 28*2(%esp)
+	
 	psubw	%mm6, %mm2
 	psubw	%mm7, %mm3
-		
+
+	movw	7*2(%esi), %ax
+	movw	8*2(%esi), %bx
+	
 	pmulhw	4*8(%edi), %mm0
 	pmulhw	5*8(%edi), %mm1
+
+	movw	%ax, 29*2(%esp)
+	movw	%bx, 3*2(%esp)
+	
 	pmulhw	6*8(%edi), %mm2
 	pmulhw	7*8(%edi), %mm3
+
+	movw	9*2(%esi), %ax
+	movw	10*2(%esi), %bx
 	
 	psraw   $YUV_PRECISION, %mm0
 	psraw   $YUV_PRECISION, %mm1
+
+	movw	%ax, 5*2(%esp)
+	movw	%bx, 8*2(%esp)
+	
 	psraw   $YUV_PRECISION, %mm2
 	psraw   $YUV_PRECISION, %mm3
 
+	movw	11*2(%esi), %ax
+	movw	12*2(%esi), %bx
+	
 	pxor	%mm4, %mm0
 	pxor	%mm5, %mm1
+
+	movw	%ax, 14*2(%esp)
+	movw	%bx, 17*2(%esp)
+		
 	pxor	%mm6, %mm2
 	pxor	%mm7, %mm3
 
+	movw	13*2(%esi), %ax
+	movw	14*2(%esi), %bx
+		
 	psubw	%mm4, %mm0
 	psubw	%mm5, %mm1
+
+	movw	%ax, 27*2(%esp)
+	movw	%bx, 30*2(%esp)
+
 	psubw	%mm6, %mm2
 	psubw	%mm7, %mm3
-	
+
 	movq	%mm0, 4*8(%esi)
 	movq	%mm1, 5*8(%esi)
 	movq	%mm2, 6*8(%esi)
 	movq	%mm3, 7*8(%esi)
 	
-
 	movq	8*8(%esi), %mm0
 	movq	9*8(%esi), %mm1
+
+	movw	15*2(%esi), %ax
+	movw	16*2(%esi), %bx
+	
 	movq	10*8(%esi), %mm2
 	movq	11*8(%esi), %mm3
 
+	movw	%ax, 43*2(%esp)
+	movw	%bx, 4*2(%esp)
+	
 	movq	%mm0, %mm4
 	movq	%mm1, %mm5
+
+	movw	17*2(%esi), %ax
+	movw	18*2(%esi), %bx
+	
 	movq	%mm2, %mm6
 	movq	%mm3, %mm7
+
+	movw	%ax, 9*2(%esp)
+	movw	%bx, 13*2(%esp)
+	
 	psraw	$0xf, %mm4
 	psraw	$0xf, %mm5
+
+	movw	19*2(%esi), %ax
+	movw	20*2(%esi), %bx
+		
 	psraw	$0xf, %mm6
 	psraw	$0xf, %mm7
 
+	movw	%ax, 18*2(%esp)
+	movw	%bx, 26*2(%esp)
+		
 	pxor	%mm4, %mm0
 	pxor	%mm5, %mm1
+
+	movw	21*2(%esi), %ax
+	movw	22*2(%esi), %bx
+	
 	pxor	%mm6, %mm2
 	pxor	%mm7, %mm3
 
+	movw	%ax, 31*2(%esp)
+	movw	%bx, 42*2(%esp)
+
 	psubw	%mm4, %mm0
 	psubw	%mm5, %mm1
+
+	movw	23*2(%esi), %ax
+	movw	24*2(%esi), %bx
+	
 	psubw	%mm6, %mm2
 	psubw	%mm7, %mm3
-		
+
+	movw	%ax, 44*2(%esp)
+	movw	%bx, 10*2(%esp)
+	
 	pmulhw	8*8(%edi), %mm0
 	pmulhw	9*8(%edi), %mm1
+
+	movw	25*2(%esi), %ax
+	movw	26*2(%esi), %bx
+	
 	pmulhw	10*8(%edi), %mm2
 	pmulhw	11*8(%edi), %mm3
-	
+
 	psraw   $YUV_PRECISION, %mm0
 	psraw   $YUV_PRECISION, %mm1
+
+	movw	%ax, 12*2(%esp)
+	movw	%bx, 19*2(%esp)
+	
 	psraw   $YUV_PRECISION, %mm2
 	psraw   $YUV_PRECISION, %mm3
 
+	movw	27*2(%esi), %ax
+	movw	28*2(%esi), %bx
+	
 	pxor	%mm4, %mm0
 	pxor	%mm5, %mm1
+
+	movw	%ax, 25*2(%esp)
+	movw	%bx, 32*2(%esp)
+	
 	pxor	%mm6, %mm2
 	pxor	%mm7, %mm3
 
+	movw	29*2(%esi), %ax
+	movw	30*2(%esi), %bx
+	
 	psubw	%mm4, %mm0
 	psubw	%mm5, %mm1
+
+	movw	%ax, 41*2(%esp)
+	movw	%bx, 45*2(%esp)
+	
 	psubw	%mm6, %mm2
 	psubw	%mm7, %mm3
-	
+
 	movq	%mm0, 8*8(%esi)
 	movq	%mm1, 9*8(%esi)
 	movq	%mm2, 10*8(%esi)
 	movq	%mm3, 11*8(%esi)
 
-		
+	
 	movq	12*8(%esi), %mm0
 	movq	13*8(%esi), %mm1
 	movq	14*8(%esi), %mm2
@@ -437,48 +549,198 @@ dct_block_mmx_postscale:
 
 	movq	%mm0, %mm4
 	movq	%mm1, %mm5
+
+	movw	31*2(%esi), %ax
+	movw	32*2(%esi), %bx
+	
 	movq	%mm2, %mm6
 	movq	%mm3, %mm7
+
+	movw	%ax, 54*2(%esp)
+	movw	%bx, 11*2(%esp)
+	
 	psraw	$0xf, %mm4
 	psraw	$0xf, %mm5
+
+	movw	33*2(%esi), %ax
+	movw	34*2(%esi), %bx
+	
 	psraw	$0xf, %mm6
 	psraw	$0xf, %mm7
 
+	movw	%ax, 20*2(%esp)
+	movw	%bx, 24*2(%esp)
+		
 	pxor	%mm4, %mm0
 	pxor	%mm5, %mm1
+	
+	movw	35*2(%esi), %ax
+	movw	36*2(%esi), %bx
+		
 	pxor	%mm6, %mm2
 	pxor	%mm7, %mm3
-
+	
+	movw	%ax, 33*2(%esp)
+	movw	%bx, 40*2(%esp)
+	
 	psubw	%mm4, %mm0
 	psubw	%mm5, %mm1
+
+	movw	37*2(%esi), %ax
+	movw	38*2(%esi), %bx
+	
 	psubw	%mm6, %mm2
 	psubw	%mm7, %mm3
-		
+
+	movw	%ax, 46*2(%esp)
+	movw	%bx, 53*2(%esp)
+			
 	pmulhw	12*8(%edi), %mm0
 	pmulhw	13*8(%edi), %mm1
+
+	movw	39*2(%esi), %ax
+	movw	40*2(%esi), %bx
+	
 	pmulhw	14*8(%edi), %mm2
 	pmulhw	15*8(%edi), %mm3
-	
+		
+	movw	%ax, 55*2(%esp)
+	movw	%bx, 21*2(%esp)
+		
 	psraw   $YUV_PRECISION, %mm0
 	psraw   $YUV_PRECISION, %mm1
+
+	movw	41*2(%esi), %ax
+	movw	42*2(%esi), %bx
+	
 	psraw   $YUV_PRECISION, %mm2
 	psraw   $YUV_PRECISION, %mm3
 
+	movw	%ax, 23*2(%esp)
+	movw	%bx, 34*2(%esp)
+
 	pxor	%mm4, %mm0
 	pxor	%mm5, %mm1
+
+	movw	43*2(%esi), %ax
+	movw	44*2(%esi), %bx
+	
 	pxor	%mm6, %mm2
 	pxor	%mm7, %mm3
-
+	
+	movw	%ax, 39*2(%esp)
+	movw	%bx, 47*2(%esp)
+	
 	psubw	%mm4, %mm0
 	psubw	%mm5, %mm1
+
+	movw	45*2(%esi), %ax
+	movw	46*2(%esi), %bx
+	
 	psubw	%mm6, %mm2
 	psubw	%mm7, %mm3
+
+	movw	%ax, 52*2(%esp)
+	movw	%bx, 56*2(%esp)
 	
 	movq	%mm0, 12*8(%esi)
 	movq	%mm1, 13*8(%esi)
+
+	movw	47*2(%esi), %ax
+	movw	48*2(%esi), %bx
+	
 	movq	%mm2, 14*8(%esi)
 	movq	%mm3, 15*8(%esi)
-			
+	
+	movw	%ax, 61*2(%esp)
+	movw	%bx, 22*2(%esp)
+	
+	movw	49*2(%esi), %ax
+	movw	50*2(%esi), %bx
+
+	
+	movw	%ax, 35*2(%esp)
+	movw	%bx, 38*2(%esp)
+
+	
+	movw	51*2(%esi), %ax
+	movw	52*2(%esi), %bx
+	
+	movw	%ax, 48*2(%esp)
+	movw	%bx, 51*2(%esp)
+
+	
+	movw	53*2(%esi), %ax
+	movw	54*2(%esi), %bx
+		
+	movw	%ax, 57*2(%esp)
+	movw	%bx, 60*2(%esp)
+
+	movw	55*2(%esi), %ax
+	movw	56*2(%esi), %bx
+
+
+	movw	%ax, 62*2(%esp)
+	movw	%bx, 36*2(%esp)
+	
+	movw	57*2(%esi), %ax
+	movw	58*2(%esi), %bx
+	
+	movw	%ax, 37*2(%esp)
+	movw	%bx, 49*2(%esp)
+	
+	movw	59*2(%esi), %ax
+	movw	60*2(%esi), %bx
+
+	movw	%ax, 50*2(%esp)
+	movw	%bx, 58*2(%esp)
+	
+	movw	61*2(%esi), %ax
+	movl	62*2(%esi), %ebx
+	
+	movw	%ax, 59*2(%esp)
+	movl	%ebx, 63*2(%esp)
+
+	addl	$2, %esp
+	
+	movq	(%esp)  , %mm0
+	movq	8(%esp) , %mm1
+	movq	16(%esp), %mm2
+	movq	24(%esp), %mm3
+
+	movq	%mm0, (%esi)
+	movq	%mm1, 8(%esi)
+	movq	%mm2, 16(%esi)
+	movq	%mm3, 24(%esi)
+
+	movq	32(%esp)   , %mm0
+	movq	32+8(%esp) , %mm1
+	movq	32+16(%esp), %mm2
+	movq	32+24(%esp), %mm3
+
+	movq	%mm0, 32(%esi)
+	movq	%mm1, 32+8(%esi)
+	movq	%mm2, 32+16(%esi)
+	movq	%mm3, 32+24(%esi)
+
+	movq	64(%esp)   , %mm0
+	movq	64+8(%esp) , %mm1
+	movq	64+16(%esp), %mm2
+	movq	64+24(%esp), %mm3
+
+	movq	%mm0, 64(%esi)
+	movq	%mm1, 64+8(%esi)
+	movq	%mm2, 64+16(%esi)
+	movq	%mm3, 64+24(%esi)
+
+	movq	96(%esp)   , %mm0
+	movq	96+8(%esp) , %mm1
+	movq	96+16(%esp), %mm2
+	movq	96+24(%esp), %mm3
+	
+	addl	$128, %esp
+	
+	popl	 %ebx			
 	popl	 %edi
 	popl	 %esi
 	popl	 %ebp
@@ -727,3 +989,219 @@ dct_248_block_mmx_post_sum:
 	popl	%esi
 	popl	%ebp
 	ret		
+
+.align 8	
+.global dct_block_mmx_postscale_248
+dct_block_mmx_postscale_248:
+
+	pushl	 %ebp
+	movl	 %esp,%ebp
+	pushl	 %esi
+	pushl	 %edi
+
+	movl	 8(%ebp),%esi		# source matrix 
+	movl    12(%ebp), %edi          # postscale matrix 
+
+	movq	0*8(%esi), %mm0
+	movq	1*8(%esi), %mm1
+	movq	2*8(%esi), %mm2
+	movq	3*8(%esi), %mm3
+
+	movq	%mm0, %mm4
+	movq	%mm1, %mm5
+	movq	%mm2, %mm6
+	movq	%mm3, %mm7
+	psraw	$0xf, %mm4
+	psraw	$0xf, %mm5
+	psraw	$0xf, %mm6
+	psraw	$0xf, %mm7
+
+	pxor	%mm4, %mm0
+	pxor	%mm5, %mm1
+	pxor	%mm6, %mm2
+	pxor	%mm7, %mm3
+
+	psubw	%mm4, %mm0
+	psubw	%mm5, %mm1
+	psubw	%mm6, %mm2
+	psubw	%mm7, %mm3
+		
+	pmulhw	0*8(%edi), %mm0
+	pmulhw	1*8(%edi), %mm1
+	pmulhw	2*8(%edi), %mm2
+	pmulhw	3*8(%edi), %mm3
+	
+	psraw   $YUV_PRECISION, %mm0
+	psraw   $YUV_PRECISION, %mm1
+	psraw   $YUV_PRECISION, %mm2
+	psraw   $YUV_PRECISION, %mm3
+
+	pxor	%mm4, %mm0
+	pxor	%mm5, %mm1
+	pxor	%mm6, %mm2
+	pxor	%mm7, %mm3
+
+	psubw	%mm4, %mm0
+	psubw	%mm5, %mm1
+	psubw	%mm6, %mm2
+	psubw	%mm7, %mm3
+	
+	movq	%mm0, 0*8(%esi)
+	movq	%mm1, 1*8(%esi)
+	movq	%mm2, 2*8(%esi)
+	movq	%mm3, 3*8(%esi)
+
+	
+	movq	4*8(%esi), %mm0
+	movq	5*8(%esi), %mm1
+	movq	6*8(%esi), %mm2
+	movq	7*8(%esi), %mm3
+
+	movq	%mm0, %mm4
+	movq	%mm1, %mm5
+	movq	%mm2, %mm6
+	movq	%mm3, %mm7
+	psraw	$0xf, %mm4
+	psraw	$0xf, %mm5
+	psraw	$0xf, %mm6
+	psraw	$0xf, %mm7
+
+	pxor	%mm4, %mm0
+	pxor	%mm5, %mm1
+	pxor	%mm6, %mm2
+	pxor	%mm7, %mm3
+
+	psubw	%mm4, %mm0
+	psubw	%mm5, %mm1
+	psubw	%mm6, %mm2
+	psubw	%mm7, %mm3
+		
+	pmulhw	4*8(%edi), %mm0
+	pmulhw	5*8(%edi), %mm1
+	pmulhw	6*8(%edi), %mm2
+	pmulhw	7*8(%edi), %mm3
+	
+	psraw   $YUV_PRECISION, %mm0
+	psraw   $YUV_PRECISION, %mm1
+	psraw   $YUV_PRECISION, %mm2
+	psraw   $YUV_PRECISION, %mm3
+
+	pxor	%mm4, %mm0
+	pxor	%mm5, %mm1
+	pxor	%mm6, %mm2
+	pxor	%mm7, %mm3
+
+	psubw	%mm4, %mm0
+	psubw	%mm5, %mm1
+	psubw	%mm6, %mm2
+	psubw	%mm7, %mm3
+	
+	movq	%mm0, 4*8(%esi)
+	movq	%mm1, 5*8(%esi)
+	movq	%mm2, 6*8(%esi)
+	movq	%mm3, 7*8(%esi)
+	
+
+	movq	8*8(%esi), %mm0
+	movq	9*8(%esi), %mm1
+	movq	10*8(%esi), %mm2
+	movq	11*8(%esi), %mm3
+
+	movq	%mm0, %mm4
+	movq	%mm1, %mm5
+	movq	%mm2, %mm6
+	movq	%mm3, %mm7
+	psraw	$0xf, %mm4
+	psraw	$0xf, %mm5
+	psraw	$0xf, %mm6
+	psraw	$0xf, %mm7
+
+	pxor	%mm4, %mm0
+	pxor	%mm5, %mm1
+	pxor	%mm6, %mm2
+	pxor	%mm7, %mm3
+
+	psubw	%mm4, %mm0
+	psubw	%mm5, %mm1
+	psubw	%mm6, %mm2
+	psubw	%mm7, %mm3
+		
+	pmulhw	8*8(%edi), %mm0
+	pmulhw	9*8(%edi), %mm1
+	pmulhw	10*8(%edi), %mm2
+	pmulhw	11*8(%edi), %mm3
+	
+	psraw   $YUV_PRECISION, %mm0
+	psraw   $YUV_PRECISION, %mm1
+	psraw   $YUV_PRECISION, %mm2
+	psraw   $YUV_PRECISION, %mm3
+
+	pxor	%mm4, %mm0
+	pxor	%mm5, %mm1
+	pxor	%mm6, %mm2
+	pxor	%mm7, %mm3
+
+	psubw	%mm4, %mm0
+	psubw	%mm5, %mm1
+	psubw	%mm6, %mm2
+	psubw	%mm7, %mm3
+	
+	movq	%mm0, 8*8(%esi)
+	movq	%mm1, 9*8(%esi)
+	movq	%mm2, 10*8(%esi)
+	movq	%mm3, 11*8(%esi)
+
+		
+	movq	12*8(%esi), %mm0
+	movq	13*8(%esi), %mm1
+	movq	14*8(%esi), %mm2
+	movq	15*8(%esi), %mm3
+
+	movq	%mm0, %mm4
+	movq	%mm1, %mm5
+	movq	%mm2, %mm6
+	movq	%mm3, %mm7
+	psraw	$0xf, %mm4
+	psraw	$0xf, %mm5
+	psraw	$0xf, %mm6
+	psraw	$0xf, %mm7
+
+	pxor	%mm4, %mm0
+	pxor	%mm5, %mm1
+	pxor	%mm6, %mm2
+	pxor	%mm7, %mm3
+
+	psubw	%mm4, %mm0
+	psubw	%mm5, %mm1
+	psubw	%mm6, %mm2
+	psubw	%mm7, %mm3
+		
+	pmulhw	12*8(%edi), %mm0
+	pmulhw	13*8(%edi), %mm1
+	pmulhw	14*8(%edi), %mm2
+	pmulhw	15*8(%edi), %mm3
+	
+	psraw   $YUV_PRECISION, %mm0
+	psraw   $YUV_PRECISION, %mm1
+	psraw   $YUV_PRECISION, %mm2
+	psraw   $YUV_PRECISION, %mm3
+
+	pxor	%mm4, %mm0
+	pxor	%mm5, %mm1
+	pxor	%mm6, %mm2
+	pxor	%mm7, %mm3
+
+	psubw	%mm4, %mm0
+	psubw	%mm5, %mm1
+	psubw	%mm6, %mm2
+	psubw	%mm7, %mm3
+	
+	movq	%mm0, 12*8(%esi)
+	movq	%mm1, 13*8(%esi)
+	movq	%mm2, 14*8(%esi)
+	movq	%mm3, 15*8(%esi)
+			
+	popl	 %edi
+	popl	 %esi
+	popl	 %ebp
+	ret

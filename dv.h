@@ -28,7 +28,7 @@
 #define DV_H
 
 
-#include <dv_types.h>
+#include <libdv/dv_types.h>
 
 #include <stdlib.h>
 #include <stdio.h>

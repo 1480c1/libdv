@@ -1,5 +1,5 @@
 /* 
- *  headers.h
+ *  enc_input.h
  *
  *     Copyright (C) Peter Schlaile - Feb 2001
  *
@@ -23,20 +23,34 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
  
-#ifndef DV_HEADERS_H
-#define DV_HEADERS_H
+#ifndef DV_ENC_INPUT_H
+#define DV_ENC_INPUT_H
 
-#include <sys/time.h>
+#include "dv_types.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+	#define DV_ENC_MAX_INPUT_FILTERS     32
 
-extern void write_meta_data(unsigned char* target, int frame, int isPAL,
-			    time_t * now);
+	typedef struct dv_enc_input_filter_s {
+		int (*init)(int wrong_interlace);
+		void (*finish)();
+		int (*load)(const char* filename, int * isPAL);
+		int (*skip)(const char* filename, int * isPAL);
+		/* fills macroblock, determines dct_mode and
+		   transposes dv_blocks */
+		void (*fill_macroblock)(dv_macroblock_t *mb, int isPAL);
+
+		const char* filter_name;
+	} dv_enc_input_filter_t;
+
+	extern void dv_enc_register_input_filter(dv_enc_input_filter_t filter);
+	extern int get_dv_enc_input_filters(dv_enc_input_filter_t ** filters,
+					    int * count);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // DV_HEADERS_H
+#endif // DV_ENC_INPUT_H

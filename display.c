@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <string.h>
 
 #include <dv_types.h>
 #include "util.h"
