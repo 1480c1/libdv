@@ -1,3 +1,6 @@
+2002-05-22  Stefan Lucke <Stefan.Lucke1@epost.de>
+	* added clamping for rgb render too. (green speckle bug)
+
 2002-05-22  Dan Dennedy
 	* dv.h: add int dv_get_recording_datetime_tm()
 

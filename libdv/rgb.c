@@ -1,4 +1,4 @@
-/* 
+/*
  *  rgb.c
  *
  *     Copyright (C) Charles 'Buck' Krasic - April 2000
@@ -77,7 +77,16 @@ static int32_t real_ylut_setup[768], *ylut_setup;
 /* rgb lookup - clamps values in range -256 .. 512 to 0 .. 255 */
 static uint8_t real_rgblut[768], *rgblut;
 
-void 
+/* ---------------------------------------------------------------------------
+ */
+static inline int
+clamp (int low, int val, int high) {
+  return ((val > high) ? high : (val < low) ? low :val);
+}
+
+/* ---------------------------------------------------------------------------
+ */
+void
 dv_rgb_init(int clamp_luma, int clamp_chroma) {
   int i;
   int clamped_offset;
@@ -95,7 +104,7 @@ dv_rgb_init(int clamp_luma, int clamp_chroma) {
       clamped_offset = (240-128);
     } else {
       clamped_offset = i;
-    } // else 
+    } // else
     table_2_018[i] = (int32_t)rint(2.018 * COLOR_FRACTION_MUL * clamped_offset);
     table_0_813[i] = (int32_t)rint(0.813 * COLOR_FRACTION_MUL * clamped_offset);
     table_0_391[i] = (int32_t)rint(0.391 * COLOR_FRACTION_MUL * clamped_offset);
@@ -117,7 +126,9 @@ dv_rgb_init(int clamp_luma, int clamp_chroma) {
   } // for
 } /* dv_rgb_init */
 
-void 
+/* ---------------------------------------------------------------------------
+ */
+void
 dv_mb411_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_setup) {
   dv_coeff_t *Y[4], *cr_frame, *cb_frame;
   uint8_t *prgb, *pwrgb;
@@ -137,14 +148,16 @@ dv_mb411_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_s
     for (i = 0; i < 4; ++i) {     // Four Y blocks
       dv_coeff_t *Ytmp = Y[i]; // less indexing in inner loop speedup?
       for (j = 0; j < 2; ++j) {   // two 4-pixel spans per Y block
-        int8_t cb = *cb_frame++;  /* -128,-1  => 0x80,0xff */
-        int8_t cr = *cr_frame++;
+        int8_t cb = clamp (-128, *cb_frame++, 127);  /* -128,-1  => 0x80,0xff */
+        int8_t cr = clamp (-128, *cr_frame++, 127);
         int ro = table_1_596[cr];
         int go = table_0_813[cr] + table_0_391[cb];
         int bo =                   table_2_018[cb];
- 
+
         for (k = 0; k < 4; ++k) { // 4-pixel span
-          int32_t y = (add_ntsc_setup == TRUE) ? ylut_setup[*Ytmp++] : ylut[*Ytmp++];
+          int32_t y = (add_ntsc_setup == TRUE) ?
+	  		ylut_setup[clamp (-256, *Ytmp++, 512)] :
+				ylut[clamp (-256, *Ytmp++, 512)];
           int32_t r = (y + ro) >> COLOR_FRACTION_BITS;
           int32_t g = (y - go) >> COLOR_FRACTION_BITS;
           int32_t b = (y + bo) >> COLOR_FRACTION_BITS;
@@ -159,8 +172,9 @@ dv_mb411_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_s
   } // for row
 } // dv_mb411_rgb
 
-
-void 
+/* ---------------------------------------------------------------------------
+ */
+void
 dv_mb411_right_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_setup) {
   dv_coeff_t *Ytmp;
   dv_coeff_t *Y[4], *cr_frame, *cb_frame;
@@ -175,20 +189,20 @@ dv_mb411_right_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_
   prgb = pixels[0] + (mb->x * 3) + (mb->y * pitches[0]);
 
   for (j = 0; j < 4; j += 2) { // Two rows of blocks j, j+1
-    
+
     cr_frame = mb->b[4].coeffs + (j*2);
     cb_frame = mb->b[5].coeffs + (j*2);
 
-    for (row = 0; row < 8; row++) { 
-      pwrgb = prgb; 
+    for (row = 0; row < 8; row++) {
+      pwrgb = prgb;
 
       for (i = 0; i < 2; ++i) { // Two columns of blocks
 	Ytmp = Y[j+i];
 
         for (col = 0; col < 8; col+=4) {  // 4 spans of 2x2 pixels
 
-          int8_t cb = *cb_frame++; // +128;
-          int8_t cr = *cr_frame++; // +128
+          int8_t cb = clamp (-128, *cb_frame++, 127); // +128;
+          int8_t cr = clamp (-128, *cr_frame++, 127); // +128
 
 	  int ro = table_1_596[cr];
 	  int go = table_0_813[cr] + table_0_391[cb];
@@ -196,7 +210,9 @@ dv_mb411_right_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_
 
           for (k = 0; k < 4; ++k) { // 4x1 pixels
 
-            int32_t y = (add_ntsc_setup == TRUE) ? ylut_setup[*Ytmp++] : ylut[*Ytmp++];
+            int32_t y = (add_ntsc_setup == TRUE) ?
+	    			ylut_setup[clamp (-256, *Ytmp++, 512)] :
+					ylut[clamp (-256, *Ytmp++, 512)];
             int32_t r = (y + ro) >> COLOR_FRACTION_BITS;
             int32_t g = (y - go) >> COLOR_FRACTION_BITS;
             int32_t b = (y + bo) >> COLOR_FRACTION_BITS;
@@ -219,7 +235,9 @@ dv_mb411_right_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_
   } // for j
 } /* dv_mb411_right_rgb */
 
-void 
+/* ---------------------------------------------------------------------------
+ */
+void
 dv_mb420_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
   dv_coeff_t *Y[4], *cr_frame, *cb_frame;
   uint8_t *prgb, *pwrgb0, *pwrgb1;
@@ -235,9 +253,9 @@ dv_mb420_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
   prgb = pixels[0] + (mb->x * 3) + (mb->y * pitches[0]);
 
   for (j = 0; j < 4; j += 2) { // Two rows of blocks j, j+1
-    
+
     for (row = 0; row < 8; row+=2) { // 4 pairs of two rows
-      pwrgb0 = prgb; 
+      pwrgb0 = prgb;
       pwrgb1 = prgb + pitches[0];
 
       for (i = 0; i < 2; ++i) { // Two columns of blocks
@@ -245,14 +263,14 @@ dv_mb420_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
         dv_coeff_t *Ytmp0 = Y[yindex];
         dv_coeff_t *Ytmp1 = Y[yindex] + 8;
         for (col = 0; col < 4; ++col) {  // 4 spans of 2x2 pixels
-          int8_t cb = *cb_frame++; // +128;
-          int8_t cr = *cr_frame++; // +128
+          int8_t cb = clamp (-128, *cb_frame++, 127); // +128;
+          int8_t cr = clamp (-128, *cr_frame++, 127); // +128
 	  int ro = table_1_596[cr];
 	  int go = table_0_813[cr] + table_0_391[cb];
 	  int bo =                   table_2_018[cb];
-	
+
           for (k = 0; k < 2; ++k) { // 2x2 pixel
-            int32_t y = ylut[*Ytmp0++];
+            int32_t y = ylut[clamp (-256, *Ytmp0++, 512)];
             int32_t r = (y + ro) >> COLOR_FRACTION_BITS;
             int32_t g = (y - go) >> COLOR_FRACTION_BITS;
             int32_t b = (y + bo) >> COLOR_FRACTION_BITS;
@@ -260,7 +278,7 @@ dv_mb420_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
 	    *pwrgb0++ = rgblut[g];
 	    *pwrgb0++ = rgblut[b];
 
-            y = ylut[*Ytmp1++];
+            y = ylut[clamp (-256, *Ytmp1++, 512)];
             r = (y + ro) >> COLOR_FRACTION_BITS;
             g = (y - go) >> COLOR_FRACTION_BITS;
             b = (y + bo) >> COLOR_FRACTION_BITS;
@@ -279,7 +297,9 @@ dv_mb420_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
   } // for j
 } /* dv_mb420_rgb */
 
-void 
+/* ---------------------------------------------------------------------------
+ */
+void
 dv_mb411_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_setup) {
   dv_coeff_t *Y[4], *cr_frame, *cb_frame;
   uint8_t *prgb, *pwrgb;
@@ -299,14 +319,16 @@ dv_mb411_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_
     for (i = 0; i < 4; ++i) {     // Four Y blocks
       dv_coeff_t *Ytmp = Y[i]; // less indexing in inner loop speedup?
       for (j = 0; j < 2; ++j) {   // two 4-pixel spans per Y block
-        int8_t cb = *cb_frame++;  /* -128,-1  => 0x80,0xff */
-        int8_t cr = *cr_frame++;
+        int8_t cb = clamp (-128, *cb_frame++, 127);  /* -128,-1  => 0x80,0xff */
+        int8_t cr = clamp (-128, *cr_frame++, 127);
         int ro = table_1_596[cr];
         int go = table_0_813[cr] + table_0_391[cb];
         int bo =                   table_2_018[cb];
- 
+
         for (k = 0; k < 4; ++k) { // 4-pixel span
-          int32_t y = (add_ntsc_setup == TRUE) ? ylut_setup[*Ytmp++] : ylut[*Ytmp++];
+          int32_t y = (add_ntsc_setup == TRUE) ?
+	  		ylut_setup[clamp (-256, *Ytmp++, 512)] :
+				ylut[clamp (-256, *Ytmp++, 512)];
           int32_t r = (y + ro) >> COLOR_FRACTION_BITS;
           int32_t g = (y - go) >> COLOR_FRACTION_BITS;
           int32_t b = (y + bo) >> COLOR_FRACTION_BITS;
@@ -322,8 +344,9 @@ dv_mb411_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_
   } // for row
 } // dv_mb411_bgr0
 
-
-void 
+/* ---------------------------------------------------------------------------
+ */
+void
 dv_mb411_right_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_setup) {
   dv_coeff_t *Ytmp;
   dv_coeff_t *Y[4], *cr_frame, *cb_frame;
@@ -338,20 +361,20 @@ dv_mb411_right_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add
   prgb = pixels[0] + (mb->x * 4) + (mb->y * pitches[0]);
 
   for (j = 0; j < 4; j += 2) { // Two rows of blocks j, j+1
-    
+
     cr_frame = mb->b[4].coeffs + (j*2);
     cb_frame = mb->b[5].coeffs + (j*2);
 
-    for (row = 0; row < 8; row++) { 
-      pwrgb = prgb; 
+    for (row = 0; row < 8; row++) {
+      pwrgb = prgb;
 
       for (i = 0; i < 2; ++i) { // Two columns of blocks
 	Ytmp = Y[j+i];
 
         for (col = 0; col < 8; col+=4) {  // 4 spans of 2x2 pixels
 
-          int8_t cb = *cb_frame++; // +128;
-          int8_t cr = *cr_frame++; // +128
+          int8_t cb = clamp (-128, *cb_frame++, 127); // +128;
+          int8_t cr = clamp (-128, *cr_frame++, 127); // +128
 
 	  int ro = table_1_596[cr];
 	  int go = table_0_813[cr] + table_0_391[cb];
@@ -359,7 +382,9 @@ dv_mb411_right_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add
 
           for (k = 0; k < 4; ++k) { // 4x1 pixels
 
-            int32_t y = (add_ntsc_setup == TRUE) ? ylut_setup[*Ytmp++] : ylut[*Ytmp++];
+            int32_t y = (add_ntsc_setup == TRUE) ?
+	    			ylut_setup[clamp (-256, *Ytmp++, 512)] :
+					ylut[clamp (-256, *Ytmp++, 512)];
             int32_t r = (y + ro) >> COLOR_FRACTION_BITS;
             int32_t g = (y - go) >> COLOR_FRACTION_BITS;
             int32_t b = (y + bo) >> COLOR_FRACTION_BITS;
@@ -383,7 +408,9 @@ dv_mb411_right_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add
   } // for j
 } /* dv_mb411_right_bgr0 */
 
-void 
+/* ---------------------------------------------------------------------------
+ */
+void
 dv_mb420_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
   dv_coeff_t *Y[4], *cr_frame, *cb_frame;
   uint8_t *prgb, *pwrgb0, *pwrgb1;
@@ -399,9 +426,9 @@ dv_mb420_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
   prgb = pixels[0] + (mb->x * 4) + (mb->y * pitches[0]);
 
   for (j = 0; j < 4; j += 2) { // Two rows of blocks j, j+1
-    
+
     for (row = 0; row < 8; row+=2) { // 4 pairs of two rows
-      pwrgb0 = prgb; 
+      pwrgb0 = prgb;
       pwrgb1 = prgb + pitches[0];
 
       for (i = 0; i < 2; ++i) { // Two columns of blocks
@@ -409,14 +436,14 @@ dv_mb420_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
         dv_coeff_t *Ytmp0 = Y[yindex];
         dv_coeff_t *Ytmp1 = Y[yindex] + 8;
         for (col = 0; col < 4; ++col) {  // 4 spans of 2x2 pixels
-          int8_t cb = *cb_frame++; // +128;
-          int8_t cr = *cr_frame++; // +128
+          int8_t cb = clamp (-128, *cb_frame++, 127); // +128;
+          int8_t cr = clamp (-128, *cr_frame++, 127); // +128
 	  int ro = table_1_596[cr];
 	  int go = table_0_813[cr] + table_0_391[cb];
 	  int bo =                   table_2_018[cb];
-	
+
           for (k = 0; k < 2; ++k) { // 2x2 pixel
-            int32_t y = ylut[*Ytmp0++];
+            int32_t y = ylut[clamp (-256, *Ytmp0++, 512)];
             int32_t r = (y + ro) >> COLOR_FRACTION_BITS;
             int32_t g = (y - go) >> COLOR_FRACTION_BITS;
             int32_t b = (y + bo) >> COLOR_FRACTION_BITS;
@@ -425,7 +452,7 @@ dv_mb420_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
 	    *pwrgb0++ = rgblut[r];
 	    *pwrgb0++ = 0;
 
-            y = ylut[*Ytmp1++];
+            y = ylut[clamp (-256, *Ytmp1++, 512)];
             r = (y + ro) >> COLOR_FRACTION_BITS;
             g = (y - go) >> COLOR_FRACTION_BITS;
             b = (y + bo) >> COLOR_FRACTION_BITS;
