@@ -49,7 +49,7 @@ extern "C" {
 #endif
 
 /* Main API */
-extern dv_decoder_t *dv_decoder_new     (int add_ntsc_setup, int clamp_luma,
+extern dv_decoder_t *dv_decoder_new     (int ignored, int clamp_luma,
 	                  int clamp_chroma);
 extern void         dv_decoder_free     (dv_decoder_t*);
 extern void         dv_init             (int clamp_luma, int clamp_chroma);

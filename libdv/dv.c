@@ -94,7 +94,7 @@ dv_decoder_new(int add_ntsc_setup, int clamp_luma, int clamp_chroma) {
   result = (dv_decoder_t *)calloc(1,sizeof(dv_decoder_t));
   if(!result) goto no_mem;
   
-  result->add_ntsc_setup = add_ntsc_setup;
+  result->add_ntsc_setup = FALSE;
   result->clamp_luma = clamp_luma;
   result->clamp_chroma = clamp_chroma;
   dv_init(clamp_luma, clamp_chroma);
@@ -122,15 +122,6 @@ dv_decoder_new(int add_ntsc_setup, int clamp_luma, int clamp_chroma) {
     argDescrip: "(0|1|2|3)",
     arg: &result->arg_video_system,
   }; /* system */
-
-  result->option_table[DV_DECODER_OPT_NTSCSETUP] = (struct poptOption){
-    longName:  "ntsc-setup", 
-    arg:       &result->add_ntsc_setup,
-    argInfo: POPT_ARG_INT, 
-    argDescrip: "(0|1)",
-    descrip:   "add 7.5 IRE setup to NTSC only: "
-    " 0=off, 1=on [default]"
-  }; /* ntsc-setup */
 
   result->option_table[DV_DECODER_OPT_VIDEO_INCLUDE] = (struct poptOption) {
     argInfo: POPT_ARG_INCLUDE_TABLE,

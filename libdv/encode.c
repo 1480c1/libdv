@@ -1,4 +1,4 @@
-/*
+ /*
  *  encode.c
  *
  *     Copyright (C) James Bowman  - July 2000
@@ -1460,16 +1460,7 @@ void dv_show_statistics()
  *  This function allocates memory for you that must be set free using
  *  dv_encoder_free()
  * 
- * @param rem_ntsc_setup A boolean that indicates if 16 should be
- *          subtracted from the luma channel to account for the NTSC
- *          luma setup/platform of 7.5 IRE. The North American NTSC 
- *          standard calls for a 7.5 IRE setup, but DV is based on the
- *          Japanese NTSC standard that uses 0 IRE setup. Therefore,
- *          North American DV equipments adds the 7.5 IRE setup to its
- *          analog output. Without setting this true, computer generated
- *          graphics may appear too bright.
- *          Typically, this should be set false for PAL and Japanese NTSC
- *          users.
+ * @param ignored A retired option.
  * @param clamp_luma A boolean to indicate that luma values should be 
  *          trimmed to their ITU-R 601 legal limits. When this is false, it
  *          preserves superblack and superwhite.
@@ -1479,7 +1470,7 @@ void dv_show_statistics()
  *          Typically this should be set true.
  */
 dv_encoder_t * 
-dv_encoder_new(int rem_ntsc_setup, int clamp_luma, int clamp_chroma) {
+dv_encoder_new(int ignored, int clamp_luma, int clamp_chroma) {
   dv_encoder_t *result;
   
   result = (dv_encoder_t *)calloc(1,sizeof(dv_encoder_t));
@@ -1494,7 +1485,7 @@ dv_encoder_new(int rem_ntsc_setup, int clamp_luma, int clamp_chroma) {
   result->img_cb = (short*) calloc(DV_PAL_HEIGHT * DV_WIDTH / 2, sizeof(short));
   if(!result->img_cb) goto no_cb;
 
-  result->rem_ntsc_setup = rem_ntsc_setup;
+  result->rem_ntsc_setup = FALSE;
   result->clamp_luma = clamp_luma;
   result->clamp_chroma = clamp_chroma;
   result->force_dct = DV_DCT_AUTO;

@@ -12,6 +12,7 @@
 	* bump release version to 0.100 and increment libtool versions.
 	* libdv/dv.c: apply patch from Mathias Herberts to try getting recording
 	  date/time from vaux when ssyb fails.
+	* libdv/dv.c, encode.c: ignore ntsc_setup options.
 
 2004-01-04  Dan Dennedy <dan@dennedy.org>
 	* encodedv/dvconnect.c, libdv/dv1394.h: fix for kernel 2.6 compatibility,
