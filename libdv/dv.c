@@ -722,7 +722,7 @@ dv_format_wide (dv_decoder_t *dv)
 
   if ((id = dv -> vaux_pack [0x61]) != 0xff) {
     if (dv->std == e_dv_std_smpte_314m)
-      return ((dv->vaux_data[id][1] & 0x7) != 0x2);
+      return ((dv->vaux_data[id][1] & 0x7) == 0x2);
     else
       return (((dv->vaux_data[id][1] & 0x7) == 0x2) || ((dv->vaux_data[id][1] & 0x7) == 0x7)) ;
   }

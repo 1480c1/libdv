@@ -1,3 +1,6 @@
+2004-07-06  Dan Dennedy <dan@dennedy.org>
+	* libdv/dv.c: fix SMPTE314M typo in dv_format_wide()
+
 2004-07-05  Dan Dennedy <dan@dennedy.org>
 	* libdv/encode.c: apply patch from Johannes Sixt to make encoder thread-safe
 	  by mutex locks.
