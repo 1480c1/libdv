@@ -208,7 +208,11 @@ int main(int argc,char *argv[]) {
     gdk_draw_gray_image(image->window,image->style->fg_gc[image->state],
                         0,0,720,isPAL?576:480,GDK_RGB_DITHER_NORMAL,y_frame,720);
 #else
-    dv_ycrcb_to_rgb32(y_frame,cr_frame,cb_frame,rgb_frame,isPAL?576:480);
+    if(sampling == e_dv_sample_411)
+      dv_ycrcb_411_to_rgb32(y_frame,cr_frame,cb_frame,rgb_frame,isPAL?576:480);
+    else
+      dv_ycrcb_420_to_rgb32(y_frame,cr_frame,cb_frame,rgb_frame,isPAL?576:480);
+
     gdk_draw_rgb_32_image(image->window,image->style->fg_gc[image->state],
                         0,0,720,isPAL?576:480,GDK_RGB_DITHER_NORMAL,rgb_frame,720*4);
 #endif
