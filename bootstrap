@@ -73,7 +73,7 @@ function libtool_version_msg () {
 	libtool_version_msg 
 }
 
-libtool_version=`$LIBTOOL --version | sed 's/^.* \([0-9\.]*\) .*$/\1/'`
+libtool_version=`$LIBTOOL --version | head -n 1 | sed 's/^.* \([0-9\.]*\) .*$/\1/'`
 libtool_major=`echo $libtool_version | cut -d. -f1`
 libtool_minor=`echo $libtool_version | cut -d. -f2`
 if [ $libtool_major -le 1 ]; then
