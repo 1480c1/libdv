@@ -124,8 +124,8 @@ dv_mb411_YUY2(dv_macroblock_t *mb, guchar *pixels, gint pitch, gint x, gint y) {
 void 
 dv_mb420_YUY2(dv_macroblock_t *mb, guchar *pixels, gint pitch, gint x, gint y) {
 
-  dv_coeff_t		*Y[4], *Ytmp0, *Ytmp1, *cr_frame, *cb_frame;
-  unsigned char	        *pyuv, *pwyuv0, *pwyuv1, cb, cr;
+  dv_coeff_t		*Y[4], *Ytmp, *cr_frame, *cb_frame;
+  unsigned char	        *pyuv, *pwyuv, cb, cr;
   int			i, j, col, row;
 
 
@@ -133,40 +133,41 @@ dv_mb420_YUY2(dv_macroblock_t *mb, guchar *pixels, gint pitch, gint x, gint y) {
   Y[1] = mb->b[1].coeffs;
   Y[2] = mb->b[2].coeffs;
   Y[3] = mb->b[3].coeffs;
-  cr_frame = mb->b[4].coeffs;
-  cb_frame = mb->b[5].coeffs;
 
   pyuv = pixels + (x * 2) + (y * pitch);
 
-  for (j = 0; j < 4; j += 2) { // Two rows of blocks j, j+1
+  for (j = 0; j < 4; j += 2) { // Two rows of blocks 
+    cr_frame = mb->b[4].coeffs + (j * 2);
+    cb_frame = mb->b[5].coeffs + (j * 2);
 
-    for (row = 0; row < 8; row+=2) { // 4 pairs of two rows
-      pwyuv0 = pyuv;
-      pwyuv1 = pyuv + pitch;
+    for (row = 0; row < 8; row++) { 
+      pwyuv = pyuv;
 
       for (i = 0; i < 2; ++i) { // Two columns of blocks
-        Ytmp0 = Y[j + i];  // even Y row
-	Ytmp1 = Ytmp0 + 8; // odd Y row
+        Ytmp = Y[j + i];  
 
-        for (col = 0; col < 4; ++col) {  // 4 spans of 2x2 pixels
+        for (col = 0; col < 8; col+=4) {  // two 4-pixel spans per Y block
 
           cb = uvlut[*cb_frame++]; 
           cr = uvlut[*cr_frame++]; 
 
-	  *pwyuv0++ = ylut[*Ytmp0++];
-	  *pwyuv0++ = cb;
-	  *pwyuv0++ = ylut[*Ytmp0++];
-	  *pwyuv0++ = cr;
+	  *pwyuv++ = ylut[*Ytmp++];
+	  *pwyuv++ = cb;
+	  *pwyuv++ = ylut[*Ytmp++];
+	  *pwyuv++ = cr;
 
-	  *pwyuv1++ = ylut[*Ytmp1++];
-	  *pwyuv1++ = cb;
-	  *pwyuv1++ = ylut[*Ytmp1++];
-	  *pwyuv1++ = cr;
+	  *pwyuv++ = ylut[*Ytmp++];
+	  *pwyuv++ = cb;
+	  *pwyuv++ = ylut[*Ytmp++];
+	  *pwyuv++ = cr;
         } /* for col */
-        Y[j + i] = Ytmp1;
+        Y[j + i] = Ytmp;
+
       } /* for i */
 
-      pyuv += (pitch * 2);
+      cb_frame += 4;
+      cr_frame += 4;
+      pyuv += pitch;
     } /* for row */
 
   } /* for j */
@@ -267,105 +268,85 @@ dv_mb411_YUY2_mmx(dv_macroblock_t *mb, guchar *pixels, gint pitch, gint x, gint 
 
 void 
 dv_mb420_YUY2_mmx(dv_macroblock_t *mb, guchar *pixels, gint pitch, gint x, gint y) {
-    dv_coeff_t		*Y [4], *Ytmp0, *cr_frame, *cb_frame;
-    unsigned char	*pyuv, *pwyuv0, *pwyuv1;
-    int			i, j, row;
 
-    Y[0] = mb->b[0].coeffs;
-    Y[1] = mb->b[1].coeffs;
-    Y[2] = mb->b[2].coeffs;
-    Y[3] = mb->b[3].coeffs;
-    cr_frame = mb->b[4].coeffs;
-    cb_frame = mb->b[5].coeffs;
+  dv_coeff_t		*Y[4], *Ytmp, *cr_frame, *cb_frame;
+  unsigned char	        *pyuv;
+  int			j, row;
+ 
+  Y[0] = mb->b[0].coeffs;
+  Y[1] = mb->b[1].coeffs;
+  Y[2] = mb->b[2].coeffs;
+  Y[3] = mb->b[3].coeffs;
 
-    pyuv = pixels + (x * 2) + (y * pitch);
+  pyuv = pixels + (x * 2) + (y * pitch);
 
-    movq_m2r (mmx_0x7f94s, mm6);
-    movq_m2r (mmx_0x7f24s, mm5);
+  movq_m2r(mmx_0x0080s,mm7);
 
-    for (j = 0; j < 4; j += 2) { // Two rows of blocks j, j+1
-      for (row = 0; row < 8; row+=2) { // 4 pairs of two rows
-	pwyuv0 = pyuv;
-	pwyuv1 = pyuv + pitch;
-	for (i = 0; i < 2; ++i) { // Two columns of blocks
-	  Ytmp0 = Y[j + i];
+  for (j = 0; j < 4; j += 2) { // Two rows of blocks 
+    cr_frame = mb->b[4].coeffs + (j * 2);
+    cb_frame = mb->b[5].coeffs + (j * 2);
 
-	  /* -------------------------------------------------------------------
-	   */
-	  movq_m2r (*cb_frame, mm2);
-	  paddw_m2r (mmx_0x0080s, mm2);
+    for (row = 0; row < 8; row++) { 
 
-	  psllw_i2r (8, mm2);
-	  movq_m2r (*cr_frame, mm3);
+      movq_m2r(*cb_frame, mm0);
+      paddw_r2r(mm7,mm0); // +128
+      packuswb_r2r(mm0,mm0);
 
-	  paddw_m2r (mmx_0x0080s, mm3);
-	  psllw_i2r (8, mm3);
+      movq_m2r(*cr_frame, mm1);
+      paddw_r2r(mm7,mm1); // +128
+      packuswb_r2r(mm1,mm1); 
 
-	  movq_r2r (mm2, mm4);
-	  punpcklwd_r2r (mm3, mm4);
+      punpcklbw_r2r(mm1,mm0);
+      movq_r2r(mm0,mm1);
 
-	  pand_m2r (mmx_0xff00s, mm4);
+      punpcklwd_r2r(mm0,mm0); // pack doubled low cb and crs
+      punpckhwd_r2r(mm1,mm1); // pack doubled high cb and crs
 
-	  /* -------------------------------------------------------------------
-	   */
-	  movq_m2r (*(Ytmp0 + 0), mm0);
-	  paddsw_r2r (mm6, mm0);
-	  psubusw_r2r (mm5, mm0);
-	  paddw_m2r (mmx_0x0010s, mm0);
-	  por_r2r (mm4, mm0);
+      Ytmp = Y[j];  
 
-	  movq_m2r (*(Ytmp0 + 8), mm1);
-	  paddsw_r2r (mm6, mm1);
+      movq_m2r(*Ytmp,mm2);
+      paddw_r2r(mm7,mm2);  // +128
 
-	  movq_r2m (mm0, *pwyuv0);
+      movq_m2r(*(Ytmp+4),mm3);
+      paddw_r2r(mm7,mm3); // +128
 
-	  psubusw_r2r (mm5, mm1);
-	  paddw_m2r (mmx_0x0010s, mm1);
-	  por_r2r (mm4, mm1);
+      packuswb_r2r(mm3,mm2);  // pack Ys from signed 16-bit to unsigned 8-bit
+      movq_r2r(mm2,mm3);
 
-	  movq_r2m (mm1, *pwyuv1);
+      punpcklbw_r2r(mm0,mm3); // interlieve low Ys with crcbs
+      movq_r2m(mm3,*(pyuv));
 
-	  movq_r2r (mm2, mm4);
+      punpckhbw_r2r(mm0,mm2); // interlieve high Ys with crcbs
+      movq_r2m(mm2,*(pyuv+8));
 
-	  Ytmp0 += 4;
-	  punpckhwd_r2r (mm3, mm4);
+      Y[j] += 8;
 
-	  pwyuv0 += 8;
-	  pand_m2r (mmx_0xff00s, mm4);
+      Ytmp = Y[j+1];  
 
-	  pwyuv1 += 8;
+      movq_m2r(*Ytmp,mm2);
+      paddw_r2r(mm7,mm2); // +128
 
-	  movq_m2r (*(Ytmp0 + 0), mm0);
-	  paddsw_r2r (mm6, mm0);
-	  psubusw_r2r (mm5, mm0);
-	  paddw_m2r (mmx_0x0010s, mm0);
-	  por_r2r (mm4, mm0);
+      movq_m2r(*(Ytmp+4),mm3);
+      paddw_r2r(mm7,mm3); // +128
 
-	  movq_m2r (*(Ytmp0 + 8), mm1);
-	  paddsw_r2r (mm6, mm1);
+      packuswb_r2r(mm3,mm2); // pack Ys from signed 16-bit to unsigned 8-bit
+      movq_r2r(mm2,mm3);
 
-	  movq_r2m (mm0, *pwyuv0);
+      punpcklbw_r2r(mm1,mm3);
+      movq_r2m(mm3,*(pyuv+16));
 
-	  psubusw_r2r (mm5, mm1);
-	  paddw_m2r (mmx_0x0010s, mm1);
-	  por_r2r (mm4, mm1);
+      punpckhbw_r2r(mm1,mm2);  // interlieve low Ys with crcbs
+      movq_r2m(mm2,*(pyuv+24)); // interlieve high Ys with crcbs
+      
+      Y[j+1] += 8;
+      cr_frame += 8;
+      cb_frame += 8;
 
-	  movq_r2m (mm1, *pwyuv1);
+      pyuv += pitch;
+    } /* for row */
 
-	  movq_r2r (mm2, mm4);
-
-
-	  Ytmp0 += 4;
-	  pwyuv0 += 8;
-	  pwyuv1 += 8;
-	  cb_frame += 4;
-	  cr_frame += 4;
-	  Y[j + i] = Ytmp0 + 8;
-	} /* for i */
-	pyuv += (pitch * 2);
-      } /* for row */
-    } /* for j */
-    emms ();
+  } /* for j */
+  emms();
 } /* dv_mb420_YUY2_mmx */
 
 #endif // USE_MMX_ASM
