@@ -141,8 +141,8 @@ int _dv_raw_insert_audio(unsigned char * frame_buf,
 					| (/* sm = */ 0 << 7);
 				head_50[4] = /* 16 Bits */0 
 					| (/* 32000 kHz */ 2 << 3)
-					| (/* tc = */ 0 << 6) 
-					| (/* ef = */ 0 << 7);
+					| (/* tc = */ 1 << 6) 
+					| (/* ef = */ 1 << 7);
 			} else {
 				head_50[1] = (samplesperframe - 1264) 
 					| (1 << 6) | (/* unlocked = */ 1 << 7);
@@ -152,8 +152,8 @@ int _dv_raw_insert_audio(unsigned char * frame_buf,
 					| (/* sm = */ 0 << 7);
 				head_50[4] = /* 12 Bits */1 
 					| (/* 32000 kHz */ 2 << 3)
-					| (/* tc = */ 0 << 6) 
-					| (/* ef = */ 0 << 7);
+					| (/* tc = */ 1 << 6) 
+					| (/* ef = */ 1 << 7);
 				bits_per_sample = 12;
 			}
 			break;
@@ -164,7 +164,7 @@ int _dv_raw_insert_audio(unsigned char * frame_buf,
 				| (/* chn = */ 0 << 5)
 				| (/* sm = */ 0 << 7);
 			head_50[4] = /* 16 Bits */0 | (/* 44100 kHz */ 1 << 3)
-				| (/* tc = */ 0 << 6) | (/* ef = */ 0 << 7);
+				| (/* tc = */ 1 << 6) | (/* ef = */ 1 << 7);
 			break;
 		case 48000:
 			head_50[1] = (samplesperframe - 1896) | (1 << 6)
@@ -172,7 +172,7 @@ int _dv_raw_insert_audio(unsigned char * frame_buf,
 			head_50[2] = /* audio_mode= */ 0 | (/* pa = */ 0 << 4) 
 				| (/* chn = */ 0 << 5);
 			head_50[4] = /* 16 Bits */0 | (/* 48000 kHz */ 0 << 3)
-				| (/* tc = */ 0 << 6) | (/* ef = */ 0 << 7);
+				| (/* tc = */ 1 << 6) | (/* ef = */ 1 << 7);
 			break;
 		default:
 			fprintf(stderr, "Impossible frequency??\n");
@@ -192,8 +192,8 @@ int _dv_raw_insert_audio(unsigned char * frame_buf,
 					| (/* sm = */ 0 << 7);
 				head_50[4] = /* 16 Bits */0 
 					| (/* 32000 kHz */ 2 << 3)
-					| (/* tc = */ 0 << 6) 
-					| (/* ef = */ 0 << 7);
+					| (/* tc = */ 1 << 6) 
+					| (/* ef = */ 1 << 7);
 			} else {
 				head_50[1] = (samplesperframe - 1053) 
 					| (1 << 6) | (/* unlocked = */ 1 << 7);
@@ -203,8 +203,8 @@ int _dv_raw_insert_audio(unsigned char * frame_buf,
 					| (/* sm = */ 0 << 7);
 				head_50[4] = /* 12 Bits */1 
 					| (/* 32000 kHz */ 2 << 3)
-					| (/* tc = */ 0 << 6) 
-					| (/* ef = */ 0 << 7);
+					| (/* tc = */ 1 << 6) 
+					| (/* ef = */ 1 << 7);
 				bits_per_sample = 12;
 			}
 			break;
@@ -215,7 +215,7 @@ int _dv_raw_insert_audio(unsigned char * frame_buf,
 				| (/* chn = */ 0 << 5)
 				| (/* sm = */ 0 << 7);
 			head_50[4] = /* 16 Bits */0 | (/* 44100 kHz */ 1 << 3)
-				| (/* tc = */ 0 << 6) | (/* ef = */ 0 << 7);
+				| (/* tc = */ 1 << 6) | (/* ef = */ 1 << 7);
 			break;
 		case 48000:
 			head_50[1] = (samplesperframe - 1580) | (1 << 6)
@@ -223,7 +223,7 @@ int _dv_raw_insert_audio(unsigned char * frame_buf,
 			head_50[2] = /* audio_mode= */ 0 | (/* pa = */ 0 << 4) 
 				| (/* chn = */ 0 << 5);
 			head_50[4] = /* 16 Bits */0 | (/* 48000 kHz */ 0 << 3)
-				| (/* tc = */ 0 << 6) | (/* ef = */ 0 << 7);
+				| (/* tc = */ 1 << 6) | (/* ef = */ 1 << 7);
 			break;
 		default:
 			fprintf(stderr, "Impossible frequency??\n");
@@ -235,6 +235,7 @@ int _dv_raw_insert_audio(unsigned char * frame_buf,
 	head_51[1] = 0x33;
 	head_51[2] = 0xcf;
 	head_51[3] = 0xa0;
+	head_51[4] = 0xff;
 
 	head_52[0] = 0x52;
 	head_52[1] = frame_buf[5 * 80 + 48 + 2 * 5 + 1]; /* steal video */
