@@ -11,11 +11,9 @@ autom4te.cache
 bb.out
 config
 config.cache
-config.guess
 config.h
 config.log
 config.status
-config.sub
 configure.scan
 dovlc
 dv_config.h
