@@ -1,3 +1,9 @@
+2001-06-24  <zybi@users.sourceforge.net>
+
+	* Important bugfix.  RedHat 7.1 gcc was generating invalid code
+	  for expression in weighting.c.  This was causing video artifacts and crashes.
+	  Workaround found by changing the expression gcc was messing up on.
+
 2001-06-05  Peter Schlaile <udbz@rz.uni-karlsruhe.de>
 	* Added dvconnect. A small utility to grab and send dv data over
 	  firewire

@@ -41,4 +41,4 @@ extern void      dv_oss_close(dv_oss_t *oss);
 }
 #endif
 
-#endif DV_OSS_H
+#endif /* DV_OSS_H */

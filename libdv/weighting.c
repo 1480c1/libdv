@@ -194,9 +194,9 @@ void weight_init(void)
 	for (z=0;z<4;z++) {
 		for (x=0;x<8;x++) {
 			dv_weight_inverse_248_matrix[z*8+x] = 
-				1.0 / (W[x] * W[2*z] / 2);
+				2.0 / (W[x] * W[2*z]);
 			dv_weight_inverse_248_matrix[(z+4)*8+x] = 
-				1.0 / (W[x] * W[2*z] / 2);
+				2.0 / (W[x] * W[2*z]);
 			
 		}
 	}
