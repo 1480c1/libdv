@@ -23,15 +23,9 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
-#if HAVE_LIBPOPT
-#include <popt.h>
-#endif // HAVE_LIBPOPT
-
+#include <stdio.h>
 #include <math.h>
+
 #include "dv_types.h"
 #include "util.h"
 #include "audio.h"
