@@ -1,3 +1,6 @@
+2004-11-29  Dan Dennedy <dan@dennedy.org>
+	* libdv.pc: added -lm to make build more portable.
+
 2004-10-19  Dan Dennedy <dan@dennedy.org>
 	* applied x86-64 patch from Dean Kolosiek.
 
