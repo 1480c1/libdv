@@ -48,6 +48,7 @@ extern void dv_rgb_init(void);
 
 /* scalar version */
 extern void dv_mb411_rgb(dv_macroblock_t *mb, guchar *pixels, gint pitch, gint x, gint y); 
+extern void dv_mb411_rgb_right(dv_macroblock_t *mb, guchar *pixels, gint pitch, gint x, gint y);
 extern void dv_mb420_rgb(dv_macroblock_t *mb, guchar *pixels, gint pitch, gint x, gint y); 
 
 #if USE_MMX_ASM

@@ -156,6 +156,66 @@ dv_mb411_rgb(dv_macroblock_t *mb, guchar *pixels, gint pitch, gint x, gint y) {
   } // for row
 } // dv_mb411_rgb
 
+
+void 
+dv_mb411_rgb_right(dv_macroblock_t *mb, guchar *pixels, gint pitch, gint x, gint y) {
+  dv_coeff_t *Ytmp;
+  dv_coeff_t *Y[4], *cr_frame, *cb_frame;
+  guint8 *prgb, *pwrgb;
+  int i, j, k, row, col;
+
+  Y[0] = mb->b[0].coeffs;
+  Y[1] = mb->b[1].coeffs;
+  Y[2] = mb->b[2].coeffs;
+  Y[3] = mb->b[3].coeffs;
+
+  prgb = pixels + (x * 3) + (y * pitch);
+
+  for (j = 0; j < 4; j += 2) { // Two rows of blocks j, j+1
+    
+    cr_frame = mb->b[4].coeffs + (j*2);
+    cb_frame = mb->b[5].coeffs + (j*2);
+
+    for (row = 0; row < 8; row++) { 
+      pwrgb = prgb; 
+
+      for (i = 0; i < 2; ++i) { // Two columns of blocks
+	Ytmp = Y[j+i];
+
+        for (col = 0; col < 8; col+=4) {  // 4 spans of 2x2 pixels
+
+          gint8 cb = *cb_frame++; // +128;
+          gint8 cr = *cr_frame++; // +128
+
+	  int ro = table_1_596[cr];
+	  int go = table_0_813[cr] + table_0_391[cb];
+	  int bo =                   table_2_018[cb];
+
+          for (k = 0; k < 4; ++k) { // 4x1 pixels
+
+            gint32 y = ylut[*Ytmp++];
+            gint32 r = (y + ro) >> COLOR_FRACTION_BITS;
+            gint32 g = (y - go) >> COLOR_FRACTION_BITS;
+            gint32 b = (y + bo) >> COLOR_FRACTION_BITS;
+
+	    *pwrgb++ = rgblut[r];
+	    *pwrgb++ = rgblut[g];
+	    *pwrgb++ = rgblut[b];
+          } // for k
+
+        } // for col
+
+        Y[j+i] = Ytmp;
+      } // for i
+
+      cb_frame += 4;
+      cr_frame += 4;
+      prgb += pitch;
+    } // for row
+
+  } // for j
+} /* dv_mb411_rgb_right */
+
 void 
 dv_mb420_rgb(dv_macroblock_t *mb, guchar *pixels, gint pitch, gint x, gint y) {
   dv_coeff_t *Y[4], *cr_frame, *cb_frame;

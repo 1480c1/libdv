@@ -81,7 +81,7 @@ dv_render_video_segment_rgb(dv_videosegment_t *seg, dv_sample_t sampling,
     if(sampling == e_dv_sample_411) {
       dv_place_411_macroblock(mb,&x,&y);
       if((mb->j == 4) && (mb->k > 23)) {
-	dv_mb420_rgb(mb, pixels, pitch, x, y); // Right edge are 420!
+	dv_mb411_rgb_right(mb, pixels, pitch, x, y); // Right edge are 16x16
       } else {
 	dv_mb411_rgb(mb, pixels, pitch, x, y);
       } // else
