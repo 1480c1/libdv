@@ -47,7 +47,7 @@
 
 #define IDCT_248_UNIT_TEST 0
 
-static dv_248_coeff_t dv_idct_248_prescale[64];
+dv_248_coeff_t dv_idct_248_prescale[64];
 
 /*
   beta2 = cos(M_PI/4);
@@ -149,24 +149,18 @@ void dv_dct_248_init() {
 #define DIV_TWO(A) ((A) / 2) 
 #define DIV_FOUR(A) ((A) / 4)
 
-void dv_idct_248(dv_248_coeff_t *x248)
+void dv_idct_248(dv_248_coeff_t *x248, dv_coeff_t *out)
 {
 	dv_248_coeff_t tmp[64];
-	dv_248_coeff_t *in, *out;
+	dv_248_coeff_t *in, *lhs;
 	dv_248_coeff_t u,v,w,z;
 	dv_248_coeff_t in0, in1, in2, in3, in4, in5, in6, in7;
 	gint i;
-	
-#if ! IDCT_248_UNIT_TEST
-	/* prescale - 64 mults */
-	for(i=0; i<64; i++) {
-	  x248[i] *= dv_idct_248_prescale[i];
-	} // for
-#endif // ! IDCT_248_UNIT_TEST
+
 	// Now, tmp = inv(h2) * inv(g2) * (prescale = inv(d2) * x248 * d)
 	// 32 mults, 64 adds, 80 shifts, 16 negates 
 	in = x248;
-	out = tmp;
+	lhs = tmp;
 #if IDCT_248_UNIT_TEST
 	printf("\nt0:\n");
 	for(i=0;i<64; i++) {
@@ -179,85 +173,85 @@ void dv_idct_248(dv_248_coeff_t *x248)
 		v = in[2*8+i];
 		w = in[1*8+i];
 		z = in[3*8+i];
-		out[0*8+i] = DIV_FOUR(u) + DIV_TWO(v);
-		out[1*8+i] = DIV_FOUR(u) - DIV_TWO(v);
-		out[2*8+i] = fixed_multiply(w,beta0) + fixed_multiply(z,beta1);
-                out[3*8+i] = -(DIV_TWO(w+z));
+		lhs[0*8+i] = DIV_FOUR(u) + DIV_TWO(v);
+		lhs[1*8+i] = DIV_FOUR(u) - DIV_TWO(v);
+		lhs[2*8+i] = fixed_multiply(w,beta0) + fixed_multiply(z,beta1);
+                lhs[3*8+i] = -(DIV_TWO(w+z));
 		u = in[4*8+i];
 		v = in[6*8+i];
 		w = in[5*8+i];
 		z = in[7*8+i];
-		out[4*8+i] = DIV_FOUR(u) + DIV_TWO(v);
-		out[5*8+i] = DIV_FOUR(u) - DIV_TWO(v);
-		out[6*8+i] = fixed_multiply(w,beta0) + fixed_multiply(z,beta1);
-                out[7*8+i] = -(DIV_TWO(w+z));
+		lhs[4*8+i] = DIV_FOUR(u) + DIV_TWO(v);
+		lhs[5*8+i] = DIV_FOUR(u) - DIV_TWO(v);
+		lhs[6*8+i] = fixed_multiply(w,beta0) + fixed_multiply(z,beta1);
+                lhs[7*8+i] = -(DIV_TWO(w+z));
 	} // for 
 #if IDCT_248_UNIT_TEST
 	printf("\nt1:\n");
 	for(i=0;i<64; i++) {
-	  printf("%d ", (out[i] + 0x2000) >> 14);
+	  printf("%d ", (lhs[i] + 0x2000) >> 14);
 	  if((i+1) % 8 == 0) printf("\n");
 	} // for
 #endif // IDCT_248_UNIT_TEST
 	in = tmp;
-	out = x248;
-	// Do out  = inv(f) * inv(L2) * in  (butterfly) 
+	lhs = x248;
+	// Do lhs  = inv(f) * inv(L2) * in  (butterfly) 
         // 192 adds, 64 shifts
 	for(i=0; i<8; i++) {
 		u = in[8*0+i];
 		v = in[8*3+i];
 		w = in[8*4+i];
 		z = in[8*7+i];
-		out[8*0+i] = DIV_FOUR(u - v + w - z);
-		out[8*1+i] = DIV_FOUR(u - v - w + z);
-		out[8*6+i] = DIV_FOUR(u + v + w + z);
-		out[8*7+i] = DIV_FOUR(u + v - w - z);
+		lhs[8*0+i] = DIV_FOUR(u - v + w - z);
+		lhs[8*1+i] = DIV_FOUR(u - v - w + z);
+		lhs[8*6+i] = DIV_FOUR(u + v + w + z);
+		lhs[8*7+i] = DIV_FOUR(u + v - w - z);
 		u = in[8*1+i];
 		v = in[8*2+i];
 		w = in[8*5+i];
 		z = in[8*6+i];
-		out[i+8*2] = DIV_FOUR(u + v + w + z);
-		out[i+8*3] = DIV_FOUR(u + v - w - z);
-		out[i+8*4] = DIV_FOUR(u - v + w - z);
-		out[i+8*5] = DIV_FOUR(u - v - w + z);
+		lhs[i+8*2] = DIV_FOUR(u + v + w + z);
+		lhs[i+8*3] = DIV_FOUR(u + v - w - z);
+		lhs[i+8*4] = DIV_FOUR(u - v + w - z);
+		lhs[i+8*5] = DIV_FOUR(u - v - w + z);
 	} // for
 #if IDCT_248_UNIT_TEST
 	printf("\nt2:\n");
 	for(i=0;i<64; i++) {
-	  printf("%d ", (out[i] + 0x2000) >> 14);
+	  printf("%d ", (lhs[i] + 0x2000) >> 14);
 	  if((i+1) % 8 == 0) printf("\n");
 	} // for
 #endif // IDCT_248_UNIT_TEST
 	in = x248;
-	out = tmp;
-	// Do out = in * p * b1 * b2 * m 
+	lhs = tmp;
+	// Do lhs = in * p * b1 * b2 * m 
 	// 48 mults, 48 adds 
 	for(i=0; i<8; i++) {
-		out[i*8+0] = in[i*8+0];
-		out[i*8+1] = in[i*8+4];
+		lhs[i*8+0] = in[i*8+0];
+		lhs[i*8+1] = in[i*8+4];
 		u = in[i*8+2];
 		v = in[i*8+6];
-		out[i*8+2] = fixed_multiply(u - v,beta2);
-		out[i*8+3] = u + v;
+		lhs[i*8+2] = fixed_multiply(u - v,beta2);
+		lhs[i*8+3] = u + v;
 		u = in[i*8+1];
 		v = in[i*8+3];
                 w = in[i*8+5];
 		z = in[i*8+7];
-		out[i*8+4] = fixed_multiply(u - z,beta3) + fixed_multiply(v - w,beta4);
-		out[i*8+5] = fixed_multiply(u - v - w + z,beta2);
-		out[i*8+6] = fixed_multiply(u - z,beta4) + fixed_multiply(w - v,beta3);
-		out[i*8+7] = u + v + w + z;
+		lhs[i*8+4] = fixed_multiply(u - z,beta3) + fixed_multiply(v - w,beta4);
+		lhs[i*8+5] = fixed_multiply(u - v - w + z,beta2);
+		lhs[i*8+6] = fixed_multiply(u - z,beta4) + fixed_multiply(w - v,beta3);
+		lhs[i*8+7] = u + v + w + z;
 	} // for
 #if IDCT_248_UNIT_TEST
 	printf("\nt3:\n");
 	for(i=0;i<64; i++) {
-	  printf("%d ", (out[i] + 0x2000) >> 14);
+	  printf("%d ", (lhs[i] + 0x2000) >> 14);
 	  if((i+1) % 8 == 0) printf("\n");
 	} // for
 #endif // IDCT_248_UNIT_TEST
-	in = out;
-	out = x248;
-	// Do out = in * a1 * a2 * a3  (butterflys...) 
+	in = lhs;
+	lhs = x248;
+	// Do lhs = in * a1 * a2 * a3  (butterflys...) 
 	// 272 adds (will gcc factor some of these out?)
 	for(i=0; i<8; i++) {
 		in0 = in[i*8+0];
@@ -268,24 +262,24 @@ void dv_idct_248(dv_248_coeff_t *x248)
 		in5 = in[i*8+5];
 		in6 = in[i*8+6];
 		in7 = in[i*8+7];
-		out[i*8+0] = in0 + in1 + in2 + in3 + in6 + in7;
-		out[i*8+1] = in0 - in1 + in2 + in5 + in6;
-		out[i*8+2] = in0 - in1 - in2 - in4 + in5;
-		out[i*8+3] = in0 + in1 - in2 - in3 - in4;
-		out[i*8+4] = in0 + in1 - in2 - in3 + in4;
-		out[i*8+5] = in0 - in1 - in2 + in4 - in5;
-		out[i*8+6] = in0 - in1 + in2 - in5 - in6;
-		out[i*8+7] = in0 + in1 + in2 + in3 - in6 - in7;
+		lhs[i*8+0] = in0 + in1 + in2 + in3 + in6 + in7;
+		lhs[i*8+1] = in0 - in1 + in2 + in5 + in6;
+		lhs[i*8+2] = in0 - in1 - in2 - in4 + in5;
+		lhs[i*8+3] = in0 + in1 - in2 - in3 - in4;
+		lhs[i*8+4] = in0 + in1 - in2 - in3 + in4;
+		lhs[i*8+5] = in0 - in1 - in2 + in4 - in5;
+		lhs[i*8+6] = in0 - in1 + in2 - in5 - in6;
+		lhs[i*8+7] = in0 + in1 + in2 + in3 - in6 - in7;
 	} // for
 #if IDCT_248_UNIT_TEST
 	printf("\nout:\n");
 	for(i=0;i<64; i++) {
-	  printf("%d ", (out[i] + 0x2000) >> 14);
+	  printf("%d ", (lhs[i] + 0x2000) >> 14);
 	  if((i+1) % 8 == 0) printf("\n");
 	} // for
 #endif // IDCT_248_UNIT_TEST
-	for(i=0; i<64; i++) 
-	  out[i] = (out[i] + 0x2000) >> 14;
+	for(i=0; i<64; i++)
+	  out [i] = (lhs[i] + 0x2000) >> 14;
 } // dv_idct_248
 
 #if IDCT_248_UNIT_TEST

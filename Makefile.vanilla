@@ -28,7 +28,7 @@ LDFLAGS += $(shell glib-config --libs) $(shell gtk-config --libs) -lm $(XV_LDFLA
 CPPFLAGS += -D_GNU_SOURCE -DUSE_MMX_ASM=1 -DARCH_X86 -DHAVE_LIBXV=$(USE_XV) -DHAVE_GTK=1 -DHAVE_SDL=$(USE_SDL) -DHAVE_LIBPOPT=$(USE_LIBPOPT)
 asm = vlc_x86.S quant_x86.S idct_block_mmx.S dct_block_mmx.S rgbtoyuv.S
 
-gensources=dv.c dct.c idct_248.c weighting.c quant.c vlc.c place.c parse.c bitstream.c YUY2.c YV12.c rgb.c oss.c audio.c
+gensources=dv.c dct.c idct_248.c weighting.c quant.c vlc.c place.c parse.c bitstream.c YUY2.c YV12.c rgb.c oss.c audio.c util.c
 genobjects=$(gensources:.c=.o) $(asm:.S=.o)
 
 sources = $(gensources)

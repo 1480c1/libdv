@@ -33,8 +33,10 @@
 extern "C" {
 #endif
 
+extern dv_248_coeff_t dv_idct_248_prescale[64];
+
 extern void dv_dct_248_init(void);
-extern void dv_idct_248(dv_248_coeff_t *x248);
+extern void dv_idct_248(dv_248_coeff_t *x248,dv_coeff_t *out);
 
 #ifdef __cplusplus
 }

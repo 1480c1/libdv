@@ -166,20 +166,18 @@ void dv_parse_init(void) {
 
 // Scan the blocks of a macroblock.  We're looking to find the next
 // block from which unused space was borrowed
-static gboolean dv_find_mb_unused_bits(dv_macroblock_t *mb, dv_block_t **lender) {
-  dv_block_t *bl;
+static inline
+gboolean dv_find_mb_unused_bits(dv_macroblock_t *mb, dv_block_t **lender) {
   gint b;
 
-  for(b=0,bl=mb->b;
-      b<6;
-      b++,bl++) {
-    if((bl->eob) &&    /* an incomplete block can only "borrow" bits
+  for(b=0; b<6; b++) {
+    if((mb->b[b].eob) &&    /* an incomplete block can only "borrow" bits
 			* from other blocks that are themselves
                         * already completely decoded */
-       (bl->end > bl->offset) && // the lender must have unused bits 
-       (!bl->mark)) {  // the lender musn't already be lending...
-      bl->mark = TRUE;
-      *lender = bl;
+       (mb->b[b].end > mb->b[b].offset) && // the lender must have unused bits
+       (!mb->b[b].mark)) {  // the lender musn't already be lending...
+      mb->b[b].mark = TRUE;
+      *lender = &mb->b[b];
       return(TRUE);
     } // if 
   } // for b

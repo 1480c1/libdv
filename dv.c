@@ -45,6 +45,14 @@
 #include "mmx.h"
 #endif
 
+#if YUV_420_USE_YV12
+#define DV_MB420_YUV(a,b,c)     dv_mb420_YV12    (a,b,c)
+#define DV_MB420_YUV_MMX(a,b,c) dv_mb420_YV12_mmx(a,b,c)
+#else
+#define DV_MB420_YUV(a,b,c)     dv_mb420_YUY2    (a,b,c)
+#define DV_MB420_YUV_MMX(a,b,c) dv_mb420_YV12_mmx(a,b,c)
+#endif 
+
 #if HAVE_LIBPOPT
 static void
 dv_decoder_popt_callback(poptContext con, enum poptCallbackReason reason, 
@@ -58,26 +66,6 @@ dv_decoder_popt_callback(poptContext con, enum poptCallbackReason reason,
   
 } // dv_decoder_popt_callback 
 #endif // HAVE_LIBPOPT
-
-static void 
-convert_coeffs(dv_block_t *bl) {
-  int i;
-  for(i=0;
-      i<64;
-      i++) {
-    bl->coeffs248[i] = bl->coeffs[i];
-  } // for
-} // convert_coeffs
-
-static void 
-convert_coeffs_prime(dv_block_t *bl) {
-  int i;
-  for(i=0;
-      i<64;
-      i++) {
-    bl->coeffs[i] = bl->coeffs248[i];
-  } // for 
-} // convert_coeffs_prime
 
 dv_decoder_t * 
 dv_decoder_new(void) {
@@ -141,12 +129,13 @@ void dv_init(dv_decoder_t *dv) {
 #if ARCH_X86
   dv->use_mmx = mmx_ok(); 
 #endif
-  weight_init();  
+  weight_init();
   dct_init();
   dv_dct_248_init();
   dv_construct_vlc_table();
   dv_parse_init();
   dv_place_init();
+  dv_quant_init (dv);
   dv_rgb_init();
   dv_YUY2_init();
   dv_YV12_init();
@@ -154,26 +143,23 @@ void dv_init(dv_decoder_t *dv) {
 
 static inline void 
 dv_decode_macroblock(dv_decoder_t *dv, dv_macroblock_t *mb, guint quality) {
-  dv_block_t *bl;
-  gint b;
-  for (b=0,bl = mb->b;
-       b<((quality & DV_QUALITY_COLOR) ? 6 : 4);
-       b++,bl++) {
-    if (bl->dct_mode == DV_DCT_248) { 
-      quant_248_inverse(bl->coeffs,mb->qno,bl->class_no);
-      weight_248_inverse(bl->coeffs);
-      convert_coeffs(bl);
-      dv_idct_248(bl->coeffs248);
-      convert_coeffs_prime(bl);
+  gint i;
+  for (i=0;
+       i<((quality & DV_QUALITY_COLOR) ? 6 : 4);
+       i++) {
+    if (mb->b[i].dct_mode == DV_DCT_248) {
+	dv_248_coeff_t co248[64];
+
+      quant_248_inverse (mb->b[i].coeffs, mb->qno, mb->b[i].class_no, co248);
+      dv_idct_248 (co248, mb->b[i].coeffs);
     } else {
 #if ARCH_X86
-      quant_88_inverse_x86(bl->coeffs,mb->qno,bl->class_no);
-      weight_88_inverse(bl->coeffs);
-      idct_88(bl->coeffs);
+      quant_88_inverse_x86(mb->b[i].coeffs,mb->qno,mb->b[i].class_no);
+      idct_88(mb->b[i].coeffs);
 #else // ARCH_X86
-      quant_88_inverse(bl->coeffs,mb->qno,bl->class_no);
-      weight_88_inverse(bl->coeffs);
-      idct_88(bl->coeffs);
+      quant_88_inverse(mb->b[i].coeffs,mb->qno,mb->b[i].class_no);
+      weight_88_inverse(mb->b[i].coeffs);
+      idct_88(mb->b[i].coeffs);
 #endif // ARCH_X86
     } // else
   } // for b
@@ -190,12 +176,11 @@ dv_decode_video_segment(dv_decoder_t *dv, dv_videosegment_t *seg, guint quality)
     for (b=0,bl = mb->b;
 	 b<((quality & DV_QUALITY_COLOR) ? 6 : 4);
 	 b++,bl++) {
-      if (bl->dct_mode == DV_DCT_248) { 
-	quant_248_inverse(bl->coeffs,mb->qno,bl->class_no);
-	weight_248_inverse(bl->coeffs);
-	convert_coeffs(bl);
-	dv_idct_248(bl->coeffs248);
-	convert_coeffs_prime(bl);
+      if (bl->dct_mode == DV_DCT_248) {
+	  dv_248_coeff_t co248[64];
+
+	quant_248_inverse (mb->b[b].coeffs, mb->qno, mb->b[b].class_no, co248);
+	dv_idct_248 (co248, mb->b[b].coeffs);
       } else {
 #if ARCH_X86
 	quant_88_inverse_x86(bl->coeffs,mb->qno,bl->class_no);
@@ -287,7 +272,7 @@ dv_render_macroblock_yuv(dv_decoder_t *dv, dv_macroblock_t *mb, guchar **pixels,
 	dv_mb411_YUY2_mmx(mb, pixels[0], pitches[0]);
       } // else
     } else {
-      dv_mb420_YV12_mmx(mb, pixels, pitches);
+      DV_MB420_YUV_MMX(mb, pixels, pitches);
     } // else
   } else {
     if(dv->sampling == e_dv_sample_411) {
@@ -297,7 +282,7 @@ dv_render_macroblock_yuv(dv_decoder_t *dv, dv_macroblock_t *mb, guchar **pixels,
 	dv_mb411_YUY2(mb, pixels[0], pitches[0]);
       } // else
     } else {
-      dv_mb420_YV12(mb, pixels, pitches);
+      DV_MB420_YUV(mb, pixels, pitches);
     } // else
   } // else
 } /* dv_render_macroblock_yuv */
@@ -317,7 +302,7 @@ dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, guchar **p
 	  dv_mb411_YUY2_mmx(mb, pixels[0], pitches[0]);
 	} // else
       } else {
-	dv_mb420_YV12_mmx(mb, pixels, pitches);
+	DV_MB420_YUV_MMX(mb, pixels, pitches);
       } // else
     } else {
       if(dv->sampling == e_dv_sample_411) {
@@ -327,7 +312,7 @@ dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, guchar **p
 	  dv_mb411_YUY2(mb, pixels[0], pitches[0]);
 	} // else
       } else {
-	dv_mb420_YV12(mb, pixels, pitches);
+	DV_MB420_YUV(mb, pixels, pitches);
       } // else
     } // else
   } // for   
@@ -344,7 +329,7 @@ dv_render_macroblock_yuv(dv_decoder_t *dv, dv_macroblock_t *mb, guchar **pixels,
       dv_mb411_YUY2(mb, pixels[0], pitches[0]);
     } // else
   } else {
-    dv_mb420_YV12(mb, pixels, pitches);
+    DV_MB420_YUV(mb, pixels, pitches);
   } // else
 } /* dv_render_macroblock_yuv */
 
@@ -362,7 +347,7 @@ dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, guchar **p
 	dv_mb411_YUY2(mb, pixels[0], pitches[0]);
       } // else
     } else {
-      dv_mb420_YV12(mb, pixels, pitches);
+      DV_MB420_YUV(mb, pixels, pitches);
     } // else
   } // for   
 } /* dv_render_video_segment_yuv */

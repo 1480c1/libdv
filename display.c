@@ -498,13 +498,24 @@ dv_display_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv, gint width, gin
   switch(sampling) {
   case e_dv_sample_411:
   case e_dv_sample_422:
+#if ! YUV_420_USE_YV12
+  case e_dv_sample_420:
+#endif
     dv_dpy->format = DV_FOURCC_YUY2;
+#if 0
     dv_dpy->len = dv_dpy->width * dv_dpy->height * 2;
+#else
+    /* don't spare with space. just allocate enough
+     */
+    dv_dpy->len = 720 * 576 * 4;
+#endif
     break;
+#if YUV_420_USE_YV12
   case e_dv_sample_420:
     dv_dpy->format = DV_FOURCC_YV12;
     dv_dpy->len = (dv_dpy->width * dv_dpy->height * 3) / 2;
     break;
+#endif
   default:
     /* Not possible */
     break;

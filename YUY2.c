@@ -173,6 +173,54 @@ dv_mb411_right_YUY2(dv_macroblock_t *mb, guchar *pixels, gint pitch) {
   } /* for j */
 } /* dv_mb411_right_YUY2 */
 
+/* ----------------------------------------------------------------------------
+ */
+void
+dv_mb420_YUY2 (dv_macroblock_t *mb, guchar **pixels, gint16 *pitches) {
+    dv_coeff_t		*Y [4], *Ytmp0, *cr_frame, *cb_frame;
+    unsigned char	*pyuv,
+			*pwyuv0, *pwyuv1,
+			cb, cr;
+    int			i, j, col, row, inc_l2, inc_l4;
+
+  pyuv = pixels[0] + (mb->x * 2) + (mb->y * pitches[0]);
+
+  Y [0] = mb->b[0].coeffs;
+  Y [1] = mb->b[1].coeffs;
+  Y [2] = mb->b[2].coeffs;
+  Y [3] = mb->b[3].coeffs;
+  cr_frame = mb->b[4].coeffs;
+  cb_frame = mb->b[5].coeffs;
+  inc_l2 = pitches[0];
+  inc_l4 = pitches[0]*2;
+
+  for (j = 0; j < 4; j += 2) { // Two rows of blocks j, j+1
+    for (row = 0; row < 8; row+=2) { // 4 pairs of two rows
+      pwyuv0 = pyuv;
+      pwyuv1 = pyuv + inc_l2;
+      for (i = 0; i < 2; ++i) { // Two columns of blocks
+        Ytmp0 = Y[j + i];
+        for (col = 0; col < 4; ++col) {  // 4 spans of 2x2 pixels
+          cb = uvlut [*cb_frame++]; // +128;
+          cr = uvlut [*cr_frame++]; // +128
+
+            *pwyuv0++ = ylut [*Ytmp0++];
+	    *pwyuv0++ = cb;
+            *pwyuv0++ = ylut [*Ytmp0++];
+	    *pwyuv0++ = cr;
+
+            *pwyuv1++ = ylut [*(Ytmp0 + 6)];
+	    *pwyuv1++ = cb;
+            *pwyuv1++ = ylut [*(Ytmp0 + 7)];
+	    *pwyuv1++ = cr;
+        }
+        Y[j + i] = Ytmp0 + 8;
+      }
+      pyuv += inc_l4;
+    }
+  }
+}
+
 #if ARCH_X86
 
 /* TODO (by Buck): 
@@ -348,6 +396,104 @@ dv_mb411_right_YUY2_mmx(dv_macroblock_t *mb, guchar *pixels, gint pitch) {
   } /* for j */
   emms();
 } /* dv_mb411_right_YUY2_mmx */
+
+/* ----------------------------------------------------------------------------
+ */
+void
+dv_mb420_YUY2_mmx (dv_macroblock_t *mb, guchar **pixels, gint16 *pitches) {
+    dv_coeff_t		*Y [4], *Ytmp0, *cr_frame, *cb_frame;
+    unsigned char	*pyuv,
+			*pwyuv0, *pwyuv1;
+    int			i, j, row, inc_l2, inc_l4;
+
+  pyuv = pixels[0] + (mb->x * 2) + (mb->y * pitches[0]);
+
+  Y [0] = mb->b[0].coeffs;
+  Y [1] = mb->b[1].coeffs;
+  Y [2] = mb->b[2].coeffs;
+  Y [3] = mb->b[3].coeffs;
+  cr_frame = mb->b[4].coeffs;
+  cb_frame = mb->b[5].coeffs;
+  inc_l2 = pitches[0];
+  inc_l4 = pitches[0]*2;
+
+  movq_m2r (mmx_0x7f94s, mm6);
+  movq_m2r (mmx_0x7f24s, mm5);
+
+  for (j = 0; j < 4; j += 2) { // Two rows of blocks j, j+1
+    for (row = 0; row < 8; row+=2) { // 4 pairs of two rows
+      pwyuv0 = pyuv;
+      pwyuv1 = pyuv + inc_l2;
+      for (i = 0; i < 2; ++i) { // Two columns of blocks
+        Ytmp0 = Y[j + i];
+
+	/* -------------------------------------------------------------------
+	 */
+	movq_m2r (*cb_frame, mm2);
+	paddw_m2r (mmx_0x0080s, mm2);
+
+	psllw_i2r (8, mm2);
+	movq_m2r (*cr_frame, mm3);
+
+	paddw_m2r (mmx_0x0080s, mm3);
+	psllw_i2r (8, mm3);
+
+	movq_r2r (mm2, mm4);
+	punpcklwd_r2r (mm3, mm4);
+
+	/* -------------------------------------------------------------------
+	 */
+	movq_m2r (Ytmp0[0], mm0);
+	paddsw_r2r (mm6, mm0);
+	psubusw_r2r (mm5, mm0);
+	paddw_m2r (mmx_0x0010s, mm0);
+	por_r2r (mm4, mm0);
+
+	movq_m2r (Ytmp0[8], mm1);
+	paddsw_r2r (mm6, mm1);
+
+	movq_r2m (mm0, pwyuv0[0]);
+
+	psubusw_r2r (mm5, mm1);
+	paddw_m2r (mmx_0x0010s, mm1);
+	por_r2r (mm4, mm1);
+
+	movq_r2m (mm1, pwyuv1[0]);
+
+	movq_r2r (mm2, mm4);
+
+	punpckhwd_r2r (mm3, mm4);
+
+	movq_m2r (Ytmp0[4], mm0);
+	paddsw_r2r (mm6, mm0);
+	psubusw_r2r (mm5, mm0);
+	paddw_m2r (mmx_0x0010s, mm0);
+	por_r2r (mm4, mm0);
+
+	movq_m2r (Ytmp0[12], mm1);
+	paddsw_r2r (mm6, mm1);
+
+	movq_r2m (mm0, pwyuv0[8]);
+
+	psubusw_r2r (mm5, mm1);
+	paddw_m2r (mmx_0x0010s, mm1);
+	por_r2r (mm4, mm1);
+
+	movq_r2m (mm1, pwyuv1[8]);
+
+	movq_r2r (mm2, mm4);
+
+	pwyuv0 += 16;
+	pwyuv1 += 16;
+        cb_frame += 4;
+	cr_frame += 4;
+        Y[j + i] = Ytmp0 + 16;
+      }
+      pyuv += inc_l4;
+    }
+  }
+  emms ();
+}
 
 #endif // ARCH_X86
 

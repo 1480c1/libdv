@@ -63,6 +63,21 @@ if $use_asm; then
 	esac
 fi
 
+AC_ARG_WITH(pal-yuv,
+[ --with-pal-yuv=(YV12|YUY2)  Select YUV format for IEC PAL (YUY2 by default) ],
+[
+	case "$with_pal_yuv" in
+	     YV12)
+		AC_MSG_RESULT(YV12)
+		AC_DEFINE(YUV_420_USE_YV12)
+		;;
+	     *)
+            	AC_MSG_RESULT(YUY2)
+		;;
+	esac
+]
+)
+
 AC_MSG_CHECKING(whether to enable debugging)
 AC_ARG_WITH(debug,
 [  --with-debug[=level]    Enable debugging.
@@ -83,11 +98,14 @@ AC_ARG_WITH(debug,
 		CFLAGS="$CFLAGS -g"
 	        ;;
 	esac
- ],
- [ AC_MSG_RESULT(default=yes)
-   AC_DEFINE(DEBUG)
-   CFLAGS="$CFLAGS -g" ]
+],
+[ AC_MSG_RESULT(default=yes)
+  AC_DEFINE(DEBUG)
+  CFLAGS="$CFLAGS -g" 
+]
 )
+
+
 
 AM_CONDITIONAL(HOST_X86, $arch_x86)
 

@@ -30,10 +30,11 @@
 #include <math.h>
 
 #if ARCH_X86
-#include "mmx.h"
+#include <mmx.h>
 #endif
 
 #include "quant.h"
+#include "idct_248.h"
 
 static guint8 dv_88_areas[64] = {
 -1,0,0,1,1,1,2,2, 
@@ -125,9 +126,37 @@ guint8 dv_quant_shifts[22][4] = {
   { 0,0,0,0 }
 };
 
-guint8 dv_quant_offset[4] = { 6,3,0,1 };
+guint8  dv_quant_offset[4] = { 6,3,0,1 };
+guint32	dv_quant_248_mul_tab [2] [22] [64];
+guint32 dv_quant_88_mul_tab [2] [22] [64];
 
-extern void quant_x86(dv_coeff_t *block,int qno,int class);
+extern void             quant_x86(dv_coeff_t *block,int qno,int class);
+extern void quant_248_inverse_std(dv_coeff_t *block,int qno,int class,dv_248_coeff_t *co);
+extern void quant_248_inverse_mmx(dv_coeff_t *block,int qno,int class,dv_248_coeff_t *co);
+
+void (*quant_248_inverse) (dv_coeff_t *block,int qno,int class,dv_248_coeff_t *co);
+
+void
+dv_quant_init (dv_decoder_t *dv) 
+{
+  int	ex, qno, i;
+ 
+  for (ex = 0; ex < 2; ++ex) {
+    for (qno = 0; qno < 22; ++qno) {
+      for (i = 0; i < 64; ++i) {
+ 	dv_quant_248_mul_tab [ex] [qno] [i] =
+	  (1 << (dv_quant_shifts [qno] [dv_248_areas [i]] + ex)) * dv_idct_248_prescale[i];
+      }
+      dv_quant_248_mul_tab [ex] [qno] [0] = dv_idct_248_prescale[0];
+    }
+  }
+  quant_248_inverse = quant_248_inverse_std;
+#if ARCH_X86
+  if (dv->use_mmx) {
+    quant_248_inverse = quant_248_inverse_mmx;
+  }
+#endif
+}
 
 void quant(dv_coeff_t *block,int qno,int class) 
 {
@@ -172,7 +201,8 @@ void quant_88_inverse(dv_coeff_t *block,int qno,int class) {
     block[i] <<= (pq[dv_88_areas[i]] + extra);
 }
 
-void quant_248_inverse(dv_coeff_t *block,int qno,int class) {
+void
+quant_248_inverse_std(dv_coeff_t *block,int qno,int class,dv_248_coeff_t *co) {
   int i;
   guint8 *pq;			/* pointer to the four quantization
                                    factors that we'll use */
@@ -181,6 +211,18 @@ void quant_248_inverse(dv_coeff_t *block,int qno,int class) {
   extra = (class == 3);		/* if class==3, shift everything left
                                    one more place */
   pq = dv_quant_shifts[qno + dv_quant_offset[class]];
+  co [0] = block [0] * dv_idct_248_prescale[0];
   for (i = 1; i < 64; i++)
-    block[i] <<= (pq[dv_248_areas[i]] + extra);
+    co [i] = (block[i] << (pq[dv_248_areas[i]] + extra)) * dv_idct_248_prescale[i];
+}
+
+void
+quant_248_inverse_mmx(dv_coeff_t *block,int qno,int class,dv_248_coeff_t *co) {
+  int i;
+  guint32 *pm;
+
+  pm = dv_quant_248_mul_tab [class == 3] [qno + dv_quant_offset[class]];
+  for (i = 0; i < 64; i++) {
+    co [i] = block [i] * pm [i];
+  }
 }

@@ -38,4 +38,7 @@
 /* Define to indicate DEBUGGING is enabled possibly with a level */
 #define DEBUG 0
 
+/* Define to decide which YUV format to use for 420 blocks in IEC PAL */
+#define YUV_420_USE_YV12 0
+
 #endif // DV_ACCONFIG_H

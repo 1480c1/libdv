@@ -156,8 +156,7 @@ typedef struct {
 
 typedef struct {
   dv_coeff_t   coeffs[64] __attribute__ ((aligned (8)));
-  dv_248_coeff_t coeffs248[64];
-  gint         dct_mode; 
+  gint         dct_mode;
   gint         class_no;
   gint8        *reorder;
   gint8        *reorder_sentinel;

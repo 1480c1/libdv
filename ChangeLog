@@ -1,5 +1,23 @@
 2001-02-06  Charles 'Buck' Krasic  <krasic@acm.org>
 
+	* Integrate patch from Stefan Lucke for various speedups:
+
+           - replace pointer dereferences with indexed accesses.
+
+           - merge 248 idct prescale into 248 quant.
+
+           - change IEC PAL (420) to generate YUY2 instead of YV12.  
+
+	     Is this really faster?  If so, I am suprised.  I have added a
+	     configure option to allow choosing which version to build
+	     (YUY2 is default), so I can verify the performance comparison.
+
+	   - Fix to Makefile.vanilla to include util.c in build.
+
+	   - still to do: it looks like there are incompatable versions of
+	     popt around.  Need to add a configure check to figure out
+	     whether filename needs to be declared as a const char *.
+
 	* Change license banner to read "a free DV codec" instead of "a
 	  free decoder".
 
