@@ -29,7 +29,11 @@
 
 #include <dv_types.h>
 
+#if HAVE_ENDIAN_H
 #include <endian.h>
+#elif HAVE_MACHINE_ENDIAN_H
+#include <machine/endian.h>
+#endif
 #include <stdlib.h>
 
 #include "YUY2.h"
@@ -122,7 +126,7 @@ dv_mb411_YUY2(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_
         cb_frame++;
         cr_frame++;
 
-#if (BYTE_ORDER == BIG_ENDIAN)
+#if 0 /* (BYTE_ORDER == BIG_ENDIAN) */
        *pwyuv++ = cb;
        *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
        Ytmp++;
@@ -195,7 +199,7 @@ dv_mb411_right_YUY2(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add
 	  cb_frame++;
 	  cr_frame++;
 
-#if (BYTE_ORDER == BIG_ENDIAN)
+#if 0 /* (BYTE_ORDER == BIG_ENDIAN) */
          *pwyuv++ = cb;
          *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
          Ytmp++;

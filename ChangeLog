@@ -1,3 +1,9 @@
+2002-07-30  Dan Dennedy <dan@dennedy.org>
+	* applied patch from Steven Schultz <sms@2BSD.COM> to add
+	  cross-platform checks for endian.h.
+	* Reverted YUY2 big-endian code because most adapters expect
+	  little endian even on big endian architectures(?). A PCI thing?
+
 2002-07-24  Dan Dennedy <dan@dennedy.org>
 	* enc_input.c: applied patch from Peter Schlaile for
 	  NTSC encoding, and tested and debugged ppm and pgm input filters

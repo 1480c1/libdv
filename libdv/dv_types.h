@@ -38,7 +38,11 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <time.h>
+#if HAVE_ENDIAN_H
 #include <endian.h>
+#elif HAVE_MACHINE_ENDIAN_H
+#include <machine/endian.h>
+#endif
 
 /* please tell me these are defined somewhere standard??? */
 #ifndef FALSE

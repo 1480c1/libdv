@@ -32,7 +32,11 @@
 #define DV_BITSTREAM_H
 
 #include <dv_types.h>
+#if HAVE_ENDIAN_H
 #include <endian.h>
+#elif HAVE_MACHINE_ENDIAN_H
+#include <machine/endian.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
