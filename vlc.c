@@ -124,6 +124,8 @@ const dv_vlc_tab_t dv_vlc_lookup1[32] = {
   [0x18 ... 0x1f] = {run: -1, amp: -1,  len: VLC_NOBITS},
 }; // dv_vlc_lookup1
 
+dv_vlc_tab_t dv_vlc_class1_shortcut[128];
+
 const dv_vlc_tab_t dv_vlc_lookup2[128] = { 
   // prefix 110
   [0x00 ... 0x07] = {run:  3, amp:  1, len:  1+6}, // 110000s
@@ -308,6 +310,31 @@ void dv_construct_vlc_table() {
     dv_vlc_lookup5[i].amp = i;
     dv_vlc_lookup5[i].len = 1 + 15;
   } // for
+
+  for (i = 0; i < 128; i++) {
+    guint bits = i << 9;
+    guint ms7 = ((bits & 0xfe00) >> 9);
+    const dv_vlc_t *result;
+
+    if (ms7 <= 0x5f) {
+      /* class 1 */
+      result = &dv_vlc_lookup1[i >> 2];
+    } else if (ms7 <= 0x7b) {
+      result = &dv_vlc_lookup2[(bits & dv_vlc_index_mask[2]) >> dv_vlc_index_rshift[2]];
+      if (result->len > 7)
+	result = NULL;
+    } else {
+      result = NULL;
+    }
+
+    if (result) {
+      dv_vlc_class1_shortcut[i] = *result;
+      if ((result->amp > 0) && ((bits >> sign_rshift[result->len]) & 1))
+	dv_vlc_class1_shortcut[i].amp *= -1;
+    } else {
+      dv_vlc_class1_shortcut[i] = dv_vlc_lookup1[0x1f];
+    }
+  }
 } // dv_construct_vlc_table
 
 /* Note we assume bits is right (lsb) aligned, and that (0 < maxbits <

@@ -208,23 +208,34 @@ readloop:
 	cmpl	$16,%edx
 	
 	jl	slowpath
+
+	/* ecx is most significant 7 bits */
+	movl	%eax,%ecx
+	andl    $0xfe00,%ecx
+	sarl    $9,%ecx
+
+	/* Attempt to use the shortcut first.  If it hits, then
+	   this vlc term has been decoded. */
+	movl	dv_vlc_class1_shortcut(,%ecx,4),%edx
+	test	$0x80,%edx
+	je	done_decode
+
+	/* */
+	
 	/* fast path:	 use inlined version of __dv_decode_vlc */
 	/* ---------------------- */
-	pushl %ebx
+	movl	%ebx,dv_block_t_reorder(%ebp)
 
 	/* %eax is bits */
 	
-	movl  %eax,%edx			/* %edx is class */
-	andl  $0xfe00,%edx
-	sarl  $9,%edx
-	movsbl dv_vlc_class_lookup5(%edx),%edx
-	
-	movl  dv_vlc_index_mask(,%edx,4),%ebx
-	movl  dv_vlc_index_rshift(,%edx,4),%ecx
+	movsbl dv_vlc_class_lookup5(%ecx),%ecx
+
+	movl  dv_vlc_index_mask(,%ecx,4),%ebx
+	movl  dv_vlc_lookups(,%ecx,4),%edx
+	movl  dv_vlc_index_rshift(,%ecx,4),%ecx
 	andl  %eax,%ebx
 	sarl  %cl,%ebx
 
-	movl  dv_vlc_lookups(,%edx,4),%edx
 	movl  (%edx,%ebx,4),%edx
 
 	/* Now %edx holds result, like this:
@@ -232,6 +243,8 @@ readloop:
 	   bits 8-15  len
 	   bits 16-31 amp
 	*/
+	test	$0x80,%edx	/* If (vlc.run < 0) break */
+	jne	escape1
 	/* code needs to do this with result:
 	   if ((amp > 0) &&
 	     if ((bits >> sign_rshift[result->len]) & 1)
@@ -251,33 +264,21 @@ readloop:
 	sarl  $31,%ebx
 	xorl  $0xffffffff,%ebx
 	andl  $0xffff0000,%ebx
-
 	andl  %ebx,%eax
-	
+
 	xorl  %eax,%edx
 	subl  %eax,%edx
 
-	popl  %ebx
+	movl	dv_block_t_reorder(%ebp),%ebx
 	/* ---------------------- */
 	
-	jmp	done_decode
-slowpath:
-	/* slow path:	 use dv_decode_vlc */;
-	pushl	$vlc		/* last parameter is &vlc */
-	pushl	%edx		/* bits_left */
-	pushl	%eax		/* bits */
-	call	dv_decode_vlc
-	addl	$12,%esp
 done_decode:
-	test	$0x80,%edx	/* If (vlc.run < 0) break */
-	jne	escape
-	
 	/* bl->offset += vlc.len */
 	movl	%edx,%eax
 	shrl	$8,%eax
 	andl	$255,%eax
 	addl	%eax,%edi
-	
+
 	/* bl->reorder += vlc.run */
 	movl	%edx,%eax
 	andl	$255,%eax
@@ -291,7 +292,9 @@ done_decode:
 	movw	%dx,(dv_block_t_coeffs)(%ebp,%eax,1)
 	
 	jmp	readloop
-	
+
+escape1:
+	movl	dv_block_t_reorder(%ebp),%ebx
 escape:
 	/* if (vlc.amp == 0) */
 	test	$0xffff0000,%edx
@@ -320,6 +323,18 @@ alldone:
 
 	ret
 
+slowpath:
+	/* slow path:	 use dv_decode_vlc */;
+	pushl	$vlc		/* last parameter is &vlc */
+	pushl	%edx		/* bits_left */
+	pushl	%eax		/* bits */
+	call	dv_decode_vlc
+	addl	$12,%esp
+	test	$0x80,%edx	/* If (vlc.run < 0) break */
+	jne	escape
+	
+	jmp	done_decode
+	
 show16:
 	movl	%edi,%ecx
 	movl	%edi,%edx
@@ -480,7 +495,7 @@ blkloop:
 
 	addl	$dv_block_t_size,%ebp
 	incl	%ebx
-	cmpl	$6,%ebx
+	cmpl	$4,%ebx
 	jnz	blkloop
 
 	movl	m,%eax
@@ -497,6 +512,7 @@ blkloop:
 	popl	%ebx
 
 	movl	$0,%eax
+	ret
 	
 	emms
 
