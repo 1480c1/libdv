@@ -109,7 +109,7 @@ void weight_248(dv_coeff_t *block) {
   dv_coeff_t dc;
 
   dc = block[0];
-  for (z=0;z<8;z++) {
+  for (z=0;z<4;z++) {
     for (x=0;x<8;x++) {
       block[z*8+x] *= W[x] * W[2*z] / 2;
       block[(z+4)*8+x] *= W[x] * W[2*z] / 2;
