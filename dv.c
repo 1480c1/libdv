@@ -43,7 +43,7 @@ void dv_init(dv_decoder_t *dv) {
 #if ARCH_X86
   dv->use_mmx = mmx_ok(); 
 #endif
-  weight_init(dv);  
+  weight_init();  
   dct_init();
   dv_dct_248_init();
   dv_construct_vlc_table();
@@ -63,18 +63,18 @@ dv_decode_macroblock(dv_decoder_t *dv, dv_macroblock_t *mb, guint quality) {
        b++,bl++) {
     if (bl->dct_mode == DV_DCT_248) { 
       quant_248_inverse(bl->coeffs,mb->qno,bl->class_no);
-      weight_248_inverse(dv,bl->coeffs);
+      weight_248_inverse(bl->coeffs);
       convert_coeffs(bl);
       dv_idct_248(bl->coeffs248);
       convert_coeffs_prime(bl);
     } else {
 #if ARCH_X86
       quant_88_inverse_x86(bl->coeffs,mb->qno,bl->class_no);
-      weight_88_inverse(dv,bl->coeffs);
+      weight_88_inverse(bl->coeffs);
       idct_88(bl->coeffs);
 #else // ARCH_X86
       quant_88_inverse(bl->coeffs,mb->qno,bl->class_no);
-      weight_88_inverse(dv,bl->coeffs);
+      weight_88_inverse(bl->coeffs);
       idct_88(bl->coeffs);
 #endif // ARCH_X86
     } // else
@@ -94,18 +94,18 @@ dv_decode_video_segment(dv_decoder_t *dv, dv_videosegment_t *seg, guint quality)
 	 b++,bl++) {
       if (bl->dct_mode == DV_DCT_248) { 
 	quant_248_inverse(bl->coeffs,mb->qno,bl->class_no);
-	weight_248_inverse(dv,bl->coeffs);
+	weight_248_inverse(bl->coeffs);
 	convert_coeffs(bl);
 	dv_idct_248(bl->coeffs248);
 	convert_coeffs_prime(bl);
       } else {
 #if ARCH_X86
 	quant_88_inverse_x86(bl->coeffs,mb->qno,bl->class_no);
-	weight_88_inverse(dv,bl->coeffs);
+	weight_88_inverse(bl->coeffs);
 	idct_88(bl->coeffs);
 #else // ARCH_X86
 	quant_88_inverse(bl->coeffs,mb->qno,bl->class_no);
-	weight_88_inverse(dv,bl->coeffs);
+	weight_88_inverse(bl->coeffs);
 	idct_88(bl->coeffs);
 #endif // ARCH_X86
       } // else

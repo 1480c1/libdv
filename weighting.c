@@ -53,7 +53,7 @@ static inline double CS(int m) {
 
 void weight_88_inverse_float(double *block);
 
-void weight_init(dv_decoder_t *dv) {
+void weight_init(void) {
   double temp[64];
   int i, z, x;
 #if ARCH_X86
@@ -74,17 +74,11 @@ void weight_init(dv_decoder_t *dv) {
   weight_88_inverse_float(temp);
 
 #if ARCH_X86
-  if(dv->use_mmx) {
-    for (i=0;i<64;i++) {
-      /* MMX dct uses prescaling.  We can combine prescale and
-	 weighting.  How significant is the loss of precision? */
-      preSC[i] *= temp[i] * (16.0 / dv_weight_bias_factor);
-    } // for
-  } else {
-    for (i=0;i<64;i++) {
-      dv_weight_inverse_88_matrix[i] = (dv_coeff_t)rint(temp[i]);
-    } // for
-  } // else 
+  for (i=0;i<64;i++) {
+    /* MMX dct uses prescaling.  We can combine prescale and
+       weighting.  How significant is the loss of precision? */
+    preSC[i] *= temp[i] * (16.0 / dv_weight_bias_factor);
+  } // for
 #else
   for (i=0;i<64;i++) {
     dv_weight_inverse_88_matrix[i] = (dv_coeff_t)rint(temp[i]);
@@ -101,7 +95,7 @@ void weight_init(dv_decoder_t *dv) {
   dv_weight_inverse_248_matrix[0] = 4.0;
 }
 
-void weight_88(dv_decoder_t *dv, dv_coeff_t *block) {
+void weight_88(dv_coeff_t *block) {
   int x,y;
   dv_coeff_t dc;
 
@@ -114,7 +108,7 @@ void weight_88(dv_decoder_t *dv, dv_coeff_t *block) {
   block[0] = dc / 4;
 }
 
-void weight_248(dv_decoder_t *dv, dv_coeff_t *block) {
+void weight_248(dv_coeff_t *block) {
   int x,z;
   dv_coeff_t dc;
 
@@ -141,7 +135,7 @@ void weight_88_inverse_float(double *block) {
   block[0] = dc * 4.0;
 }
 
-void weight_88_inverse(dv_decoder_t *dv, dv_coeff_t *block) {
+void weight_88_inverse(dv_coeff_t *block) {
   /* When we're using MMX assembler, weights are applied in the 8x8
      iDCT prescale */
   int i;
@@ -153,7 +147,7 @@ void weight_88_inverse(dv_decoder_t *dv, dv_coeff_t *block) {
 #endif // ARCH_X86 
 }
 
-void weight_248_inverse(dv_decoder_t *dv, dv_coeff_t *block) {
+void weight_248_inverse(dv_coeff_t *block) {
   /* These weights are now folded into the idct prescalers - so this
      function doesn't do anything. */
 #if 0
