@@ -1,4 +1,4 @@
-/* 
+/*
  *  display.c
  *
  *     Copyright (C) Charles 'Buck' Krasic - April 2000
@@ -230,9 +230,6 @@ dv_display_exit(dv_display_t *dv_dpy) {
     XvStopVideo(dv_dpy->dpy, dv_dpy->port, dv_dpy->win);
     if(dv_dpy->shminfo.shmaddr)
       shmdt(dv_dpy->shminfo.shmaddr);
-
-    if(dv_dpy->shminfo.shmid > 0)
-      shmctl(dv_dpy->shminfo.shmid, IPC_RMID, 0);
 
     if(dv_dpy->xv_image)
       free(dv_dpy->xv_image);
@@ -577,6 +574,9 @@ dv_display_Xv_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name,
     shmat(dv_dpy->shminfo.shmid, 0, 0);
 
   XShmAttach(dv_dpy->dpy, &dv_dpy->shminfo);
+  if (dv_dpy -> shminfo. shmid > 0)
+    shmctl (dv_dpy -> shminfo. shmid, IPC_RMID, 0);
+
   XSync(dv_dpy->dpy, False);
 
   return 1;
