@@ -164,26 +164,18 @@ dnl Checks for libraries.
 if $use_gtk; then
 	REQUIRES='glib >= 1.2.4 gtk+ >= 1.2.4'
 	PKG_CHECK_MODULES(GTK,$REQUIRES)
+	AC_DEFINE(HAVE_GTK)
 fi
 
 dnl used in Makefile.am
 AC_SUBST(GTK_CFLAGS)
 AC_SUBST(GTK_LIBS)
-dnl CPPFLAGS="$CPPFLAGS $GTK_CFLAGS"
-dnl LDFLAGS="$LDFLAGS $GTK_LIBS"
 
 if $use_sdl; then
 	AM_PATH_SDL(1.1.6,
 	[
 		AC_DEFINE(HAVE_SDL) 
  	])
-fi
-
-if $use_gtk; then
-	AM_PATH_GTK(1.2.4,
-	[
-		AC_DEFINE(HAVE_GTK)
-	])
 fi
 
 if [ $use_gtk && $use_xv ]; then
