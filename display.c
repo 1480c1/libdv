@@ -342,13 +342,13 @@ dv_display_SDL_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name) {
   dv_dpy->sdl_screen = SDL_SetVideoMode(dv_dpy->width,dv_dpy->height,
 					video_bpp,SDL_HWSURFACE);
   SDL_WM_SetCaption(w_name, i_name);
-  dv_center_window(dv_dpy->sdl_screen);
   dv_dpy->overlay = SDL_CreateYUVOverlay(dv_dpy->width, dv_dpy->height, dv_dpy->format,
 					 dv_dpy->sdl_screen);
   if((!dv_dpy->overlay || (!dv_dpy->overlay->hw_overlay) ||  // we only want HW overlays
       SDL_LockYUVOverlay(dv_dpy->overlay)<0)) {
     goto no_overlay;
   } // if
+  dv_center_window(dv_dpy->sdl_screen);
   dv_dpy->rect.x = 0;
   dv_dpy->rect.y = 0;
   dv_dpy->rect.w = dv_dpy->overlay->w;
@@ -362,6 +362,9 @@ dv_display_SDL_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name) {
   return(True);
 
  no_overlay:
+  if(dv_dpy->overlay) 
+    SDL_FreeYUVOverlay(dv_dpy->overlay);
+  SDL_Quit();
  no_sdl:
   return(False);
 
