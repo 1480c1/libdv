@@ -1,3 +1,10 @@
+2002-11-11  Charles 'Buck' Krasic  <krasic@acm.org>
+
+	* apply patch to dvconnect.c from Charles Yates to fix stdin
+	  and devfs usage.  
+	* make dvconnect an part of libdv installation
+	* some build tweaks, since I'm running RH8.0 now
+
 2002-10-24  Dan Dennedy <dan@dennedy.org>
 	* enc_audio_input.[ch]: bugfix audio encoding due to change in
 	  max audio samples constant. Increase internal audio buffers to 

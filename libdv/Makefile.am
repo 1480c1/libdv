@@ -26,7 +26,7 @@ libdv_la_ASMS= vlc_x86.S quant_x86.S idct_block_mmx.S dct_block_mmx.S rgbtoyuv.S
 libdv_la_ASM_HS=asmoff.h  mmx.h 
 
 
-gasmoff_SOURCES= gasmoff.c bitstream.c bitstream.h 
+gasmoff_SOURCES= gasmoff.c bitstream.h 
 
 else # HOST_X86
 
@@ -56,7 +56,8 @@ dovlc_LDADD= libdv.la
 testvlc_SOURCES= testvlc.c 
 testvlc_LDADD=libdv.la
 
-testbitstream_SOURCES= testbitstream.c bitstream.c bitstream.h
+testbitstream_SOURCES= testbitstream.c  bitstream.h
+testbitstream_LDADD=libdv.la
 
 recode_SOURCES=recode.c
 recode_LDADD=libdv.la

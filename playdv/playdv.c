@@ -294,7 +294,7 @@ main(int argc,char *argv[])
 #if HAVE_LIBPOPT
   /* Parse options using popt */
   optCon = poptGetContext(NULL, argc, (const char **)argv, dv_player->option_table, 0);
-  poptSetOtherOptionHelp(optCon, "<filename>");
+  poptSetOtherOptionHelp(optCon, "[raw dv file or -- for stdin]");
 
   while ((rc = poptGetNextOpt(optCon)) > 0) {
     switch (rc) {
@@ -306,10 +306,10 @@ main(int argc,char *argv[])
     } /* switch */
   } /* while */
 
-  if (rc < -1) goto bad_arg;
-
   filename = poptGetArg(optCon);
-  if((filename == NULL) || !(poptPeekArg(optCon) == NULL)) goto bad_filename;
+  if (rc < -1) goto bad_arg;
+  if((filename == NULL) || !(poptPeekArg(optCon) == NULL))
+	  filename = "-";
   poptFreeContext(optCon);
 #else
   /* No popt, no usage and no options!  HINT: get popt if you don't
@@ -505,10 +505,6 @@ main(int argc,char *argv[])
   fprintf(stderr, "%s: %s\n",
 	  poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
 	  poptStrerror(rc));
-  exit(-1);
- bad_filename:
-  poptPrintUsage(optCon, stderr, 0);
-  fprintf(stderr, "\nSpecify a single <filename> argument; e.g. pond.dv\n");
   exit(-1);
 #endif
  no_display:

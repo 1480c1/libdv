@@ -9,9 +9,9 @@ LIBTOOL = $(SHELL) $(top_builddir)/libtool --silent
 
 CLEANFILES                = 
 
-bin_PROGRAMS= encodedv
+bin_PROGRAMS= encodedv dvconnect
 
-noinst_PROGRAMS= insert_audio fix_headers scan_packet_headers steal_header ppmqscale dvconnect dvavi
+noinst_PROGRAMS= insert_audio fix_headers scan_packet_headers steal_header ppmqscale dvavi
 
 encodedv_SOURCES= encodedv.c 
 encodedv_LDADD= ../libdv/libdv.la

@@ -33,6 +33,7 @@
 #include <sched.h>
 #include <sys/resource.h>
 #include <string.h>
+
 #include <pthread.h>
 #include <signal.h>
 
@@ -334,7 +335,8 @@ void sig_int_recv_handler(int signum)
 }
 
 int capture_raw(const char* filename, int channel, int nbuffers,
-		int start_frame, int end_frame, int verbose_mode)
+		int start_frame, int end_frame, int verbose_mode,
+		char *device)
 {
         int viddev;
         unsigned char *recv_buf;
@@ -359,8 +361,8 @@ int capture_raw(const char* filename, int channel, int nbuffers,
 		}
 	}
 
-        if ((viddev = open("/dev/video1394", O_RDWR)) < 0) {
-		perror("open /dev/video1394");
+        if ((viddev = open(device, O_RDWR)) < 0) {
+		perror("open video1394 device");
                 return -1;
         }
 
@@ -496,6 +498,7 @@ static FILE* src_fp;
 static int is_eof = 0;
 static unsigned char * underrun_data_frame = NULL;
 static int underrun_frame_ispal = 0;
+static unsigned char *device = NULL;
 
 static pthread_mutex_t  wakeup_rev_mutex;
 static pthread_cond_t   wakeup_rev_cond;
@@ -677,7 +680,7 @@ static int fill_buffer(unsigned char* targetbuf, unsigned int * packet_sizes)
 
 int send_raw(const char* filename, int channel, int nbuffers, int start_frame,
 	     int end_frame, int verbose_mode, 
-	     const char * underrun_data_filename)
+	     const char * underrun_data_filename, char *device)
 {
         int viddev;
         unsigned char *send_buf;
@@ -732,8 +735,8 @@ int send_raw(const char* filename, int channel, int nbuffers, int start_frame,
 		}
 	}
 
-        if ((viddev = open("/dev/video1394",O_RDWR)) < 0) {
-		perror("open /dev/video1394");
+        if ((viddev = open(device,O_RDWR)) < 0) {
+		perror("open video1394 device");
                 return -1;
         }
                       
@@ -899,7 +902,8 @@ int rt_raisepri (int pri)
 #define DV_CONNECT_OPT_MAX_BUFFERS      11
 #define DV_CONNECT_OPT_UNDERRUN_DATA    12
 #define DV_CONNECT_OPT_AUTOHELP         13
-#define DV_CONNECT_NUM_OPTS             14
+#define DV_CONNECT_OPT_DEVICE           14
+#define DV_CONNECT_NUM_OPTS             15
 
 
 int main(int argc, const char** argv)
@@ -1029,6 +1033,14 @@ int main(int argc, const char** argv)
                 descrip: "Help options",
         }; /* autohelp */
 
+        option_table[DV_CONNECT_OPT_DEVICE] = (struct poptOption) {
+                longName:   "device", 
+                shortName:  'd', 
+                argInfo: POPT_ARG_STRING,
+                arg:     &device,
+                descrip: "Specify the video1394 device (default /dev/video1394)",
+        }; /* device */
+
         option_table[DV_CONNECT_NUM_OPTS] = (struct poptOption) { 
                 NULL, 0, 0, NULL, 0 };
 
@@ -1074,12 +1086,15 @@ int main(int argc, const char** argv)
 		setpriority (PRIO_PROCESS, 0, -20);
 	}
 
+	if ( device == NULL )
+                device = "/dev/video1394";
+
 	if (send_mode) {
 		send_raw(filename, channel, buffers, start, end, verbose_mode,
-			 underrun_data);
+			 underrun_data, device);
 	} else {
 		capture_raw(filename, channel, buffers, start, end, 
-			    verbose_mode);
+			    verbose_mode, device);
 	}
 	return 0;
 #else

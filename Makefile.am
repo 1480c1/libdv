@@ -21,7 +21,7 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libdv.pc
 
 rpm: dist
-	rpm -ta @PACKAGE@-@VERSION@.tar.gz
+	rpmbuild -ta @PACKAGE@-@VERSION@.tar.gz
 
 dist-hook:
 	(cd $(distdir) && if [ ! -d $(ac_aux_dir); then mkdir $(ac_aux_dir); fi)

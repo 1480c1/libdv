@@ -9,8 +9,8 @@ srcfile=libdv/dv.c
 # Local settings for autotools, set them
 # as appropriate for your system.
 
-export AUTOCONF=autoconf-2.5x
-export AUTOHEADER=autoheader-2.5x
+export AUTOCONF=autoconf
+export AUTOHEADER=autoheader
 export AUTOMAKE=automake
 export ACLOCAL=aclocal
 export LIBTOOLIZE=libtoolize
