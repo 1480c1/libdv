@@ -60,9 +60,13 @@ int main(int argc, const char** argv)
 	int isPAL;
 	int frame_count = 0;
 	time_t t = time(NULL);
+	int wide = 0;
+	if (argc == 2 && strcmp(argv[1], "-w") == 0) {
+		wide = 1;
+	}
 
 	while (read_frame(stdin, frame_buf, &isPAL)) {
-		write_meta_data(frame_buf, frame_count++, isPAL, &t);
+		write_meta_data(frame_buf, frame_count++, isPAL, wide, &t);
 		fwrite(frame_buf, 1, isPAL ? 144000 : 120000, stdout);
 	}
 	return 0;

@@ -45,7 +45,8 @@
 #define DV_ENCODER_OPT_STATIC_QNO      10
 #define DV_ENCODER_OPT_FPS             11
 #define DV_ENCODER_OPT_FORCE_DCT       12
-#define DV_ENCODER_NUM_OPTS            13
+#define DV_ENCODER_OPT_16X9            13
+#define DV_ENCODER_NUM_OPTS            14
 
 int main(int argc, char *argv[])
 {
@@ -65,6 +66,7 @@ int main(int argc, char *argv[])
 	dv_enc_output_filter_t * output_filter;
 	int count = 0;
 	int fps = 0;
+	int is16x9 = 0;
 	int err_code;
 	int force_dct = -1;
 
@@ -170,6 +172,15 @@ int main(int argc, char *argv[])
 		descrip:    "force dct mode (88 or 248) for whole picture"
 	}; /* force dct */
 
+	option_table[DV_ENCODER_OPT_16X9] = (struct poptOption) {
+		longName:   "wide", 
+		shortName:  'w', 
+		arg:        &is16x9,
+		argInfo:    POPT_ARG_INT, 
+		descrip:    "set wide 16 x 9 format"
+	}; /* 16x9 */
+
+
 	option_table[DV_ENCODER_OPT_AUTOHELP] = (struct poptOption) {
 		argInfo: POPT_ARG_INCLUDE_TABLE,
 		arg:     poptHelpOptions,
@@ -212,7 +223,7 @@ int main(int argc, char *argv[])
 			"\nSpecify a single <filename pattern> argument; "
 			"e.g. pond%%05d.ppm or - for stdin\n"
 			"(For audio input specify additionally "
-			"the audio source.)");
+			"the audio source.)\n");
 		exit(-1);
 	}
 	audio_filename = poptGetArg(optCon);
@@ -321,7 +332,7 @@ int main(int argc, char *argv[])
 	if (input_filter->init(wrong_interlace, force_dct) < 0) {
 		return -1;
 	}
-	if (output_filter->init() < 0) {
+	if (output_filter->init(stdout) < 0) {
 		return -1;
 	}
 	/* audio_input_filter->init() is in encoder_loop! */
@@ -329,7 +340,7 @@ int main(int argc, char *argv[])
 	err_code = encoder_loop(input_filter,audio_input_filter, output_filter,
 				start, end, filename, audio_filename,
 				vlc_encode_passes, static_qno,
-				verbose_mode, fps);
+				verbose_mode, fps, is16x9);
 
 	input_filter->finish();
 	if (audio_input_filter) {

@@ -23,12 +23,16 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
+
 #include <stdio.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+
+#include <pthread.h>
+#include <signal.h>
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -40,10 +44,12 @@
 
 #include <malloc.h>
 
-#define CIP_N_NTSC 2436
-#define CIP_D_NTSC 38400
-#define CIP_N_PAL 1
-#define CIP_D_PAL 16
+static long cip_n_ntsc = 2436;
+static long cip_d_ntsc = 38400;
+static long cip_n_pal = 1;
+static long cip_d_pal = 16;
+static long syt_offset = 11000;
+static int video1394_version = 2;
 
 #define TARGETBUFSIZE   320
 #define MAX_PACKET_SIZE 512
@@ -84,6 +90,20 @@ struct video1394_mmap
 	unsigned int flags;
 };
 
+struct video1394_mmap_v2
+{
+	unsigned int channel;
+	unsigned int sync_tag;
+	unsigned int nb_buffers;
+	unsigned int buf_size;
+        /* For VARIABLE_PACKET_SIZE: Maximum packet size */
+	unsigned int packet_size; 
+	unsigned int fps;
+	unsigned int syt_offset;
+	unsigned int flags;
+};
+
+
 /* For TALK_QUEUE_BUFFER with VIDEO1394_VARIABLE_PACKET_SIZE use */
 struct video1394_queue_variable
 {
@@ -98,13 +118,90 @@ struct video1394_wait
 	unsigned int buffer;
 };
 
-static unsigned char* p_outbuf;
-static unsigned char* p_out;
 static int cap_start_frame = 0;
 static int cap_num_frames = 0xfffffff;
 static int cap_verbose_mode;
 static int frames_captured = 0;
 static int broken_frames = 0;
+
+/* ------------------------------------------------------------------------
+   - buffer management
+   ------------------------------------------------------------------------ */
+
+static int max_buffer_blocks = 25*10;
+
+struct buf_node {
+	unsigned char data[144000]; /* FIXME: We are wasting space on NTSC! */
+	int usage;
+	struct buf_node* next;
+};
+
+struct buf_list {
+	struct buf_node * first;
+	struct buf_node * last;
+	int usage;
+};
+
+static struct buf_list free_list = { NULL, NULL, 0 };
+static struct buf_list buf_queue = { NULL, NULL, 0 };
+
+static pthread_mutex_t  queue_mutex;
+static pthread_mutex_t  wakeup_mutex;
+static pthread_cond_t   wakeup_cond;
+static pthread_t        file_io_thread;
+
+void push_back(struct buf_list * l, struct buf_node * elem)
+{
+	pthread_mutex_lock(&queue_mutex);
+	if (l->last) {
+		l->last->next = elem;
+	} else {
+		l->first = elem;
+	}
+	elem->next = NULL;
+	l->last = elem;
+	l->usage++;
+	pthread_mutex_unlock(&queue_mutex);
+}
+
+struct buf_node * pop_front(struct buf_list * l)
+{
+	struct buf_node * rval;
+
+	pthread_mutex_lock(&queue_mutex);
+	rval = l->first;
+
+	if (l->first == l->last) {
+		l->last = NULL;
+	}
+	if (rval) {
+		l->first = rval->next;
+		l->usage--;
+	} else {
+		l->first = NULL;
+	}
+
+	pthread_mutex_unlock(&queue_mutex);
+	return rval;
+}
+
+struct buf_node * get_free_block()
+{
+	struct buf_node * f = pop_front(&free_list);
+	if (!f) {
+		if (buf_queue.usage >= max_buffer_blocks) {
+			return NULL;
+		}
+		f = (struct buf_node*) malloc(sizeof(struct buf_node));
+	}
+	return f;
+}
+
+/* ------------------------------------------------------------------------
+   - receiver
+   ------------------------------------------------------------------------ */
+
+static FILE* dst_fp;
 
 void handle_packet(unsigned char* data, int len)
 {
@@ -112,6 +209,8 @@ void handle_packet(unsigned char* data, int len)
 	static int frame_size = 0;
 	static int isPAL = 0;
 	static int found_first_block = 0;
+	static unsigned char* p_out = NULL;
+	static struct buf_node * f = NULL;
 
         switch (len) {
         case 488: 
@@ -120,6 +219,7 @@ void handle_packet(unsigned char* data, int len)
 		}
 
 		if (start_of_frame) {
+			int frame_broken = 0;
 			if (!found_first_block) {
 				if (!cap_start_frame) {
 					found_first_block = 1;
@@ -147,6 +247,7 @@ void handle_packet(unsigned char* data, int len)
 						"(size = %d)!\n",
 						frames_captured, frame_size);
 					broken_frames++;
+					frame_broken = 1;
 				}
 				if (cap_verbose_mode) {
 					fprintf(stderr, 
@@ -154,15 +255,45 @@ void handle_packet(unsigned char* data, int len)
 						frames_captured);
 				}
 				frames_captured++;
-				frame_size = 0;
 			}
 			isPAL = (data[15] & 0x80);
+
+			if (f && !frame_broken) {
+				f->usage = frame_size;
+				push_back(&buf_queue, f);
+				pthread_mutex_lock(&wakeup_mutex);
+				pthread_cond_signal(&wakeup_cond);
+				pthread_mutex_unlock(&wakeup_mutex);
+				f = NULL;
+			}
+
+			if (!f) {
+				f = get_free_block();
+				if (!f) {
+					fprintf(stderr, 
+						"Buffer overrun: "
+						"Frame discarded!\n");
+					broken_frames++;
+				}
+			}
+			if (f) {
+				p_out = f->data;
+			}
+			frame_size = 0;
 		}
 
-		if (found_first_block && cap_num_frames != 0) {
-			memcpy(p_out, data + 12, 480);
-			p_out += 480;
-			frame_size += 480;
+		if (found_first_block && cap_num_frames != 0 && f) {
+			if (frame_size < 144000) {
+				memcpy(p_out, data + 12, 480);
+				p_out += 480;
+				frame_size += 480;
+			} else {
+				fprintf(stderr, "Frame buffer overrun: "
+					"Frame discarded!\n");
+				broken_frames++;
+				p_out = f->data;
+				frame_size = 0;
+			}
 		}
 
                 break;
@@ -175,12 +306,28 @@ void handle_packet(unsigned char* data, int len)
         }
 }
 
-void finish_block(FILE* dst_fp)
+void* write_out_thread(void * arg)
 {
-	if (p_out != p_outbuf) {
-		fwrite(p_outbuf, 1, p_out - p_outbuf, dst_fp);
-		p_out = p_outbuf;
+	while (cap_num_frames != 0) {
+		struct buf_node * f;
+		pthread_mutex_lock(&wakeup_mutex);
+		pthread_cond_wait(&wakeup_cond, &wakeup_mutex);
+		pthread_mutex_unlock(&wakeup_mutex);
+
+		while ((f = pop_front(&buf_queue)) != NULL) {
+			fwrite(f->data, 1, f->usage, dst_fp);
+			push_back(&free_list, f);
+		}
 	}
+	return NULL;
+}
+
+void sig_int_recv_handler(int signum)
+{
+	char t [] = "Terminating on user's request...\n";
+	write(2, t, sizeof(t));
+	
+	cap_num_frames = 0;
 }
 
 int capture_raw(const char* filename, int channel, int nbuffers,
@@ -189,14 +336,12 @@ int capture_raw(const char* filename, int channel, int nbuffers,
         int viddev;
         unsigned char *recv_buf;
         struct video1394_mmap v;
+        struct video1394_mmap_v2 v2;
         struct video1394_wait w;
-        FILE* dst_fp;
 	int unused_buffers;
         unsigned char outbuf[2*65536];
         int outbuf_used = 0;
 
-        p_outbuf = (unsigned char*) malloc(VBUF_SIZE);
-        p_out = p_outbuf;
 	cap_start_frame = start_frame;
 	cap_num_frames = end_frame - start_frame;
 	cap_verbose_mode = verbose_mode;
@@ -215,19 +360,39 @@ int capture_raw(const char* filename, int channel, int nbuffers,
 		perror("open /dev/video1394");
                 return -1;
         }
-                      
-        v.channel = channel;
-        v.sync_tag = 0;
-        v.nb_buffers = nbuffers;
-        v.buf_size = VBUF_SIZE; 
-        v.packet_size = MAX_PACKET_SIZE;
-        v.flags = VIDEO1394_INCLUDE_ISO_HEADERS;
-        w.channel = v.channel;
 
-        if (ioctl(viddev, VIDEO1394_LISTEN_CHANNEL, &v)<0) {
-                perror("VIDEO1394_LISTEN_CHANNEL");
-                return -1;
-        }
+	v.channel = channel;
+	v.sync_tag = 0;
+	v.nb_buffers = nbuffers;
+	v.buf_size = VBUF_SIZE; 
+	v.packet_size = MAX_PACKET_SIZE;
+	v.flags = VIDEO1394_INCLUDE_ISO_HEADERS;
+	w.channel = v.channel;
+                      
+	switch (video1394_version) {
+	case 1:
+		if (ioctl(viddev, VIDEO1394_LISTEN_CHANNEL, &v) < 0) {
+			perror("VIDEO1394_LISTEN_CHANNEL");
+			return -1;
+		}
+
+		break;
+	case 2:
+		v2.channel = v.channel;
+		v2.sync_tag = v.sync_tag;
+		v2.nb_buffers = v.nb_buffers;
+		v2.buf_size = v.buf_size;
+		v2.packet_size = v.packet_size;
+		v2.syt_offset = syt_offset;
+		v2.flags = v.flags;
+
+		if (ioctl(viddev, VIDEO1394_LISTEN_CHANNEL, &v2) < 0) {
+			perror("VIDEO1394_LISTEN_CHANNEL");
+			return -1;
+		}
+
+		break;
+	};
 
         if ((recv_buf = (unsigned char *) mmap(
                 0, v.nb_buffers*v.buf_size, PROT_READ|PROT_WRITE,
@@ -235,6 +400,15 @@ int capture_raw(const char* filename, int channel, int nbuffers,
                 perror("mmap videobuffer");
                 return -1;
         }
+
+	pthread_mutex_init(&queue_mutex, NULL);
+	pthread_mutex_init(&wakeup_mutex, NULL);
+	pthread_cond_init(&wakeup_cond, NULL);
+
+	pthread_create(&file_io_thread, NULL, write_out_thread, NULL);
+
+	/* signal(SIGTERM, sig_int_recv_handler);
+	   signal(SIGINT, sig_int_recv_handler); */
 
         unused_buffers = v.nb_buffers;
         w.buffer = 0;
@@ -283,8 +457,6 @@ int capture_raw(const char* filename, int channel, int nbuffers,
                         }
                 }
 
-                finish_block(dst_fp);
-
                 unused_buffers = 1;
         }
 
@@ -300,6 +472,9 @@ int capture_raw(const char* filename, int channel, int nbuffers,
         }
 
         close(viddev);
+
+	pthread_join(file_io_thread, NULL);
+
 	if (dst_fp != stdout) {
 		fclose(dst_fp);
 	}
@@ -307,15 +482,30 @@ int capture_raw(const char* filename, int channel, int nbuffers,
         return 0;
 }
 
-int read_frame(FILE* src_fp, unsigned char* frame, int* isPAL)
+/* ------------------------------------------------------------------------
+   - sender
+   ------------------------------------------------------------------------ */
+
+static FILE* src_fp;
+static int is_eof = 0;
+static unsigned char * underrun_data_frame = NULL;
+static int underrun_frame_ispal = 0;
+
+static pthread_mutex_t  wakeup_rev_mutex;
+static pthread_cond_t   wakeup_rev_cond;
+
+int read_frame(FILE* fp, unsigned char* frame, int* isPAL)
 {
-        if (fread(frame, 1, 120000, src_fp) != 120000) {
+	if (is_eof) {
+		return -1;
+	}
+        if (fread(frame, 1, 120000, fp) != 120000) {
                 return -1;
         }
 	*isPAL = (frame[3] & 0x80);
 
 	if (*isPAL) {
-		if (fread(frame + 120000, 1, 144000 - 120000, src_fp)
+		if (fread(frame + 120000, 1, 144000 - 120000, fp)
 		    != 144000 - 120000) {
 			return -1;
 		}
@@ -323,10 +513,62 @@ int read_frame(FILE* src_fp, unsigned char* frame, int* isPAL)
 	return 0;
 }
 
-static int fill_buffer(FILE* src_fp, unsigned char* targetbuf,
-                       unsigned int * packet_sizes)
+void sig_int_send_handler(int signum)
 {
-        unsigned char frame[144000]; /* PAL is large enough... */
+	char t [] = "Terminating on user's request...\n";
+	write(2, t, sizeof(t));
+	
+	is_eof = 1;
+}
+
+
+void fill_buf_queue(int fire)
+{
+	struct buf_node * f;
+
+	while ((f = get_free_block()) != NULL) {
+		int isPAL;
+		if (read_frame(src_fp, f->data, &isPAL) < 0) {
+			is_eof = 1;
+			push_back(&free_list, f);
+			return;
+		}
+		if (isPAL) {
+			f->usage = 144000;
+		} else {
+			f->usage = 120000;
+		}
+		push_back(&buf_queue, f);
+		if (fire) {
+			pthread_mutex_lock(&wakeup_rev_mutex);
+			pthread_cond_signal(&wakeup_rev_cond);
+			pthread_mutex_unlock(&wakeup_rev_mutex);
+		}
+	}
+}
+
+void* read_in_thread(void * arg)
+{
+	fill_buf_queue(0);
+
+	pthread_mutex_lock(&wakeup_rev_mutex);
+	pthread_cond_signal(&wakeup_rev_cond);
+	pthread_mutex_unlock(&wakeup_rev_mutex);
+
+	while (!is_eof) {
+		pthread_mutex_lock(&wakeup_mutex);
+		pthread_cond_wait(&wakeup_cond, &wakeup_mutex);
+		pthread_mutex_unlock(&wakeup_mutex);
+
+		fill_buf_queue(1);
+	}
+	return NULL;
+}
+
+static int fill_buffer(unsigned char* targetbuf, unsigned int * packet_sizes)
+{
+        unsigned char* frame;
+	struct buf_node * f_node;
 	int isPAL;
 	int frame_size;
         unsigned long vdata = 0;
@@ -336,19 +578,50 @@ static int fill_buffer(FILE* src_fp, unsigned char* targetbuf,
 	static unsigned int cip_n = 0;
 	static unsigned int cip_d = 0;
 
-	if (read_frame(src_fp, frame, &isPAL) < 0) {
-		return -1;
+	f_node = pop_front(&buf_queue);
+	if (!f_node) {
+		if (!is_eof) {
+			if (!underrun_data_frame) {
+				fprintf(stderr, "Buffer underrun "
+					"(raising buffer limit +25 => %d)!\n",
+					max_buffer_blocks);
+
+				max_buffer_blocks += 25;
+
+				pthread_mutex_lock(&wakeup_rev_mutex);
+				pthread_cond_wait(&wakeup_rev_cond, 
+						  &wakeup_rev_mutex);
+				pthread_mutex_unlock(&wakeup_rev_mutex);
+				f_node = pop_front(&buf_queue);
+			} else {
+				f_node = get_free_block();
+
+				if (underrun_frame_ispal) {
+					f_node->usage = 144000;
+				} else {
+					f_node->usage = 120000;
+				}
+				memcpy(f_node->data, underrun_data_frame, 
+				       f_node->usage);
+			}
+
+		} else {
+			return -1;
+		}
 	}
 
-	frame_size = isPAL ? 144000 : 120000;
+	frame = f_node->data;
+	frame_size = f_node->usage;
+
+	isPAL = (frame_size == 144000);
 
 	if (cip_counter == 0) {
 		if (!isPAL) {
-			cip_n = CIP_N_NTSC;
-			cip_d = CIP_D_NTSC;
+			cip_n = cip_n_ntsc;
+			cip_d = cip_d_ntsc;
 		} else {
-			cip_n = CIP_N_PAL;
-			cip_d = CIP_D_PAL;
+			cip_n = cip_n_pal;
+			cip_d = cip_d_pal;
 		}
 		cip_counter = cip_n;
 	}
@@ -369,8 +642,7 @@ static int fill_buffer(FILE* src_fp, unsigned char* targetbuf,
                 *p++ = continuity_counter;
                 
                 *p++ = 0x80; /* const */
-                *p++ = 0x80; /* const */
-
+		*p++ = isPAL ? 0x80 : 0x00;
                 *p++ = 0xff; /* timestamp */
                 *p++ = 0xff; /* timestamp */
                 
@@ -388,17 +660,24 @@ static int fill_buffer(FILE* src_fp, unsigned char* targetbuf,
         }
         *packet_sizes++ = 0;
 
+	push_back(&free_list, f_node);
+
+	pthread_mutex_lock(&wakeup_mutex);
+	pthread_cond_signal(&wakeup_cond);
+	pthread_mutex_unlock(&wakeup_mutex);
+
         return 0;
 }
 
 int send_raw(const char* filename, int channel, int nbuffers, int start_frame,
-	     int end_frame, int verbose_mode)
+	     int end_frame, int verbose_mode, 
+	     const char * underrun_data_filename)
 {
         int viddev;
         unsigned char *send_buf;
         struct video1394_mmap v;
+        struct video1394_mmap_v2 v2;
         struct video1394_queue_variable w;
-        FILE* src_fp;
 	int unused_buffers;
 	int got_frame;
         unsigned int packet_sizes[321];
@@ -411,6 +690,25 @@ int send_raw(const char* filename, int channel, int nbuffers, int start_frame,
 			perror("fopen input file");
 			return -1;
 		}
+	}
+
+	if (underrun_data_filename) {
+		FILE * fp = fopen(underrun_data_filename, "rb");
+		if (!fp) {
+			perror("fopen underrun data file");
+			fclose(src_fp);
+			return -1;
+		}
+		underrun_data_frame = (unsigned char*) malloc(144000);
+		if (read_frame(fp, underrun_data_frame, 
+			       &underrun_frame_ispal) < 0) {
+			fprintf(stderr, "Short read on reading underrun data "
+				"frame...\n");
+			fclose(src_fp);
+			fclose(fp);
+			return -1;
+		}
+		fclose(fp);
 	}
 
 	if (start_frame > 0) {
@@ -441,16 +739,61 @@ int send_raw(const char* filename, int channel, int nbuffers, int start_frame,
         v.flags = VIDEO1394_VARIABLE_PACKET_SIZE;
         w.channel = v.channel;
 
-        if (ioctl(viddev, VIDEO1394_TALK_CHANNEL, &v)<0) {
-                perror("VIDEO1394_TALK_CHANNEL");
-                return -1;
-        }
+	switch (video1394_version) {
+	case 1:
+		if (ioctl(viddev, VIDEO1394_TALK_CHANNEL, &v) < 0) {
+			perror("VIDEO1394_TALK_CHANNEL");
+			return -1;
+		}
+
+		break;
+	case 2:
+		v2.channel = v.channel;
+		v2.sync_tag = v.sync_tag;
+		v2.nb_buffers = v.nb_buffers;
+		v2.buf_size = v.buf_size;
+		v2.packet_size = v.packet_size;
+		v2.syt_offset = syt_offset;
+		v2.flags = v.flags;
+
+		if (ioctl(viddev, VIDEO1394_TALK_CHANNEL, &v2) < 0) {
+			perror("VIDEO1394_TALK_CHANNEL");
+			return -1;
+		}
+
+		break;
+	};
+
+
         if ((send_buf = (unsigned char *) mmap(
                 0, v.nb_buffers * v.buf_size, PROT_READ|PROT_WRITE,
                 MAP_SHARED, viddev, 0)) == (unsigned char *)-1) {
                 perror("mmap videobuffer");
                 return -1;
         }
+
+	if (verbose_mode) {
+		fprintf(stderr, "Filling buffers...\r");
+	}
+
+	/* signal(SIGTERM, sig_int_send_handler);
+	   signal(SIGINT, sig_int_send_handler); */
+
+	pthread_mutex_init(&queue_mutex, NULL);
+	pthread_mutex_init(&wakeup_mutex, NULL);
+	pthread_cond_init(&wakeup_cond, NULL);
+	pthread_mutex_init(&wakeup_rev_mutex, NULL);
+	pthread_cond_init(&wakeup_rev_cond, NULL);
+
+	pthread_create(&file_io_thread, NULL, read_in_thread, NULL);
+
+	pthread_mutex_lock(&wakeup_rev_mutex);
+	pthread_cond_wait(&wakeup_rev_cond, &wakeup_rev_mutex);
+	pthread_mutex_unlock(&wakeup_rev_mutex);
+
+	if (verbose_mode) {
+		fprintf(stderr, "Transmitting...\r");
+	}
 
         unused_buffers = v.nb_buffers;
         w.buffer = 0;
@@ -461,7 +804,7 @@ int send_raw(const char* filename, int channel, int nbuffers, int start_frame,
         for (;start_frame < end_frame;) {
                 while (unused_buffers--) {
                         got_frame = (fill_buffer(
-                                src_fp, send_buf + w.buffer * v.buf_size,
+                                send_buf + w.buffer * v.buf_size,
                                 packet_sizes) < 0) ? 0 : 1;
 
                         if (!got_frame) {
@@ -500,6 +843,9 @@ int send_raw(const char* filename, int channel, int nbuffers, int start_frame,
         }
 
         close(viddev);
+
+	pthread_join(file_io_thread, NULL);
+
 	if (src_fp != stdin) {
 		fclose(src_fp);
 	}
@@ -507,15 +853,25 @@ int send_raw(const char* filename, int channel, int nbuffers, int start_frame,
         return 0;
 }
 
-#define DV_CONNECT_OPT_VERSION         0
-#define DV_CONNECT_OPT_SEND            1
-#define DV_CONNECT_OPT_VERBOSE         2
-#define DV_CONNECT_OPT_CHANNEL         3
-#define DV_CONNECT_OPT_BUFFERS         4
-#define DV_CONNECT_OPT_START_FRAME     5
-#define DV_CONNECT_OPT_END_FRAME       6
-#define DV_CONNECT_OPT_AUTOHELP        7
-#define DV_CONNECT_NUM_OPTS            8
+/* ------------------------------------------------------------------------
+   - main()
+   ------------------------------------------------------------------------ */
+
+#define DV_CONNECT_OPT_VERSION          0
+#define DV_CONNECT_OPT_SEND             1
+#define DV_CONNECT_OPT_VERBOSE          2
+#define DV_CONNECT_OPT_CHANNEL          3
+#define DV_CONNECT_OPT_KBUFFERS         4
+#define DV_CONNECT_OPT_START_FRAME      5
+#define DV_CONNECT_OPT_END_FRAME        6
+#define DV_CONNECT_OPT_CIP_N_NTSC       7
+#define DV_CONNECT_OPT_CIP_D_NTSC       8
+#define DV_CONNECT_OPT_SYT_OFFSET       9
+#define DV_CONNECT_OPT_VIDEO1394_VERSION 10
+#define DV_CONNECT_OPT_MAX_BUFFERS      11
+#define DV_CONNECT_OPT_UNDERRUN_DATA    12
+#define DV_CONNECT_OPT_AUTOHELP         13
+#define DV_CONNECT_NUM_OPTS             14
 
 
 int main(int argc, const char** argv)
@@ -528,6 +884,7 @@ int main(int argc, const char** argv)
 	int buffers = 8;
 	int start = 0;
 	int end = 0xfffffff;
+	const char* underrun_data = NULL;
 
         struct poptOption option_table[DV_CONNECT_NUM_OPTS+1]; 
         int rc;             /* return code from popt */
@@ -563,13 +920,14 @@ int main(int argc, const char** argv)
 		"(range: 0 - 63, default = 63)"
         }; /* channel */
 
-        option_table[DV_CONNECT_OPT_BUFFERS] = (struct poptOption) {
-                longName:   "buffers", 
-                shortName:  'b', 
+        option_table[DV_CONNECT_OPT_KBUFFERS] = (struct poptOption) {
+                longName:   "kbuffers", 
+                shortName:  'k', 
                 argInfo:    POPT_ARG_INT, 
                 arg:        &buffers,
                 argDescrip: "number",
-                descrip:    "number of video frame buffers to use. default = 8"
+                descrip:    "number of kernel video frame buffers to use. "
+		"default = 8"
         }; /* buffers */
 
         option_table[DV_CONNECT_OPT_START_FRAME] = (struct poptOption) {
@@ -588,6 +946,54 @@ int main(int argc, const char** argv)
                 argDescrip: "count",
                 descrip:    "end at <count> frame (defaults to unlimited)"
         }; /* end-frames */
+
+        option_table[DV_CONNECT_OPT_CIP_N_NTSC] = (struct poptOption) {
+                longName:   "cip-n-ntsc", 
+                argInfo:    POPT_ARG_INT, 
+                arg:        &cip_n_ntsc,
+                descrip:    "cip n ntsc timing counter (default: 2436)"
+        }; /* cip_n_ntsc */
+
+        option_table[DV_CONNECT_OPT_CIP_D_NTSC] = (struct poptOption) {
+                longName:   "cip-d-ntsc", 
+                argInfo:    POPT_ARG_INT, 
+                arg:        &cip_d_ntsc,
+                descrip:    "cip d ntsc timing counter (default: 38400)"
+        }; /* cip_d_ntsc */
+
+        option_table[DV_CONNECT_OPT_SYT_OFFSET] = (struct poptOption) {
+                longName:   "syt-offset", 
+                argInfo:    POPT_ARG_INT, 
+                arg:        &syt_offset,
+                descrip:    "syt offset (default: 11000 range: 10000-26000)"
+        }; /* syt offset */
+
+        option_table[DV_CONNECT_OPT_VIDEO1394_VERSION] = (struct poptOption) {
+                longName:   "video-1394-version", 
+                argInfo:    POPT_ARG_INT, 
+                arg:        &video1394_version,
+                descrip:    "video 1394 version to use 1 (CVS-version), "
+		"2 (Dan Dennedy's Kino-version)"
+        }; /* video 1394 version */
+
+        option_table[DV_CONNECT_OPT_MAX_BUFFERS] = (struct poptOption) {
+                longName:   "buffers", 
+                shortName:  'b', 
+                argInfo:    POPT_ARG_INT, 
+                arg:        &max_buffer_blocks,
+                argDescrip: "number",
+                descrip:    "max number of file io thread buffers to use. "
+		"default = 250"
+        }; /* buffers */
+
+        option_table[DV_CONNECT_OPT_UNDERRUN_DATA] = (struct poptOption) {
+                longName:   "underrun-data", 
+                shortName:  'u', 
+                argInfo:    POPT_ARG_STRING, 
+                arg:        &underrun_data,
+                argDescrip: "filename",
+                descrip:    "file with the frame to send in case of underruns"
+        }; /* underrun-data */
 
         option_table[DV_CONNECT_OPT_AUTOHELP] = (struct poptOption) {
                 argInfo: POPT_ARG_INCLUDE_TABLE,
@@ -636,7 +1042,8 @@ int main(int argc, const char** argv)
         filename = poptGetArg(optCon);
 
 	if (send_mode) {
-		send_raw(filename, channel, buffers, start, end, verbose_mode);
+		send_raw(filename, channel, buffers, start, end, verbose_mode,
+			 underrun_data);
 	} else {
 		capture_raw(filename, channel, buffers, start, end, 
 			    verbose_mode);

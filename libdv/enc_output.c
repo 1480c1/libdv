@@ -31,15 +31,16 @@
 #include "enc_output.h"
 #include "headers.h"
 
+FILE* out_fp = NULL;
 
-static int raw_init()
+static int raw_init(FILE* fp)
 {
-	return 0;
+	out_fp = fp;
+	return (fp == NULL) ? -1 : 0;
 }
 
 static void raw_finish()
 {
-
 }
 
 static int dv_audio_unshuffle_60[5][9] = {
@@ -55,7 +56,7 @@ static int dv_audio_unshuffle_50[6][9] = {
   {  3, 21, 39, 16, 34, 52, 11, 29, 47 },
   {  6, 24, 42,  1, 19, 37, 14, 32, 50 }, 
   {  9, 27, 45,  4, 22, 40, 17, 35, 53 }, 
-  { 12, 30, 48,  7, 24, 43,  2, 20, 38 },
+  { 12, 30, 48,  7, 25, 43,  2, 20, 38 },
   { 15, 33, 51, 10, 28, 46,  5, 23, 41 },
 };
 
@@ -296,16 +297,20 @@ static int frame_counter = 0;
 
 static int raw_store(unsigned char* encoded_data, 
 		     dv_enc_audio_info_t* audio_data, 
-		     int isPAL, time_t now)
+		     int keep_meta_headers,
+		     int isPAL, int is16x9, time_t now)
 {
-	write_meta_data(encoded_data, frame_counter, isPAL, &now);
+	if (!keep_meta_headers) {
+		write_meta_data(encoded_data, frame_counter, 
+				isPAL, is16x9, &now);
+	}
 	if (audio_data) {
 		int rval = raw_insert_audio(encoded_data, audio_data, isPAL);
 		if (rval) {
 			return rval;
 		}
 	}
-	fwrite(encoded_data, 1, isPAL ? 144000 : 120000, stdout);
+	fwrite(encoded_data, 1, isPAL ? 144000 : 120000, out_fp);
 	frame_counter++;
 	return 0;
 }

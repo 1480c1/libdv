@@ -40,11 +40,10 @@
 #include "place.h"
 #if ARCH_X86
 #include "mmx.h"
-#endif /* ARCH_X86 */
-#if 0
+#endif
+
 #include "enc_input.h"
 #include "enc_output.h"
-#endif
 
 #define BITS_PER_LONG  32
 
@@ -1299,7 +1298,7 @@ int encoder_loop(dv_enc_input_filter_t * input,
 		 int start, int end, const char* filename,
 		 const char* audio_filename,
 		 int vlc_encode_passes, int static_qno, int verbose_mode,
-		 int fps)
+		 int fps, int is16x9)
 {
 	time_t now;
 	int i;
@@ -1334,6 +1333,21 @@ int encoder_loop(dv_enc_input_filter_t * input,
 		}
 	}
 
+	if (verbose_mode && start > 0) {
+		fprintf(stderr, "Skipping %d frames (video and audio!!!)\n",
+			start);
+	}
+	for (i = 0; i < start; i++) {
+		snprintf(fbuf, 1024, filename, i);
+		if (audio_input) {
+			if (audio_input->load(audio_info, isPAL) < 0) {
+				return -1;
+			}
+		}
+		if (input->skip(fbuf, &isPAL) < 0) {
+			return -1;
+		}
+	}
 
 	for (i = start; i <= end; i++) {
 		long skip_frame_step;
@@ -1365,7 +1379,8 @@ int encoder_loop(dv_enc_input_filter_t * input,
 			skip_frame_count -= 65536;
 			skipped = 1;
 		}
-		if (output->store(target, audio_info, isPAL, now) < 0) {
+		if (output->store(target, audio_info, FALSE, 
+				  isPAL, is16x9,now) < 0) {
 			return -1;
 		}
 		if (verbose_mode) {
@@ -1377,6 +1392,37 @@ int encoder_loop(dv_enc_input_filter_t * input,
 		}
 	}
 	return 0;
+}
+
+void show_statistics()
+{
+	int i = 0;
+	fprintf(stderr, "\n\nFinal statistics:\n"
+		"========================================================\n"
+		"\n  |CYCLES    |RUNS/CYCLE|QNOS     |CLASS    "
+		"|VLC OVERF|DCT\n"
+		"========================================================\n");
+	fprintf(stderr, "%2d: %8ld |%8ld  |%8ld |%8ld |%8ld "
+		"|%8ld (DCT88)\n", 
+		i, cycles_used[i], runs_used[i], qnos_used[i],
+		classes_used[i], vlc_overflows, dct_used[DV_DCT_88]);
+	i++;
+	fprintf(stderr, "%2d: %8ld |%8ld  |%8ld |%8ld |         "
+		"|%8ld (DCT248)\n", 
+		i, cycles_used[i], runs_used[i], qnos_used[i],
+		classes_used[i], 
+		dct_used[DV_DCT_248]);
+	i++;
+	for (;i < 4; i++) {
+		fprintf(stderr, "%2d: %8ld |%8ld  |%8ld |%8ld |         |\n", 
+			i, cycles_used[i], runs_used[i], qnos_used[i],
+			classes_used[i]);
+	}
+	for (;i < 16; i++) {
+		fprintf(stderr, "%2d: %8ld |%8ld  |%8ld |         "
+			"|         |\n", 
+			i, cycles_used[i], runs_used[i], qnos_used[i]);
+	}
 }
 
 

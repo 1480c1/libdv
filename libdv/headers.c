@@ -71,12 +71,13 @@ static void write_timecode_60(unsigned char* target, struct tm * now, int isPAL)
 	target[4] = 0xff;
 }
 
-static void write_timecode_61(unsigned char* target, struct tm * now)
+static void write_timecode_61(unsigned char* target, struct tm * now,
+			      int is16x9)
 {
 	target[0] = 0x61; /* FIXME: What's this? */
 
 	target[1] = 0x33;
-	target[2] = 0xc8;
+	target[2] = 0xc8 | (is16x9 ? 0x7 : 0x0);
 	target[3] = 0xfd;
 
 	target[4] = 0xff;
@@ -153,7 +154,8 @@ static void write_subcode_blocks(unsigned char* target, int ds, int frame,
 	block_count &= 0xfff;
 }
 
-static void write_vaux_blocks(unsigned char* target, int ds, struct tm* now,int isPAL)
+static void write_vaux_blocks(unsigned char* target, int ds, struct tm* now,
+			      int isPAL, int is16x9)
 {
 	memset(target, 0xff, 3*80);
 
@@ -190,12 +192,12 @@ static void write_vaux_blocks(unsigned char* target, int ds, struct tm* now,int 
 		}
 	} else {
 		write_timecode_60(target + 3, now, isPAL);
-		write_timecode_61(target + 3 + 5, now);
+		write_timecode_61(target + 3 + 5, now, is16x9);
 		write_timecode_62(target + 3 + 2*5, now);
 		write_timecode_63(target + 3 + 3*5, now);
 	}
 	write_timecode_60(target + 2*80+ 48, now, isPAL);
-	write_timecode_61(target + 2*80+ 48 + 5, now);
+	write_timecode_61(target + 2*80+ 48 + 5, now, is16x9);
 	write_timecode_62(target + 2*80+ 48 + 2*5, now);
 	write_timecode_63(target + 2*80+ 48 + 3*5, now);
 }
@@ -231,7 +233,8 @@ static void write_audio_headers(unsigned char* target, int frame, int ds)
 }
 
 
-void write_meta_data(unsigned char* target, int frame, int isPAL, time_t * now)
+void write_meta_data(unsigned char* target, int frame, int isPAL, 
+		     int is16x9, time_t * now)
 {
 	int numDIFseq;
 	int ds;
@@ -250,7 +253,7 @@ void write_meta_data(unsigned char* target, int frame, int isPAL, time_t * now)
 		target +=   1 * 80;
 		write_subcode_blocks(target, ds, frame, now_t, isPAL);
 		target +=   2 * 80;
-		write_vaux_blocks(target, ds, now_t, isPAL);
+		write_vaux_blocks(target, ds, now_t, isPAL, is16x9);
 		target +=   3 * 80;
 		write_video_headers(target, frame, ds);
 		write_audio_headers(target, frame, ds);

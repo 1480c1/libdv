@@ -31,7 +31,10 @@
 #include "util.h"
 #include "audio.h"
 
-/*
+/** @file
+ *  @ingroup decoder
+ *  @brief Audio routines for decoding
+ *
  * DV audio data is shuffled within the frame data.  The unshuffle 
  * tables are indexed by DIF sequence number, then audio DIF block number.
  * The first audio channel (pair) is in the first half of DIF sequences, and the
@@ -50,7 +53,7 @@
  * number of audio samples per video frame can vary somewhat.  Header
  * info in the audio sections (AAUX AS) is used to tell the decoder on
  * a frame be frame basis how many samples are present. 
- * */
+ */
 
 static int dv_audio_unshuffle_60[5][9] = {
   { 0, 15, 30, 10, 25, 40,  5, 20, 35 },

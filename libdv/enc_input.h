@@ -45,9 +45,12 @@ extern "C" {
 		const char* filter_name;
 	} dv_enc_input_filter_t;
 
+	extern void dv_enc_rgb_to_ycb(unsigned char* img_rgb, int height,
+		       short* img_y, short* img_cr, short* img_cb);
 	extern void dv_enc_register_input_filter(dv_enc_input_filter_t filter);
 	extern int get_dv_enc_input_filters(dv_enc_input_filter_t ** filters,
 					    int * count);
+	extern void ycb_fill_macroblock(dv_encoder_t *dv, dv_macroblock_t *mb);
 
 #ifdef __cplusplus
 }

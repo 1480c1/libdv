@@ -27,6 +27,9 @@
 #define DV_ENC_OUTPUT_H
 
 #include <time.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "enc_audio_input.h"
 
 #ifdef __cplusplus
@@ -35,14 +38,18 @@ extern "C" {
 	#define DV_ENC_MAX_OUTPUT_FILTERS     32
 
 	typedef struct dv_enc_output_filter_s {
-		int (*init)();
+		int (*init)(FILE* fp);
 		void (*finish)();
 		int (*store)(unsigned char* encoded_data, 
 			     dv_enc_audio_info_t* audio_data,/* may be null */
-			     int isPAL, time_t now);
+			     int keep_meta_headers,
+			     int isPAL, int is16x9, time_t now);
 
 		const char* filter_name;
 	} dv_enc_output_filter_t;
+
+	extern int raw_insert_audio(unsigned char * frame_buf, 
+		     dv_enc_audio_info_t * audio, int isPAL);
 
 	extern void dv_enc_register_output_filter(dv_enc_output_filter_t 
 						  filter);

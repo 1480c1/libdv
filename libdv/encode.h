@@ -47,7 +47,8 @@ extern int  encoder_loop(dv_enc_input_filter_t * input,
 			 dv_enc_output_filter_t * output,
 			 int start, int end, const char* filename,
 			 const char* audio_filename,
-			 int vlc_encode_passes, int static_qno, int verbose_mode,
-			 int fps);
+			 int vlc_encode_passes, int static_qno, 
+			 int verbose_mode,
+			 int fps, int is16x9);
 
 #endif /* DV_ENCODE_H */

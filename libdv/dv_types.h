@@ -76,6 +76,7 @@
 #define DV_OSS_OPT_FILE   1
 #define DV_OSS_NUM_OPTS   2
 
+#define DV_DCT_AUTO	(-1)
 #define DV_DCT_248	(1)
 #define DV_DCT_88	(0)
 
@@ -422,6 +423,15 @@ typedef struct {
   struct poptOption option_table[DV_OSS_NUM_OPTS+1];
 #endif // HAVE_LIBPOPT
 } dv_oss_t;
+
+typedef struct {
+	int isPAL;
+	int vlc_encode_passes;
+	int static_qno;
+	short *img_y;  /* height * width     */
+	short *img_cr; /* height * width / 2 */
+	short *img_cb; /* height * width / 2 */
+} dv_encoder_t;
 
 #if ARCH_X86
 extern gboolean dv_use_mmx;

@@ -1,3 +1,33 @@
+2002-23-02  Dan Dennedy <dan@dennedy.org>
+	* Added public (shared object) interface to encoder: see dv.h
+
+	* Added dv1394.h header to support apps needing to use
+	  dv1394 IOCTL interface
+
+	* Added recode.c test utility
+
+	* Changed configure.in to configure.ac to invoke proper
+	  version of autoconf on Debian
+
+	* Applied patch from Peter Schlaile to repair encode during
+	  build on non x86 architectures
+
+2002-07-02  Peter Schlaile <udbz@rz.uni-karlsruhe.
+	* New dvconnect version featuring 
+	  - multi-threading and buffer control
+	  - new video1394 interface support
+	  - underrun picture support
+	
+	* Updated insert_audio to plugin interface
+	
+	* Added dvavi, a small utility to convert DV-AVIs to RAW-DV
+	
+	* Added wide-screen option to encoder
+	
+	* Made the encoder detect PAL/NTSC on /dev/video input
+	
+	* Various bugfixes
+
 2001-10-27  Charles 'Buck' Krasic  <krasic@acm.org>
 
 	* Apply bugfix from bug report #448856 submitted by Tristan Dufay.

@@ -26,6 +26,7 @@
 
 /** @file
  *  @ingroup decoder
+ *  @ingroup encoder
  *  @brief   Interface for @link decoder DV Decoder @endlink
  */
 
@@ -54,6 +55,25 @@ extern void          dv_decode_full_frame(dv_decoder_t *dv,
 					  guchar **pixels, gint *pitches);
 extern gint          dv_decode_full_audio(dv_decoder_t *dv, 
 					  guchar *buffer, gint16 **outbufs);
+	
+/*@}*/
+
+/** @addtogroup encoder
+ *  @{
+ */
+
+extern gint          dv_encode_full_frame(guchar **in, guchar *out,
+					  dv_color_space_t color_space, int isPAL, int is16x9, 
+					  int vlc_encode_passes, int static_qno, int force_dct_);
+	
+extern gint          dv_encode_full_audio(guchar *frame, int isPAL,
+					  gint16 **pcm, int channels, int frequency);
+
+/*@}*/
+
+/** @addtogroup decoder
+ *  @{
+ */
 
 /* Low level API */
 extern gint dv_parse_video_segment(dv_videosegment_t *seg, guint quality);
@@ -64,6 +84,9 @@ extern void dv_render_video_segment_rgb(dv_decoder_t *dv, dv_videosegment_t *seg
 
 extern void dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, 
 					guchar **pixels, gint *pitches);
+
+extern gint dv_encode_videosegment( dv_encoder_t *dv_enc,
+					dv_videosegment_t *videoseg, guint8 *vsbuffer);
 
 /* ---------------------------------------------------------------------------
  * functions based on vaux data

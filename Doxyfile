@@ -4,7 +4,7 @@
 # General configuration options
 #---------------------------------------------------------------------------
 PROJECT_NAME           = libdv
-PROJECT_NUMBER         = 0.10
+PROJECT_NUMBER         = 0.91
 OUTPUT_DIRECTORY       = docs
 OUTPUT_LANGUAGE        = English
 EXTRACT_ALL            = YES
@@ -53,14 +53,14 @@ WARN_LOGFILE           =
 # configuration options related to the input files
 #---------------------------------------------------------------------------
 INPUT                  = libdv \
-                         /home/krasic/src/libdv-0.10/docs/mainpage.doc \
-                         /home/krasic/src/libdv-0.10/docs/glossary.doc
+                         docs/mainpage.doc \
+                         docs/glossary.doc
 FILE_PATTERNS          = *.c \
                          *.h
 RECURSIVE              = NO
 EXCLUDE                = 
 EXCLUDE_PATTERNS       = 
-EXAMPLE_PATH           = /home/krasic/src/libdv-0.10/docs/
+EXAMPLE_PATH           = docs/
 EXAMPLE_PATTERNS       = 
 IMAGE_PATH             = 
 INPUT_FILTER           = 

@@ -33,7 +33,7 @@ extern "C" {
 #endif
 
 extern void write_meta_data(unsigned char* target, int frame, int isPAL,
-			    time_t * now);
+			    int is16x9, time_t * now);
 
 #ifdef __cplusplus
 }

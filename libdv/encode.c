@@ -24,11 +24,24 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
+/** @file
+ *  @ingroup encoder
+ *  @brief Implementation for @link encoder DV Encoder @endlink
+ */
+
+/** @weakgroup encoder DV Encoder
+ *
+ *  This is the toplevel module of the \c liddv encoder.  
+ *  
+ *  @{
+ */
+
 #include <time.h>
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <glib.h>
 
 #include "encode.h"
@@ -38,6 +51,7 @@
 #include "vlc.h"
 #include "parse.h"
 #include "place.h"
+#include "headers.h"
 #if ARCH_X86
 #include "mmx.h"
 #endif
@@ -505,7 +519,7 @@ static unsigned long vlc_encode_block(dv_coeff_t* coeffs, dv_vlc_block_t* out)
 		while (*z == 0) {
 			z++; run++;
 			if (z == z_end) { 
-				return num_bits;
+				goto z_out;
 			}
 		}
 
@@ -519,6 +533,7 @@ static unsigned long vlc_encode_block(dv_coeff_t* coeffs, dv_vlc_block_t* out)
 		num_bits += get_dv_vlc_len(*o++);
 		num_bits += get_dv_vlc_len(*o++);
 	} while (z != z_end);
+ z_out:
 #else
 	int num_bits;
 
@@ -1298,7 +1313,7 @@ int encoder_loop(dv_enc_input_filter_t * input,
 		 int start, int end, const char* filename,
 		 const char* audio_filename,
 		 int vlc_encode_passes, int static_qno, int verbose_mode,
-		 int fps)
+		 int fps, int is16x9)
 {
 	time_t now;
 	int i;
@@ -1379,7 +1394,8 @@ int encoder_loop(dv_enc_input_filter_t * input,
 			skip_frame_count -= 65536;
 			skipped = 1;
 		}
-		if (output->store(target, audio_info, isPAL, now) < 0) {
+		if (output->store(target, audio_info, FALSE, 
+				  isPAL, is16x9,now) < 0) {
 			return -1;
 		}
 		if (verbose_mode) {
@@ -1425,6 +1441,274 @@ void show_statistics()
 }
 
 
+/****** public encoder implementation ***********************************/
+/* By Dan Dennedy <dan@dennedy.org> */
+
+extern int force_dct;
+
+gint dv_encode_videosegment( dv_encoder_t *dv_enc,
+				dv_videosegment_t *videoseg, guint8 *vsbuffer)
+{
+	dv_macroblock_t *mb;
+	gint m;
+	guint b;
+	dv_vlc_block_t vlc_block[5*6];
+
+	for (m = 0, mb = videoseg->mb; m < 5; m++, mb++) {
+		mb->vlc_error = 0;
+		mb->eob_count = 0;
+		mb->i = (videoseg->i+ dv_super_map_vertical[m]) 
+			% (videoseg->isPAL ? 12 : 10);
+		mb->j = dv_super_map_horizontal[m];
+		mb->k = videoseg->k;
+		
+		if (videoseg->isPAL) {
+			dv_place_420_macroblock(mb);
+		} else {
+			dv_place_411_macroblock(mb);
+		}
+		ycb_fill_macroblock(dv_enc, mb);
+		do_dct(mb);
+		do_classify(mb, dv_enc->static_qno);
+	}
+
+	for (m = 0; m < 5; m++) {
+		dv_vlc_block_t *v_bl = vlc_block;
+		for (b = 0; b < 6; b++) {
+			v_bl->bit_offset = (8* (80 * m))+dv_parse_bit_start[b];
+			v_bl->bit_budget = (b < 4) ? 100 : 68;
+			v_bl++;
+		}
+	}
+
+	switch (dv_enc->vlc_encode_passes) {
+	case 1:
+		quant_1_pass(videoseg, vlc_block, dv_enc->static_qno);
+		break;
+	case 2:
+		quant_2_passes(videoseg, vlc_block, dv_enc->static_qno);
+		break;
+	case 3:
+		quant_3_passes(videoseg, vlc_block, dv_enc->static_qno);
+		break;
+	default:
+		fprintf(stderr, "Invalid value for vlc_encode_passes "
+			"specified: %d!\n", dv_enc->vlc_encode_passes);
+		exit(-1);
+	}
+		
+	for (m = 0, mb = videoseg->mb; m < 5; m++, mb++) {
+		put_bits(vsbuffer, (8 * (80 * m)) + 28, 4, mb->qno);
+		
+		for (b = 0; b < 6; b++) {
+			dv_block_t *bl = &mb->b[b];
+			dv_vlc_block_t *v_bl = vlc_block + m*6 + b;
+
+			v_bl->bit_offset = (8* (80 * m))+dv_parse_bit_start[b];
+			v_bl->bit_budget = (b < 4) ? 100 : 68;
+
+			put_bits(vsbuffer, v_bl->bit_offset - 12,
+				 12, (bl->coeffs[0] << 3) | (bl->dct_mode << 2)
+				 | bl->class_no);
+			vlc_encode_block_pass_1(v_bl, vsbuffer, 
+						dv_enc->vlc_encode_passes);
+		}
+		vlc_encode_block_pass_n(vlc_block + m * 6, vsbuffer, 
+					dv_enc->vlc_encode_passes, 2);
+	}
+	vlc_encode_block_pass_n(vlc_block, vsbuffer, dv_enc->vlc_encode_passes, 3);
+
+	return 0;
+}
 
 
+static void yuy2_to_yv12( guchar *data, int isPAL, short *img_y, short *img_cr, short *img_cb)
+{
+	int total = (DV_WIDTH * (isPAL ? DV_PAL_HEIGHT : DV_NTSC_HEIGHT)) >> 1;
+	register int i;
+	register guchar *p = data;
+	
+	for (i = 0; i < total; i++) {
+		img_y[i*2] = (short) *p++;
+		img_cb[i] = (short) *p++;
+		img_y[i*2+1] = (short) *p++;
+		img_cr[i] = (short) *p++;
+	}
+}
 
+
+/** @brief DV encode a buffer containing a frame of video
+ * 
+ * DV interlaced video is always lower field first.
+ *
+ * @param in An array of buffers. YUV/YUY2 and RGB only require
+ * one entry. If you configured YUV for YV12. Then 3 array entries
+ * correspond to pointers to the Y (luma) buffer, Cb and Cr (chroma)
+ * buffers.
+ * @param out A pointer to the output buffer, which should alreayd be
+ * allocated width*height*2 bytes. The function will clear the buffer
+ * before filling it.
+ * @param color_space Indicates which color space and sample pattern
+ * of the data in the \c in parameter.
+ * @param isPAL Set true (non-zero) to encode the data in PAL format.
+ * @param is16x9 Set true (non-zero) to set the flag bits in the DV
+ * header to indicate widescreen video.
+ * @param vlc_encode_passes variable length coding distribution passes
+ * (1-3) greater values = better quality but not necessarily slower
+ * encoding! If zero or >3. this defaults to 3 for best quality.
+ * @param static_qno Default is 0 for dynamic quantisation.
+ * Static qno tables can be used for quantisation on 2+ VLC passes. 
+ * There are only two static qno tables registered right now:\n
+ * 1 : for sharp DV pictures\n
+ * 2 : for somewhat noisy satelite television signal
+ * @param force_dct Normally, motion estimation is used to determine
+ * the level of interfield motion in interlaced video in order to
+ * the best configuration of the DCT algorithm. This option forces
+ * a particular one. Use DV_DCT_AUTO(-1), DV_DCT_88(0), or DV_DCT_248(1).
+ */
+gint dv_encode_full_frame(guchar **in, guchar *out,
+				dv_color_space_t color_space, int isPAL, int is16x9, 
+				int vlc_encode_passes, int static_qno, int force_dct_)
+{
+	dv_encoder_t dv_enc;
+	dv_videosegment_t videoseg ALIGN64;
+	int numDIFseq;
+	int ds;
+	int v;
+	guint dif = 0;
+	guint offset = 0;
+	guchar *target = out;
+	time_t now;
+	now = time(NULL);
+	
+	force_dct = force_dct_;
+	dv_enc.isPAL = isPAL;
+	dv_enc.vlc_encode_passes = vlc_encode_passes;
+	dv_enc.static_qno = static_qno;
+	dv_enc.img_y = NULL;
+	dv_enc.img_cb = NULL;
+	dv_enc.img_cr = NULL;
+
+	if (dv_enc.vlc_encode_passes < 1 || dv_enc.vlc_encode_passes > 3)
+		dv_enc.vlc_encode_passes = 3;
+	if (dv_enc.static_qno < 1 || dv_enc.static_qno > 2)
+		dv_enc.static_qno = 0;
+	if (force_dct < DV_DCT_AUTO || force_dct > DV_DCT_248)
+		force_dct = DV_DCT_AUTO;
+
+	memset(out, 0, 480 * (isPAL ? 300 : 250));
+
+	switch (color_space) {
+	case e_dv_color_rgb:
+		dv_enc.img_y = (short*) calloc(DV_PAL_HEIGHT * DV_WIDTH, sizeof(short));
+		dv_enc.img_cr = (short*) calloc(DV_PAL_HEIGHT * DV_WIDTH / 2, sizeof(short));
+		dv_enc.img_cb = (short*) calloc(DV_PAL_HEIGHT * DV_WIDTH / 2, sizeof(short));
+		dv_enc_rgb_to_ycb(in[0], (isPAL ? DV_PAL_HEIGHT : DV_NTSC_HEIGHT),
+			dv_enc.img_y, dv_enc.img_cr, dv_enc.img_cb);
+		break;
+	case e_dv_color_yuv:
+#ifndef YUV_420_USE_YV12
+		dv_enc.img_y = (short*) calloc(DV_PAL_HEIGHT * DV_WIDTH, sizeof(short));
+		dv_enc.img_cr = (short*) calloc(DV_PAL_HEIGHT * DV_WIDTH / 2, sizeof(short));
+		dv_enc.img_cb = (short*) calloc(DV_PAL_HEIGHT * DV_WIDTH / 2, sizeof(short));
+		yuy2_to_yv12( in[0], isPAL, dv_enc.img_y, dv_enc.img_cr, dv_enc.img_cb);
+#else
+		dv_enc.img_y = (short *) in[0];
+		dv_enc.img_cr = (short *) in[1];
+		dv_enc.img_cb = (short *) in[2];
+#endif
+		break;
+	default:
+		fprintf(stderr, "Invalid value for color_space "
+			"specified: %d!\n", (int) color_space);
+		return -1;
+	}
+	
+	if (isPAL) 
+		target[offset + 3] |= 0x80;
+
+	numDIFseq = isPAL ? 12 : 10;
+	
+	for (ds = 0; ds < numDIFseq; ds++) { 
+		/* Each DIF segment conists of 150 dif blocks, 
+		   135 of which are video blocks */
+		/* skip the first 6 dif blocks in a dif sequence */
+		dif += 6; 
+
+		/* A video segment consists of 5 video blocks, where each video
+		   block contains one compressed macroblock.  DV bit allocation
+		   for the VLC stage can spill bits between blocks in the same
+		   video segment.  So parsing needs the whole segment to decode
+		   the VLC data */
+		/* Loop through video segments */
+		for (v = 0; v < 27; v++) {
+			/* skip audio block - 
+			   interleaved before every 3rd video segment
+			*/
+
+			if(!(v % 3)) dif++; 
+
+			offset = dif * 80;
+			
+			videoseg.i = ds;
+			videoseg.k = v;
+			videoseg.isPAL = isPAL;
+
+			if (dv_encode_videosegment(&dv_enc, 
+					     &videoseg, 
+						 target + offset) < 0) {
+				fprintf(stderr, "Enocder failed to process video segment.");
+				return -1;
+			}
+			
+			dif += 5;
+		} 
+	} 
+	
+	write_meta_data(target, 0, isPAL, is16x9, &now);
+
+	if (dv_enc.img_y) free(dv_enc.img_y);
+	if (dv_enc.img_cr) free(dv_enc.img_cr);
+	if (dv_enc.img_cb) free(dv_enc.img_cb);
+	return 0;
+
+}
+
+void swab(void*, void*, ssize_t);
+
+
+/** @brief Encode signed 16-bit integer PCM audio data into a frame of DV video.
+ *
+ * @param frame_buf A pointer to a DV frame
+ * @param isPAL Set true (non-zero) to encode the data in PAL format.
+ * @param pcm An array of buffers containing PCM audio data where each
+ * array entry corresponds to a single channel of audio.
+ * @param channels The number of channels being used (<=4). Currently,
+ * only two channels are supported.
+ * @param frequency The sampling rate of the input must be one of 32000,
+ * 44100, or 48000.
+ * 
+ * @todo handle 4 channels
+ */
+gint dv_encode_full_audio(guchar *frame_buf, int isPAL, gint16 **pcm,
+				int channels, int frequency)
+{
+	/* this assumes signed 16 bit pcm audio */
+	int i,j;
+	dv_enc_audio_info_t audio;
+	audio.channels = channels;
+	audio.frequency = frequency;
+	audio.bitspersample = 16;
+	audio.bytealignment = 4;
+	audio.bytespersecond = frequency * audio.bytealignment;
+	audio.bytesperframe = audio.bytespersecond/(isPAL?25 : 30); /* not used */
+
+	/* interleave channels */
+	if (channels > 1) {
+		for (i=0; i < DV_AUDIO_MAX_SAMPLES; i++)
+			for (j=0; j < channels; j++)
+				swab( pcm[j]+i, audio.data + (i*2+j)*channels, 2);
+	}
+
+	return raw_insert_audio(frame_buf, &audio, isPAL);
+}

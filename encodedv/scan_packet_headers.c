@@ -41,7 +41,7 @@ int main(int argc, const char** argv)
 		int i;
 		dif_count++;
 		if ((dif_count % 6) == 0) {
-			if (packet == 299) {
+			if (buf[0] == 0x1f && buf[1] == 0x07 && packet != -1) {
 				packet = -1;
 				dif_count = 0;
 				frame++;

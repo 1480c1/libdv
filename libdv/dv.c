@@ -410,12 +410,13 @@ dv_decode_full_frame(dv_decoder_t *dv, guchar *buffer,
 
   /* each DV frame consists of a sequence of DIF segments  */
   for (ds=0; ds < dv->num_dif_seqs; ds++) {
-    /* Each DIF segment conists of 150 dif blocks, 135 of which are video blocks */
-    /* A video segment consists of 5 video blocks, where each video
+    /** Each DIF segment conists of 150 dif blocks, 135 of which are video blocks
+       A video segment consists of 5 video blocks, where each video
        block contains one compressed macroblock.  DV bit allocation
        for the VLC stage can spill bits between blocks in the same
        video segment.  So parsing needs the whole segment to decode
-       the VLC data */
+       the VLC data 
+	*/
     dif += 6;
     audio=0;
     /* Loop through video segments  */
