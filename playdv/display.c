@@ -28,7 +28,7 @@
  * Stefan Lucke <Stefan.Lucke1@epost.de> */
 
 #if HAVE_CONFIG_H
-# include <dv_config.h>
+# include <config.h>
 #endif
 
 #include <unistd.h>

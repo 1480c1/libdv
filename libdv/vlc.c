@@ -26,7 +26,7 @@
 
 
 #if HAVE_CONFIG_H
-# include <dv_config.h>
+# include <config.h>
 #endif
 
 #include <stdio.h>

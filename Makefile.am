@@ -19,7 +19,6 @@ CLEANFILES                =
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libdv.pc
-pkginclude_HEADERS=  dv_config.h
 
 rpm: dist
 	rpmbuild -ta @PACKAGE@-@VERSION@.tar.gz

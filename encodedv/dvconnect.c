@@ -24,7 +24,7 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include <dv_config.h>
+#include <config.h>
 #endif // HAVE_CONFIG_H
 
 #define _FILE_OFFSET_BITS 64
