@@ -195,7 +195,7 @@ static inline void bitstream_flush_large(bitstream_t *bs,guint32 num_bits) {
 }
 
 static inline void bitstream_seek_set(bitstream_t *bs, guint32 offset) {
-  bs->bufoffset = (offset & (~0x1f)) >> 3;
+  bs->bufoffset = ((offset & (~0x1f)) >> 5) << 2;
   bs->current_word = *(gulong *)(bs->buf + bs->bufoffset);
   bs->current_word = swab32(bs->current_word);
   bs->bufoffset += 4;
