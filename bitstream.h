@@ -40,7 +40,7 @@ extern "C" {
 //My new and improved vego-matic endian swapping routine
 //(stolen from the kernel)
 #if defined(WORDS_BIGENDIAN)
-#define swab32(x)
+#define swab32(x) (x)
 #else // LITTLE_ENDIAN
 #    define swab32(x)\
 ((((guint8*)&x)[0] << 24) | (((guint8*)&x)[1] << 16) |  \
