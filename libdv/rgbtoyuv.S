@@ -1,4 +1,4 @@
-/* 
+/*
  *  rgbtoyuv.S
  *
  *     Copyright (C) Peter Schlaile - February 2001
@@ -96,16 +96,36 @@ VR0GR:  .long   0,0
 VBG0B:  .long   0,0
 	
 #else
-YR0GRX: .word   8414,16519,0,8414
-YBG0BX: .word   3208,0,16519,3208
+/* ---------------------------------------------------------------------------
+ * Stefan Lucke
+ * I changed thouse values a bit to fit them to our decoding values. This was
+ * done during testing of multiple encode decode passes. This results in
+ * reducing a slight green drift, but overall quality of multi enc/dec is still
+ * poor. Original values were:
+ *
+ * YR0GRX: .word   8414,16519,0,8414
+ * YBG0BX: .word   3208,0,16519,3208
+ * YR0GR:  .long   0,0
+ * YBG0B:  .long   0,0
+ * UR0GRX: .word   14392,-12061,0,14392
+ * UBG0BX: .word   -2332,0,-12061,-2332
+ * UR0GR:  .long   0,0
+ * UBG0B:  .long   0,0
+ * VR0GRX: .word   -4864,-9528,0,-4864
+ * VBG0BX: .word   14392,0,-9528,14392
+ * VR0GR:  .long   0,0
+ * VBG0B:  .long   0,0
+ */
+YR0GRX: .word   8421,16515,0,8421
+YBG0BX: .word   3211,0,16515,3211
 YR0GR:  .long   0,0
 YBG0B:  .long   0,0
-UR0GRX: .word   14392,-12061,0,14392
-UBG0BX: .word   -2332,0,-12061,-2332
+UR0GRX: .word   14385,-12058,0,14385
+UBG0BX: .word   -2326,0,-12058,-2326
 UR0GR:  .long   0,0
 UBG0B:  .long   0,0
-VR0GRX: .word   -4864,-9528,0,-4864
-VBG0BX: .word   14392,0,-9528,14392
+VR0GRX: .word   -4849,-9535,0,-4849
+VBG0BX: .word   14385,0,-9535,14385
 VR0GR:  .long   0,0
 VBG0B:  .long   0,0
 	
@@ -323,7 +343,7 @@ rgbtoycb_mmx_loop:
 
 	psrad   $FIXPSHIFT, %mm7       #32-bit scaled U7U6 -> mm7
 	paddw	OFFSETY, %mm2
-	movq	%mm2, (%ebx)    #store Y7Y6Y5Y4 
+	movq	%mm2, (%ebx)    #store Y7Y6Y5Y4
 
 	movq	ALLONE, %mm6
 	packssdw %mm7, %mm0     #32-bit scaled U7U6U5U4 -> mm0
@@ -381,7 +401,7 @@ _dv_ppm_copy_y_block_mmx:
 	
 	movl    8(%ebp), %edi          # dest
 	movl    12(%ebp), %esi         # src
-	
+
 	movq	(%esi), %mm0
 	movq	8(%esi), %mm1
 	movq	%mm0, 0*8(%edi)
@@ -552,7 +572,7 @@ _dv_pgm_copy_y_block_mmx:
 	paddw	%mm7, %mm1
 	paddw	%mm7, %mm2
 	paddw	%mm7, %mm3
-		
+
 	movq	%mm0, (%edi)
 	movq	%mm2, 8(%edi)
 	movq	%mm1, 16(%edi)
@@ -570,13 +590,13 @@ _dv_video_copy_y_block_mmx:
 	movl    %esp, %ebp
 	pushl   %esi
 	pushl	%edi
-	
+
 	movl    8(%ebp), %edi          # dest
 	movl    12(%ebp), %esi         # src
 
 	movq	OFFSETBX, %mm7
 	pxor	%mm6, %mm6
-	
+
 	movq	(%esi), %mm0
 	movq	DV_WIDTH_BYTE(%esi), %mm1
 
@@ -588,19 +608,19 @@ _dv_video_copy_y_block_mmx:
 
 	punpckhbw %mm6, %mm2
 	punpckhbw %mm6, %mm3
-	
+
 	psubw	%mm7, %mm0
 	psubw	%mm7, %mm1
 	psubw	%mm7, %mm2
 	psubw	%mm7, %mm3
 
-#if PRECISION > 0	
+#if PRECISION > 0
 	psllw	$PRECISION, %mm0
 	psllw	$PRECISION, %mm1
 	psllw	$PRECISION, %mm2
 	psllw	$PRECISION, %mm3
 #endif
-		
+
 	movq	%mm0, (%edi)
 	movq	%mm2, 8(%edi)
 	movq	%mm1, 16(%edi)
@@ -620,19 +640,19 @@ _dv_video_copy_y_block_mmx:
 
 	punpckhbw %mm6, %mm2
 	punpckhbw %mm6, %mm3
-	
+
 	psubw	%mm7, %mm0
 	psubw	%mm7, %mm1
 	psubw	%mm7, %mm2
 	psubw	%mm7, %mm3
 
-#if PRECISION > 0	
+#if PRECISION > 0
 	psllw	$PRECISION, %mm0
 	psllw	$PRECISION, %mm1
 	psllw	$PRECISION, %mm2
 	psllw	$PRECISION, %mm3
 #endif
-		
+
 	movq	%mm0, (%edi)
 	movq	%mm2, 8(%edi)
 	movq	%mm1, 16(%edi)
@@ -652,19 +672,19 @@ _dv_video_copy_y_block_mmx:
 
 	punpckhbw %mm6, %mm2
 	punpckhbw %mm6, %mm3
-	
+
 	psubw	%mm7, %mm0
 	psubw	%mm7, %mm1
 	psubw	%mm7, %mm2
 	psubw	%mm7, %mm3
 
-#if PRECISION > 0	
+#if PRECISION > 0
 	psllw	$PRECISION, %mm0
 	psllw	$PRECISION, %mm1
 	psllw	$PRECISION, %mm2
 	psllw	$PRECISION, %mm3
 #endif
-		
+
 	movq	%mm0, (%edi)
 	movq	%mm2, 8(%edi)
 	movq	%mm1, 16(%edi)
@@ -684,19 +704,19 @@ _dv_video_copy_y_block_mmx:
 
 	punpckhbw %mm6, %mm2
 	punpckhbw %mm6, %mm3
-	
+
 	psubw	%mm7, %mm0
 	psubw	%mm7, %mm1
 	psubw	%mm7, %mm2
 	psubw	%mm7, %mm3
 
-#if PRECISION > 0	
+#if PRECISION > 0
 	psllw	$PRECISION, %mm0
 	psllw	$PRECISION, %mm1
 	psllw	$PRECISION, %mm2
 	psllw	$PRECISION, %mm3
 #endif
-		
+
 	movq	%mm0, (%edi)
 	movq	%mm2, 8(%edi)
 	movq	%mm1, 16(%edi)
@@ -706,17 +726,17 @@ _dv_video_copy_y_block_mmx:
 	pop	%esi
 	pop	%ebp
 	ret
-	
-		
+
+
 .global _dv_ppm_copy_pal_c_block_mmx
 _dv_ppm_copy_pal_c_block_mmx:
-				
+
 	pushl   %ebp
 	movl    %esp, %ebp
 	pushl   %esi
 	pushl	%edi
 	pushl	%ebx
-	
+
 	movl    8(%ebp), %edi          # dest
 	movl    12(%ebp), %esi         # src
 
