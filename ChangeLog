@@ -1,3 +1,8 @@
+2004-01-13  Dan Dennedy <dan@dennedy.org>
+	* encodedv/dvconnect.c: change a video1394 ioctl macro for better
+	  kernel 2.6 compatibility.
+	* libdv/enc_input.c: add luma clamping on pgm input luma for bug 874984.
+
 2004-01-04  Dan Dennedy <dan@dennedy.org>
 	* encodedv/dvconnect.c, libdv/dv1394.h: fix for kernel 2.6 compatibility,
 	  only backwards compatible to kernel 2.4.21.

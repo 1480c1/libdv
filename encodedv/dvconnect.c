@@ -111,8 +111,7 @@ struct video1394_wait
 #define VIDEO1394_UNTALK_CHANNEL		\
 	_IOW ('#', 0x15, int)
 #define VIDEO1394_TALK_QUEUE_BUFFER 	\
-	_IOW ('#', 0x16, sizeof (struct video1394_wait) + \
-		sizeof (struct video1394_queue_variable))
+	_IOW ('#', 0x16, size_t)
 #define VIDEO1394_TALK_WAIT_BUFFER		\
 	_IOW ('#', 0x17, struct video1394_wait)
 #define VIDEO1394_LISTEN_POLL_BUFFER	\

@@ -809,6 +809,14 @@ static void pgm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 
 	emms();
 #endif
+	{
+		register int i, j;
+		register short min = (16 - 128) << DCT_YUV_PRECISION;
+		register short max = (235 - 128) << DCT_YUV_PRECISION;
+		for (i = 0; i < 64; i++)
+			for (j = 0; j < 4; j++)
+				bl[j].coeffs[i] = CLAMP(bl[j].coeffs[i], min, max);
+	}
 }
 
 
