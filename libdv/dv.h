@@ -60,6 +60,7 @@ extern int          dv_decode_full_audio(dv_decoder_t *dv,
 					  const uint8_t *buffer, int16_t **outbufs);
 extern int          dv_set_audio_correction (dv_decoder_t *dv, int method);            
 extern FILE         *dv_set_error_log (dv_decoder_t *dv, FILE *errfile);            
+extern void         dv_report_video_error (dv_decoder_t *dv, uint8_t *data);
 	
 /*@}*/
 
@@ -105,6 +106,13 @@ extern int dv_frame_changed (dv_decoder_t *dv),
 	   dv_format_normal (dv_decoder_t *dv),
 	   dv_format_wide (dv_decoder_t *dv),
 	   dv_get_vaux_pack (dv_decoder_t *dv, uint8_t pack_id, uint8_t *pack_data);
+
+/* ---------------------------------------------------------------------------
+ * functions based on ssyb data
+ * return value: 0 not-present, >0 ok
+ */
+extern int dv_get_timestamp (dv_decoder_t *dv, char *tstprt),
+           dv_get_recording_datetime (dv_decoder_t *dv, char *dtptr);
 
 #ifdef __cplusplus
 }

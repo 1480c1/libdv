@@ -29,6 +29,7 @@
 #include <math.h>
 #include <string.h>
 
+#include "dv.h"
 #include "util.h"
 #include "audio.h"
 
@@ -453,6 +454,8 @@ dv_decode_audio_block(dv_audio_t *dv_audio, const uint8_t *inbuf, int ds, int au
   int16_t y,z;
   int32_t msb_y, msb_z, lsb;
   int half_ds, full_failure;
+  char      err_msg1 [40],
+            err_msg2 [40];
 
 #if 0
   if ((inbuf[0] & 0xe0) != 0x60) goto bad_id;
@@ -494,10 +497,18 @@ dv_decode_audio_block(dv_audio_t *dv_audio, const uint8_t *inbuf, int ds, int au
      */
     if (full_failure == 36) {
       if (dv_audio -> error_log) {
+        if (dv_get_timestamp (dv_audio -> dv_decoder, err_msg1) &&
+            dv_get_recording_datetime (dv_audio -> dv_decoder, err_msg2)) {
         fprintf (dv_audio -> error_log,
-                 "complete audio block failure (16bit): "
+                   "abf %s %s %02x %02x %02x 16\n",
+                   err_msg1, err_msg2,
+                   inbuf [0], inbuf [1], inbuf [2]);
+        } else {
+          fprintf (dv_audio -> error_log,
+                   "# complete audio block failure (16bit): "
                    "header = %02x %02x %02x\n",
                  inbuf [0], inbuf [1], inbuf [2]);
+      }
       }
       dv_audio -> block_failure++;
       dv_audio -> sample_failure += 36;
@@ -551,10 +562,18 @@ dv_decode_audio_block(dv_audio_t *dv_audio, const uint8_t *inbuf, int ds, int au
      */
     if (full_failure == 48) {
       if (dv_audio -> error_log) {
+        if (dv_get_timestamp (dv_audio -> dv_decoder, err_msg1) &&
+            dv_get_recording_datetime (dv_audio -> dv_decoder, err_msg2)) {
         fprintf (dv_audio -> error_log,
-                 "complete audio block failure (12bit): "
+                   "abf %s %s %02x %02x %02x 12\n",
+                   err_msg1, err_msg2,
+                   inbuf [0], inbuf [1], inbuf [2]);
+        } else {
+          fprintf (dv_audio -> error_log,
+                   "# complete audio block failure (12bit): "
                    "header = %02x %02x %02x\n",
                  inbuf [0], inbuf [1], inbuf [2]);
+      }
       }
       dv_audio -> block_failure++;
       dv_audio -> sample_failure += 48;

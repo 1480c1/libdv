@@ -104,6 +104,8 @@ int8_t  dv_reorder[2][64] = {
 };
 
 #if HAVE_LIBPOPT
+/* ---------------------------------------------------------------------------
+ */
 static void
 dv_video_popt_callback(poptContext con, enum poptCallbackReason reason, 
 		       const struct poptOption * opt, const char * arg, const void * data)
@@ -131,6 +133,8 @@ dv_video_popt_callback(poptContext con, enum poptCallbackReason reason,
 } /* dv_video_popt_callback  */
 #endif /* HAVE_LIBPOPT */
 
+/* ---------------------------------------------------------------------------
+ */
 dv_video_t *
 dv_video_new(void)
 {
@@ -174,7 +178,10 @@ dv_video_new(void)
   return(result);
 } /* dv_video_new */
 
-void dv_parse_init(void) {
+/* ---------------------------------------------------------------------------
+ */
+void
+dv_parse_init(void) {
   int i;
   for(i=0;i<64;i++) {
 #if !ARCH_X86
@@ -191,10 +198,12 @@ void dv_parse_init(void) {
   } /* for */
 } /* dv_parse_init */
 
-/* Scan the blocks of a macroblock.  We're looking to find the next */
-/* block from which unused space was borrowed */
-static inline
-int dv_find_mb_unused_bits(dv_macroblock_t *mb, dv_block_t **lender) {
+/* ---------------------------------------------------------------------------
+ * Scan the blocks of a macroblock.  We're looking to find the next
+ * block from which unused space was borrowed
+ */
+static inline int
+dv_find_mb_unused_bits(dv_macroblock_t *mb, dv_block_t **lender) {
   int b;
 
   for(b=0; b<6; b++) {
@@ -211,12 +220,15 @@ int dv_find_mb_unused_bits(dv_macroblock_t *mb, dv_block_t **lender) {
   return(FALSE);
 } /* dv_find_mb_unused_bits */
 
-/* After parsing vlcs from borrowed space, we must clear the trail of 
+/* ---------------------------------------------------------------------------
+ * After parsing vlcs from borrowed space, we must clear the trail of
  * marks we used to track lenders.  found_vlc indicates whether the 
  * scanning process successfully found a complete vlc.  If it did,
  * then we update all blocks that lent bits as having no bits left. 
- * If so, the last block gets fixed in the caller.   */
-static void dv_clear_mb_marks(dv_macroblock_t *mb, int found_vlc) { 
+ * If so, the last block gets fixed in the caller.
+ */
+static void
+dv_clear_mb_marks(dv_macroblock_t *mb, int found_vlc) {
   dv_block_t *bl; int b;
 
   for(b=0,bl=mb->b;
@@ -229,8 +241,11 @@ static void dv_clear_mb_marks(dv_macroblock_t *mb, int found_vlc) {
   }
 } /* dv__clear_mb_marks */
 
-/* For pass 3, we scan all blocks of a video segment for unused bits  */
-static int dv_find_vs_unused_bits(dv_videosegment_t *seg, dv_block_t **lender) {
+/* ---------------------------------------------------------------------------
+ * For pass 3, we scan all blocks of a video segment for unused bits
+ */
+static int
+dv_find_vs_unused_bits(dv_videosegment_t *seg, dv_block_t **lender) {
   dv_macroblock_t *mb;
   int m;
   
@@ -244,8 +259,11 @@ static int dv_find_vs_unused_bits(dv_videosegment_t *seg, dv_block_t **lender) {
   return(FALSE);
 } /* dv_find_vs_unused_bits */
 
-/* For pass 3, the trail of lenders can span the whole video segment */
-static void dv_clear_vs_marks(dv_videosegment_t *seg,int found_vlc) {
+/* ---------------------------------------------------------------------------
+ * For pass 3, the trail of lenders can span the whole video segment
+ */
+static void
+dv_clear_vs_marks(dv_videosegment_t *seg,int found_vlc) {
   dv_macroblock_t *mb;
   int m;
   
@@ -255,11 +273,14 @@ static void dv_clear_vs_marks(dv_videosegment_t *seg,int found_vlc) {
     dv_clear_mb_marks(mb,found_vlc);
 } /* dv_clear_vs_marks */
 
-/* For passes 2 and 3, vlc data that didn't fit in the area of a block
+/* ---------------------------------------------------------------------------
+ * For passes 2 and 3, vlc data that didn't fit in the area of a block
  * are put in space borrowed from other blocks.  Pass 2 borrows from
  * blocks of the same macroblock.  Pass 3 uses space from blocks of
- * other macroblocks of the videosegment. */
-static int dv_find_spilled_vlc(dv_videosegment_t *seg, dv_macroblock_t *mb, dv_block_t **bl_lender, int pass) {
+ * other macroblocks of the videosegment.
+ */
+static int
+dv_find_spilled_vlc(dv_videosegment_t *seg, dv_macroblock_t *mb, dv_block_t **bl_lender, int pass) {
   dv_vlc_t vlc;
   dv_block_t *bl_new_lender;
   int found_vlc, found_bits;
@@ -309,7 +330,10 @@ static int dv_find_spilled_vlc(dv_videosegment_t *seg, dv_macroblock_t *mb, dv_b
 } /* dv_find_spilled_vlc */
 
 
-int dv_parse_ac_coeffs(dv_videosegment_t *seg) {
+/* ---------------------------------------------------------------------------
+ */
+int
+dv_parse_ac_coeffs(dv_videosegment_t *seg) {
   dv_vlc_t         vlc;
   int             m, b, pass;
   int             bits_left;
@@ -450,12 +474,18 @@ int dv_parse_ac_coeffs(dv_videosegment_t *seg) {
 #endif
 } /* dv_parse_ac_coeffs */
 
-void dv_parse_ac_coeffs_pass0(bitstream_t *bs,
+/* ---------------------------------------------------------------------------
+ */
+void
+dv_parse_ac_coeffs_pass0(bitstream_t *bs,
 			      dv_macroblock_t *mb,
 			      dv_block_t *bl);
 
 #if ! ARCH_X86
-__inline__ void dv_parse_ac_coeffs_pass0(bitstream_t *bs,
+/* ---------------------------------------------------------------------------
+ */
+__inline__ void
+dv_parse_ac_coeffs_pass0(bitstream_t *bs,
                                          dv_macroblock_t *mb,
                                          dv_block_t *bl) {
   dv_vlc_t         vlc;
@@ -506,7 +536,8 @@ __inline__ void dv_parse_ac_coeffs_pass0(bitstream_t *bs,
 } /* dv_parse_ac_coeffs_pass0 */
 #endif
 
-/* DV requires vlc decode of AC coefficients for each block in three passes:
+/* ---------------------------------------------------------------------------
+ * DV requires vlc decode of AC coefficients for each block in three passes:
  *    Pass1 : decode coefficient vlc bits from their own block's area
  *    Pass2 : decode coefficient vlc bits spilled into areas of other blocks of the same macroblock
  *    Pass3 : decode coefficient vlc bits spilled into other macroblocks of the same video segment
@@ -517,10 +548,10 @@ __inline__ void dv_parse_ac_coeffs_pass0(bitstream_t *bs,
  * So, on pass 1, a VLC error means do the rest, and skip passes 2 & 3
  * On passes 2 & 3, just abort.  This seems to drop a lot more coefficients, 21647 
  * in a single frame, that more tolerant aproaches.
- *
- *  */
+ */
 #if ! ARCH_X86
-int dv_parse_video_segment(dv_videosegment_t *seg, unsigned int quality) {
+int
+dv_parse_video_segment(dv_videosegment_t *seg, unsigned int quality) {
   int             m, b;
   int             mb_start;
   int             dc;
@@ -607,6 +638,99 @@ int dv_parse_video_segment(dv_videosegment_t *seg, unsigned int quality) {
 } /* dv_parse_video_segment  */
 #endif
 
+/* ---------------------------------------------------------------------------
+ */
+static void
+dv_parse_ssyb (dv_decoder_t *dv, uint8_t *buffer) {
+    int  i, j, k,
+#if 0
+         got13 = 0, got62 = 0, got63 = 0,
+#endif
+         pack;
+
+  /*
+   * reset ssyb structure first
+   */
+  dv -> ssyb_next = 0;
+  memset (dv -> ssyb_pack, 0xff, sizeof (dv -> ssyb_pack));
+
+  for (k = 0, buffer += 80; k < 2; ++k, buffer += ((148 * 80) + (5 * 80 * 150))) {
+    for (i = 0/*, buffer += 80*/; i < 2; ++i, buffer += 80) {
+      for (j = 0; j < 6; ++j) {
+        if ((pack = buffer [3 + 3 + (j * 8)]) != 0xff && dv -> ssyb_next < 45) {
+          dv -> ssyb_pack [pack] = dv -> ssyb_next;
+          memcpy (dv -> ssyb_data [dv -> ssyb_next], &buffer [7 + (j * 8)], 4);
+          dv -> ssyb_next++;
+#if 0
+          switch (pack) {
+            case 0x13:
+              if (!got13) {
+                got13 = 1;
+                fprintf (stderr, "%02d:%02d:%02d.%02d ",
+                         ((buffer [3 + 7 + (j * 8)] >> 4) & 0x03) * 10 +
+                         (buffer [3 + 7 + (j * 8)] & 0x0f),
+                         ((buffer [3 + 6 + (j * 8)] >> 4) & 0x07) * 10 +
+                         (buffer [3 + 6 + (j * 8)] & 0x0f),
+                         ((buffer [3 + 5 + (j * 8)] >> 4) & 0x07) * 10 +
+                         (buffer [3 + 5 + (j * 8)] & 0x0f),
+                         ((buffer [3 + 4 + (j * 8)] >> 4) & 0x03) * 10 +
+                         (buffer [3 + 4 + (j * 8)] & 0x0f));
+              }
+              break;
+            case 0x62:
+              if (!got62) {
+                  int year;
+
+                year = buffer [3 + 7 + (j * 8)];
+                year = (year & 0x0f) + 10 * ((year >> 4) & 0x0f);
+                year += (year < 25) ? 2000 : 1900;
+
+                got62 = 1;
+                fprintf (stderr, "%04d-%02d-%02d ",
+                         year,
+                         ((buffer [3 + 6 + (j * 8)] >> 4) & 0x01) * 10 +
+                         (buffer [3 + 6 + (j * 8)] & 0x0f),
+                         ((buffer [3 + 5 + (j * 8)] >> 4) & 0x03) * 10 +
+                         (buffer [3 + 5 + (j * 8)] & 0x0f));
+              }
+              break;
+            case 0x63:
+              if (!got63) {
+                got63 = 1;
+                fprintf (stderr, "%02d:%02d:%02d\n",
+                         ((buffer [3 + 7 + (j * 8)] >> 4) & 0x03) * 10 +
+                         (buffer [3 + 7 + (j * 8)] & 0x0f),
+                         ((buffer [3 + 6 + (j * 8)] >> 4) & 0x07) * 10 +
+                         (buffer [3 + 6 + (j * 8)] & 0x0f),
+                         ((buffer [3 + 5 + (j * 8)] >> 4) & 0x07) * 10 +
+                         (buffer [3 + 5 + (j * 8)] & 0x0f));
+              }
+              break;
+
+          }
+#endif
+#if 0
+        fprintf (stderr,
+                 " pack (%02x - %02x - %02x) (%02x,%02x,%02x,%02x,%02x)\n",
+                 buffer [3 + 0 + (j * 8)],
+                 buffer [3 + 1 + (j * 8)],
+
+                 (buffer [3 + 0 + (j * 8)] & 0xf0) | (buffer [3 + 1 + (j * 8)] & 0x0f),
+
+                 buffer [3 + 3 + (j * 8)],
+                 buffer [3 + 4 + (j * 8)],
+                 buffer [3 + 5 + (j * 8)],
+                 buffer [3 + 6 + (j * 8)],
+                 buffer [3 + 7 + (j * 8)]);
+#endif
+        }
+      }
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ */
 static void
 dv_parse_vaux (dv_decoder_t *dv, uint8_t *buffer) {
   int	i, j;
@@ -642,6 +766,8 @@ dv_parse_vaux (dv_decoder_t *dv, uint8_t *buffer) {
   }
 }
 
+/* ---------------------------------------------------------------------------
+ */
 int
 dv_parse_id(bitstream_t *bs,dv_id_t *id) {
   id->sct = bitstream_get(bs,3);
@@ -653,6 +779,16 @@ dv_parse_id(bitstream_t *bs,dv_id_t *id) {
   return 0;
 } /* dv_parse_id */
 
+/* ---------------------------------------------------------------------------
+ */
+void
+dv_parse_packs(dv_decoder_t *dv, uint8_t *buffer) {
+  dv_parse_ssyb (dv, buffer);
+  /* dv_parse_aaux (dv, buffer); */
+} /* dv_parse_packs () */
+
+/* ---------------------------------------------------------------------------
+ */
 int
 dv_parse_header(dv_decoder_t *dv, uint8_t *buffer) {
   dv_header_t *header = &dv->header;

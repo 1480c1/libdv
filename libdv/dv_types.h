@@ -382,6 +382,8 @@ typedef struct {
   dv_aaux_asc_pc4_t pc4;
 } dv_aaux_asc_t;
 
+typedef struct dv_decoder_s  *dv_decoder_tp;
+
 typedef struct {
   dv_aaux_as_t      aaux_as;           // low-level audio format info direct from the stream
   dv_aaux_asc_t     aaux_asc;          
@@ -403,6 +405,7 @@ typedef struct {
                    real_samples_this_frame,
                    fail_samples_this_frame;
   FILE             *error_log;                   
+  dv_decoder_tp    dv_decoder;
 #if HAVE_LIBPOPT
   struct poptOption option_table[DV_AUDIO_NUM_OPTS+1]; 
 #endif // HAVE_LIBPOPT
@@ -416,13 +419,14 @@ typedef struct {
    * video error log file
    */
   FILE              *error_log;
+  dv_decoder_tp     dv_decoder;
 #if HAVE_LIBPOPT
   struct poptOption  option_table[DV_VIDEO_NUM_OPTS+1]; 
 #endif // HAVE_LIBPOPT
 
 } dv_video_t;
 
-typedef struct {
+typedef struct dv_decoder_s {
   unsigned int       quality;
   dv_system_t        system;
   dv_std_t           std;
@@ -445,6 +449,10 @@ typedef struct {
   uint8_t             vaux_next;
   uint8_t             vaux_pack [256];
   uint8_t             vaux_data [45][4];
+
+  uint8_t             ssyb_next;
+  uint8_t             ssyb_pack [256];
+  uint8_t             ssyb_data [45][4];
 
 #if HAVE_LIBPOPT
   struct poptOption option_table[DV_DECODER_NUM_OPTS+1]; 

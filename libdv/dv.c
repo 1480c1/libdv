@@ -97,9 +97,11 @@ dv_decoder_new(int add_ntsc_setup, int clamp_luma, int clamp_chroma) {
 	
   result->video = dv_video_new();
   if(!result->video) goto no_video;
+  result->video->dv_decoder = result;
 
   result->audio = dv_audio_new();
   if(!result->audio) goto no_audio;
+  result->audio->dv_decoder = result;
 
   dv_set_error_log (result, stderr);
   dv_set_audio_correction (result, DV_AUDIO_CORRECT_AVERAGE);
@@ -563,7 +565,7 @@ dv_decode_full_audio(dv_decoder_t *dv, const uint8_t *buffer, int16_t **outbufs)
   if (dv -> audio -> block_failure) {
     if (dv -> audio -> error_log) {
       fprintf (dv -> audio -> error_log,
-               "audio block failure for %d blocks = %d samples of %d\n",
+               "# audio block failure for %d blocks = %d samples of %d\n",
                dv -> audio -> block_failure,
                dv -> audio -> sample_failure,
                dv -> audio -> samples_this_frame);
@@ -573,7 +575,7 @@ dv_decode_full_audio(dv_decoder_t *dv, const uint8_t *buffer, int16_t **outbufs)
   if (!dv->audio->block_failure && dv->audio->sample_failure) {
     if (dv -> audio -> error_log) {
       fprintf (dv -> audio -> error_log,
-               "sample failure without block failure: "
+               "# sample failure without block failure: "
                  "report this to libdv at SF!!\n");
     }
   }
@@ -592,11 +594,51 @@ dv_decode_full_audio(dv_decoder_t *dv, const uint8_t *buffer, int16_t **outbufs)
   
 } /* dv_decode_full_audio */
 
+/* ---------------------------------------------------------------------------
+ */
+void
+dv_report_video_error (dv_decoder_t *dv, uint8_t *data)
+{
+    int  i,
+         error_code;
+    char err_msg1 [40],
+         err_msg2 [40];
 
-/*
- * query functions based upon vaux data
+  if (!dv -> video -> error_log)
+    return;
+  /* -------------------------------------------------------------------------
+   * got through all packets
+   */
+  for (i = 0; i < dv -> frame_size; i += 80) {
+    /* -----------------------------------------------------------------------
+     * check that's a video packet
+     */
+    if ((data [i] & 0xe0) == 0x80) {
+      error_code = data [i + 3] >> 4;
+      if (error_code) {
+        dv_get_timestamp (dv, err_msg1);
+        dv_get_recording_datetime (dv, err_msg2);
+        fprintf (dv -> video -> error_log,
+                 "%s %s %s %02x %02x %02x %02x\n",
+/*                 (error_code < 8) ? "vel" : "veh", */
+                 "ver",
+                 err_msg1,
+                 err_msg2,
+                 data [i + 0],
+                 data [i + 1],
+                 data [i + 2],
+                 data [i + 3]);
+      }
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * query functions based upon VAUX data
  */
 
+/* ---------------------------------------------------------------------------
+ */
 int
 dv_get_vaux_pack (dv_decoder_t *dv, uint8_t pack_id, uint8_t *data)
 {
@@ -607,6 +649,8 @@ dv_get_vaux_pack (dv_decoder_t *dv, uint8_t pack_id, uint8_t *data)
   return 0;
 } /* dv_get_vaux_pack */
 
+/* ---------------------------------------------------------------------------
+ */
 int
 dv_frame_is_color (dv_decoder_t *dv)
 {
@@ -621,6 +665,8 @@ dv_frame_is_color (dv_decoder_t *dv)
   return -1;
 }
 
+/* ---------------------------------------------------------------------------
+ */
 int
 dv_system_50_fields (dv_decoder_t *dv)
 {
@@ -635,6 +681,8 @@ dv_system_50_fields (dv_decoder_t *dv)
   return -1;
 }
 
+/* ---------------------------------------------------------------------------
+ */
 int
 dv_format_normal (dv_decoder_t *dv)
 {
@@ -649,6 +697,8 @@ dv_format_normal (dv_decoder_t *dv)
   return -1;
 }
 
+/* ---------------------------------------------------------------------------
+ */
 int
 dv_format_wide (dv_decoder_t *dv)
 {
@@ -663,6 +713,8 @@ dv_format_wide (dv_decoder_t *dv)
   return -1;
 }
 
+/* ---------------------------------------------------------------------------
+ */
 int
 dv_frame_changed (dv_decoder_t *dv)
 {
@@ -675,6 +727,102 @@ dv_frame_changed (dv_decoder_t *dv)
     return 0;
   }
   return -1;
+}
+
+/* ---------------------------------------------------------------------------
+ * query functions based upon SSYB data
+ * decoding code is taken from kino
+ */
+
+/* ---------------------------------------------------------------------------
+ */
+int
+dv_get_timestamp (dv_decoder_t *dv, char *tstptr)
+{
+    int  id;
+
+  if ((id = dv -> ssyb_pack [0x13]) != 0xff) {
+    sprintf (tstptr,
+             "%02d:%02d:%02d.%02d",
+             ((dv -> ssyb_data [id] [3] >> 4) & 0x03) * 10 +
+              (dv -> ssyb_data [id] [3] & 0x0f),
+             ((dv -> ssyb_data [id] [2] >> 4) & 0x07) * 10 +
+              (dv -> ssyb_data [id] [2] & 0x0f),
+             ((dv -> ssyb_data [id] [1] >> 4) & 0x07) * 10 +
+              (dv -> ssyb_data [id] [1] & 0x0f),
+             ((dv -> ssyb_data [id] [0] >> 4) & 0x03) * 10 +
+              (dv -> ssyb_data [id] [0] & 0x0f));
+
+    return 1;
+  }
+  strcpy (tstptr, "00:00:00.00");
+  return 0;
+}
+
+/* ---------------------------------------------------------------------------
+ */
+int
+dv_get_recording_datetime (dv_decoder_t *dv, char *dtptr)
+{
+    int  id1, id2, year;
+
+  if ((id1 = dv -> ssyb_pack [0x62]) != 0xff &&
+      (id2 = dv -> ssyb_pack [0x63]) != 0xff) {
+    year = dv -> ssyb_data [id1] [3];
+    year = (year & 0x0f) + 10 * ((year >> 4) & 0x0f);
+    year += (year < 25) ? 2000 : 1900;
+    sprintf (dtptr,
+             "%04d-%02d-%02d %02d:%02d:%02d",
+             year,
+             ((dv -> ssyb_data [id1] [2] >> 4) & 0x01) * 10 +
+               (dv -> ssyb_data [id1] [2] & 0x0f),
+             ((dv -> ssyb_data [id1] [1] >> 4) & 0x03) * 10 +
+               (dv -> ssyb_data [id1] [1] & 0x0f),
+             ((dv -> ssyb_data [id2] [3] >> 4) & 0x03) * 10 +
+              (dv -> ssyb_data [id2] [3] & 0x0f),
+             ((dv -> ssyb_data [id2] [2] >> 4) & 0x07) * 10 +
+              (dv -> ssyb_data [id2] [2] & 0x0f),
+             ((dv -> ssyb_data [id2] [1] >> 4) & 0x07) * 10 +
+              (dv -> ssyb_data [id2] [1] & 0x0f));
+    return 1;
+  }
+  strcpy (dtptr, "0000-00-00 00:00:00");
+  return 0;
+}
+
+/* ---------------------------------------------------------------------------
+ */
+int
+dv_get_recording_datetime_tm (dv_decoder_t *dv, struct tm *rec_dt)
+{
+    int  id1, id2, year;
+
+  if ((id1 = dv -> ssyb_pack [0x62]) != 0xff &&
+      (id2 = dv -> ssyb_pack [0x63]) != 0xff) {
+    year = dv -> ssyb_data [id1] [3];
+    year = (year & 0x0f) + 10 * ((year >> 4) & 0x0f);
+    year += (year < 25) ? 2000 : 1900;
+    rec_dt -> tm_isdst = rec_dt -> tm_yday = rec_dt -> tm_wday = -1;
+    rec_dt -> tm_year = year - 1900;
+    rec_dt -> tm_mon = ((dv -> ssyb_data [id1] [2] >> 4) & 0x01) * 10 +
+                        (dv -> ssyb_data [id1] [2] & 0x0f) - 1;
+    rec_dt -> tm_mday = ((dv -> ssyb_data [id1] [1] >> 4) & 0x03) * 10 +
+                         (dv -> ssyb_data [id1] [1] & 0x0f);
+    rec_dt -> tm_hour = ((dv -> ssyb_data [id2] [3] >> 4) & 0x03) * 10 +
+                         (dv -> ssyb_data [id2] [3] & 0x0f);
+    rec_dt -> tm_min  = ((dv -> ssyb_data [id2] [2] >> 4) & 0x07) * 10 +
+                         (dv -> ssyb_data [id2] [2] & 0x0f);
+    rec_dt -> tm_sec  = ((dv -> ssyb_data [id2] [1] >> 4) & 0x07) * 10 +
+                         (dv -> ssyb_data [id2] [1] & 0x0f);
+    /* -----------------------------------------------------------------------
+     * sanity check
+     */
+    if (mktime (rec_dt) == -1)
+      return 0;
+
+    return 1;
+  }
+  return 0;
 }
 
 /* ---------------------------------------------------------------------------
