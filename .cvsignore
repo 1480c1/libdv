@@ -19,9 +19,12 @@ config.h.in
 config.log
 config.status
 config.sub
+configure
 configure.scan
 depcomp
 dovlc
+dv_config.h
+dv_config.h.in
 encode
 fix_headers
 gasmoff
