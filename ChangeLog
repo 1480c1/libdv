@@ -1,4 +1,6 @@
 2003-11-15  Stefan Lucke <stefan@lucke.in-berlin.de> BRANCH: dv_stefan_lucke
+  * compatibility for old renderer selection (kino)'
+  * removed compile time dependent dv_use_mmx
   * new fkt: void dv_renderer_names (char ***info)
              get names of available renderers. see sample code in playdv.
   * changed global renderer info to static (removed from decoder).
