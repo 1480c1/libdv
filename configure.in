@@ -93,41 +93,38 @@ AM_CONDITIONAL(HOST_X86, $arch_x86)
 
 dnl Checks for libraries.
 
-ifdef([AM_PATH_GLIB],[
-	AM_PATH_GLIB(,
-	[
-		AC_DEFINE(HAVE_GLIB)
-		LIBS="$LIBS $GLIB_LIBS"
-		CFLAGS="$CFLAGS $GLIB_CFLAGS"
-	],
-	[
-		AC_MSG_ERROR([No glib. Bad.  Get it at:  http://www.gtk.org/.])
-	])
-],[
-	AC_MSG_ERROR([No glib. Bad. Get it at:  http://www.gtk.org/])
+AM_PATH_GLIB(, 
+[
+	AC_DEFINE(HAVE_GLIB)
+	LIBS="$LIBS $GLIB_LIBS"
+ 	CFLAGS="$CFLAGS $GLIB_CFLAGS" 	
+], [
+ 	AC_MSG_ERROR([No glib. Bad.  Get it at:  http://www.gtk.org/. ])
 ])
 
-ifdef([AM_PATH_GTK],[
-	AM_PATH_GTK(,[
- 		AC_DEFINE(HAVE_GTK) 
-		LIBS="$LIBS $GTK_LIBS" 
-		CFLAGS="$CFLAGS $GTK_CFLAGS" 
-	])
+AM_PATH_GTK(,
+[
+	AC_DEFINE(HAVE_GTK) 
+	LIBS="$LIBS $GTK_LIBS" 
+	CFLAGS="$CFLAGS $GTK_CFLAGS" 
 ])
 
 if $use_sdl; then
-	AC_CHECK_LIB(SDL_Init,SDL,[
-      		 AM_PATH_SDL(1.1.6,[
+	AC_CHECK_LIB(SDL_Init,SDL,
+	[
+		AM_PATH_SDL(1.1.6,
+		[
 			AC_DEFINE(HAVE_SDL) 
 			LIBS="$LIBS $SDL_LIBS" 
 			CFLAGS="$CFLAGS $SDL_CFLAGS"
-		])
+	 	])
 	])
 fi
 
 if $use_xv; then
       AC_CHECK_LIB(Xv,XvQueryAdaptors,)
 fi
+
 AC_CHECK_LIB(m, sqrt)
 AC_CHECK_LIB(popt, poptGetContext,,
       [
