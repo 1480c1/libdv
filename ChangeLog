@@ -10,6 +10,8 @@
 	* encodedv/dvconnect.c: make default video1394 device now /dev/video1394/0.
 	* encodedv/dvavi.c, dvconnect.c: OS/X build fixes from Steven Schultz.
 	* bump release version to 0.100 and increment libtool versions.
+	* libdv/dv.c: apply patch from Mathias Herberts to try getting recording
+	  date/time from vaux when ssyb fails.
 
 2004-01-04  Dan Dennedy <dan@dennedy.org>
 	* encodedv/dvconnect.c, libdv/dv1394.h: fix for kernel 2.6 compatibility,

@@ -872,6 +872,28 @@ dv_get_recording_datetime (dv_decoder_t *dv, char *dtptr)
               (dv -> ssyb_data [id2] [1] & 0x0f));
     return 1;
   }
+  
+  /* it may also be found in vaux for some... */
+  if ((id1 = dv -> vaux_pack [0x62]) != 0xff &&
+      (id2 = dv -> vaux_pack [0x63]) != 0xff) {
+    year = dv -> vaux_data [id1] [3];
+    year = (year & 0x0f) + 10 * ((year >> 4) & 0x0f);
+    year += (year < 25) ? 2000 : 1900;
+    sprintf (dtptr,
+             "%04d-%02d-%02d %02d:%02d:%02d",
+             year,
+             ((dv -> vaux_data [id1] [2] >> 4) & 0x01) * 10 +
+               (dv -> vaux_data [id1] [2] & 0x0f),
+             ((dv -> vaux_data [id1] [1] >> 4) & 0x03) * 10 +
+               (dv -> vaux_data [id1] [1] & 0x0f),
+             ((dv -> vaux_data [id2] [3] >> 4) & 0x03) * 10 +
+              (dv -> vaux_data [id2] [3] & 0x0f),
+             ((dv -> vaux_data [id2] [2] >> 4) & 0x07) * 10 +
+              (dv -> vaux_data [id2] [2] & 0x0f),
+             ((dv -> vaux_data [id2] [1] >> 4) & 0x07) * 10 +
+              (dv -> vaux_data [id2] [1] & 0x0f));
+    return 1;
+  }
   strcpy (dtptr, "0000-00-00 00:00:00");
   return 0;
 }
@@ -900,6 +922,33 @@ dv_get_recording_datetime_tm (dv_decoder_t *dv, struct tm *rec_dt)
                          (dv -> ssyb_data [id2] [2] & 0x0f);
     rec_dt -> tm_sec  = ((dv -> ssyb_data [id2] [1] >> 4) & 0x07) * 10 +
                          (dv -> ssyb_data [id2] [1] & 0x0f);
+    /* -----------------------------------------------------------------------
+     * sanity check
+     */
+    if (mktime (rec_dt) == -1)
+      return 0;
+
+    return 1;
+  }
+  
+  /* it may also be found in vaux for some... */
+  if ((id1 = dv -> vaux_pack [0x62]) != 0xff &&
+      (id2 = dv -> vaux_pack [0x63]) != 0xff) {
+    year = dv -> vaux_data [id1] [3];
+    year = (year & 0x0f) + 10 * ((year >> 4) & 0x0f);
+    year += (year < 25) ? 2000 : 1900;
+    rec_dt -> tm_isdst = rec_dt -> tm_yday = rec_dt -> tm_wday = -1;
+    rec_dt -> tm_year = year - 1900;
+    rec_dt -> tm_mon = ((dv -> vaux_data [id1] [2] >> 4) & 0x01) * 10 +
+                        (dv -> vaux_data [id1] [2] & 0x0f) - 1;
+    rec_dt -> tm_mday = ((dv -> vaux_data [id1] [1] >> 4) & 0x03) * 10 +
+                         (dv -> vaux_data [id1] [1] & 0x0f);
+    rec_dt -> tm_hour = ((dv -> vaux_data [id2] [3] >> 4) & 0x03) * 10 +
+                         (dv -> vaux_data [id2] [3] & 0x0f);
+    rec_dt -> tm_min  = ((dv -> vaux_data [id2] [2] >> 4) & 0x07) * 10 +
+                         (dv -> vaux_data [id2] [2] & 0x0f);
+    rec_dt -> tm_sec  = ((dv -> vaux_data [id2] [1] >> 4) & 0x07) * 10 +
+                         (dv -> vaux_data [id2] [1] & 0x0f);
     /* -----------------------------------------------------------------------
      * sanity check
      */
