@@ -27,6 +27,7 @@
 #include <assert.h>
 #include <glib.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <gtk/gtk.h>
 
@@ -38,13 +39,87 @@
 #include "vlc.h"
 #include "parse.h"
 #include "place.h"
-#include "ycrcb_to_rgb32.h"
+/* #include "ycrcb_to_rgb32.h" */
 
 extern gint     dv_super_map_vertical[5];
 extern gint     dv_super_map_horizontal[5];
 
 extern gint    dv_parse_bit_start[6];
 extern gint    dv_parse_bit_end[6];
+
+static inline void
+dv_place_411_macroblock(dv_macroblock_t *mb) {
+  gint mb_num; // mb number withing the 6 x 5 zig-zag pattern 
+  gint mb_num_mod_6, mb_num_div_6; // temporaries
+  gint mb_row;    // mb row within sb (de-zigzag)
+  gint mb_col;    // mb col within sb (de-zigzag)
+  // Column offset of superblocks in macroblocks.  
+  static const guint column_offset[] = {0, 4, 9, 13, 18};  
+
+  // Consider the area spanned super block as 30 element macroblock
+  // grid (6 rows x 5 columns).  The macroblocks are laid out in a in
+  // a zig-zag down and up the columns of the grid.  Of course,
+  // superblocks are not perfect rectangles, since there are only 27
+  // blocks.  The missing three macroblocks are either at the start
+  // or end depending on the superblock column.
+
+  // Within a superblock, the macroblocks start at the topleft corner
+  // for even-column superblocks, and 3 down for odd-column
+  // superblocks.
+  mb_num = ((mb->j % 2) == 1) ? mb->k + 3: mb->k;  
+  mb_num_mod_6 = mb_num % 6;
+  mb_num_div_6 = mb_num / 6;
+  // Compute superblock-relative row position (de-zigzag)
+  mb_row = ((mb_num_div_6 % 2) == 0) ? mb_num_mod_6 : (5 - mb_num_mod_6); 
+  // Compute macroblock's frame-relative column position (in blocks)
+  mb_col = (mb_num_div_6 + column_offset[mb->j]) * 4;
+  // Compute frame-relative byte offset of macroblock's top-left corner
+  // with special case for right-edge macroblocks
+  if(mb_col < (22 * 4)) {
+    // Convert from superblock-relative row position to frame relative (in blocks).
+    mb_row += (mb->i * 6); // each superblock is 6 blocks high 
+    // Normal case
+  } else { 
+    // Convert from superblock-relative row position to frame relative (in blocks).
+    mb_row = mb_row * 2 + mb->i * 6; // each right-edge macroblock is 2 blocks high, and each superblock is 6 blocks high
+  } // else
+  mb->x = mb_col * 8;
+  mb->y = mb_row * 8;
+} // dv_place_411_macroblock
+
+static inline void 
+dv_place_420_macroblock(dv_macroblock_t *mb) {
+  gint mb_num; // mb number withing the 6 x 5 zig-zag pattern 
+  gint mb_num_mod_3, mb_num_div_3; // temporaries
+  gint mb_row;    // mb row within sb (de-zigzag)
+  gint mb_col;    // mb col within sb (de-zigzag)
+  // Column offset of superblocks in macroblocks.  
+  static const guint column_offset[] = {0, 9, 18, 27, 36};  
+
+  // Consider the area spanned super block as 30 element macroblock
+  // grid (6 rows x 5 columns).  The macroblocks are laid out in a in
+  // a zig-zag down and up the columns of the grid.  Of course,
+  // superblocks are not perfect rectangles, since there are only 27
+  // blocks.  The missing three macroblocks are either at the start
+  // or end depending on the superblock column.
+
+  // Within a superblock, the macroblocks start at the topleft corner
+  // for even-column superblocks, and 3 down for odd-column
+  // superblocks.
+  mb_num = mb->k;  
+  mb_num_mod_3 = mb_num % 3;
+  mb_num_div_3 = mb_num / 3;
+  // Compute superblock-relative row position (de-zigzag)
+  mb_row = ((mb_num_div_3 % 2) == 0) ? mb_num_mod_3 : (2 - mb_num_mod_3); 
+  // Compute macroblock's frame-relative column position (in blocks)
+  mb_col = mb_num_div_3 + column_offset[mb->j];
+  // Compute frame-relative byte offset of macroblock's top-left corner
+  // Convert from superblock-relative row position to frame relative (in blocks).
+  mb_row += (mb->i * 3); // each right-edge macroblock is 2 blocks high, and each superblock is 6 blocks high
+  mb->x = mb_col * 16;
+  mb->y = mb_row * 16;
+} // dv_place_420_macroblock
+
 
 guint put_bits(unsigned char *s,
 	       guint offset, 
@@ -405,6 +480,7 @@ int main(int argc, char *argv[])
   int width, height;
   char line[200];
   int x, y;
+  
   unsigned char img_rgb[576][720][3];
   short img_y[576][720];
   short img_cr[576][180];
@@ -421,6 +497,8 @@ int main(int argc, char *argv[])
   dv_place_init();
 
   for (arg_index = 1; arg_index < argc; arg_index++) {
+	  unsigned char* readbuf;
+	  fprintf(stderr, "Load phase...\n");
     /* Read the PPM */
     f = fopen(argv[arg_index], "r");
     if (f == NULL) {
@@ -437,17 +515,28 @@ int main(int argc, char *argv[])
     }
     fgets(line, sizeof(line), f);	/* 255 */
 
+    readbuf = malloc(3 * width * height);
+    fread(readbuf, 1, 3 * width * height, f);
+    fclose(f);
+
     for (y = 0; y < height; y++) {
       for (x = 0; x < width; x++) {
-	fread(img_rgb[y][x], 1, 3, f);
-#if 0				/* debug by forcing whole frame to same color */
+	      img_rgb[y][x][0] = readbuf[(x + y*width)*3 + 0];
+	      img_rgb[y][x][1] = readbuf[(x + y*width)*3 + 1];
+	      img_rgb[y][x][2] = readbuf[(x + y*width)*3 + 2];
+	      
+	      // fread(img_rgb[y][x], 1, 3, f);
+#if 0	/* debug by forcing whole frame to same color */
 	img_rgb[y][x][0] = 0xc0;
 	img_rgb[y][x][1] = 0x80;
 	img_rgb[y][x][2] = 0x80;
 #endif
       }
     }
-    fclose(f);
+    free(readbuf);
+
+    fprintf(stderr, "YUV convert...\n");
+
 
     /* Convert to YUV */
     {
@@ -508,6 +597,8 @@ int main(int argc, char *argv[])
 	    img_cb[0][0]);
 #endif
 
+    fprintf(stderr, "Encode...\n");
+
     /* Encode */
     {
       static guint8 vsbuffer[80*5]      __attribute__ ((aligned (64))); 
@@ -565,10 +656,13 @@ int main(int argc, char *argv[])
 	    mb->j = dv_super_map_horizontal[m];
 	    mb->k = videoseg.k;
 
-	    mb_offset = dv_place_411_macroblock(mb, 1);
-	    assert(mb_offset < (720 * 576));
-	    y = mb_offset / 720;
-	    x = mb_offset % 720;
+	    dv_place_420_macroblock(mb);
+	    /*  assert(mb_offset < (720 * 576)); */
+	    /* y = mb_offset / 720;
+	       x = mb_offset % 720; */
+	    y = mb->y;
+	    x = mb->x;
+
 	    if((mb->j == 4) && (mb->k > 23)) {
 	      for (j = 0; j < 8; j++)
 		for (i = 0; i < 8; i++) {
@@ -584,8 +678,8 @@ int main(int argc, char *argv[])
 		for (i = 0; i < 8; i++) {
 		  mb->b[0].coeffs[8 * j + i] = img_y[y + j][x + i];
 		  mb->b[1].coeffs[8 * j + i] = img_y[y + j][x + 8 + i];
-		  mb->b[2].coeffs[8 * j + i] = img_y[y + j][x + 16 + i];
-		  mb->b[3].coeffs[8 * j + i] = img_y[y + j][x + 24 + i];
+		  mb->b[2].coeffs[8 * j + i] = img_y[y + 8 + j][x +  i];
+		  mb->b[3].coeffs[8 * j + i] = img_y[y + 8 + j][x + 8 + i];
 		  mb->b[4].coeffs[8 * j + i] = img_cr[y + j][x / 4 + i];
 		  mb->b[5].coeffs[8 * j + i] = img_cb[y + j][x / 4 + i];
 		}
