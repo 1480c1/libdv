@@ -16,22 +16,34 @@
 
 int main(int argc, char *argv[])
 {
-    declaresize(dv_macroblock_t);
-    declare(dv_macroblock_t,	eob_count);
-    declare(dv_macroblock_t,	vlc_error);
+  declare(dv_videosegment_t,	i);
+  declare(dv_videosegment_t,	k);
+  declare(dv_videosegment_t,	bs);
+  declare(dv_videosegment_t,	mb);
+  declare(dv_videosegment_t,	isPAL);
 
-    declaresize(dv_block_t);
-    declare(dv_block_t,		coeffs);
-    declare(dv_block_t,		dct_mode);
-    declare(dv_block_t,		class_no);
-    declare(dv_block_t,		reorder);
-    declare(dv_block_t,		reorder_sentinel);
-    declare(dv_block_t,		offset);
-    declare(dv_block_t,		end);
-    declare(dv_block_t,		eob);
-    declare(dv_block_t,		mark);
+  declaresize(dv_macroblock_t);
+  declare(dv_macroblock_t,	b);
+  declare(dv_macroblock_t,	eob_count);
+  declare(dv_macroblock_t,	vlc_error);
+  declare(dv_macroblock_t,	qno);
+  declare(dv_macroblock_t,	sta);
+  declare(dv_macroblock_t,	i);
+  declare(dv_macroblock_t,	j);
+  declare(dv_macroblock_t,	k);
 
-    declare(bitstream_t,	buf);
+  declaresize(dv_block_t);
+  declare(dv_block_t,		coeffs);
+  declare(dv_block_t,		dct_mode);
+  declare(dv_block_t,		class_no);
+  declare(dv_block_t,		reorder);
+  declare(dv_block_t,		reorder_sentinel);
+  declare(dv_block_t,		offset);
+  declare(dv_block_t,		end);
+  declare(dv_block_t,		eob);
+  declare(dv_block_t,		mark);
 
-    return 0;
+  declare(bitstream_t,	buf);
+
+  return 0;
 }
