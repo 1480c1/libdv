@@ -1606,13 +1606,15 @@ int dv_encode_videosegment( dv_encoder_t *dv_enc,
 	return 0;
 }
 
-
-static void yuy2_to_ycb( uint8_t *data, int isPAL, short *img_y, short *img_cr, short *img_cb)
+/* ---------------------------------------------------------------------------
+ */
+static void
+yuy2_to_ycb( uint8_t *data, int isPAL, short *img_y, short *img_cr, short *img_cb)
 {
 	register int total = (DV_WIDTH * (isPAL ? DV_PAL_HEIGHT : DV_NTSC_HEIGHT)) >> 1;
 	register int i;
 	register uint8_t *p = data;
-	
+
 	for (i = 0; i < total; i++) {
 		img_y[i*2]   = (((short) *p++) - 128) << DCT_YUV_PRECISION;
 		img_cb[i]    = (((short) *p++) - 128) << DCT_YUV_PRECISION;
@@ -1623,17 +1625,29 @@ static void yuy2_to_ycb( uint8_t *data, int isPAL, short *img_y, short *img_cr, 
 
 
 #ifdef YUV_420_USE_YV12
-static void yv12_to_ycb( uint8_t **in, int isPAL, short *img_y, short *img_cr, short *img_cb)
+/* ---------------------------------------------------------------------------
+ */
+static void
+yv12_to_ycb( uint8_t **in, int isPAL, short *img_y, short *img_cr, short *img_cb)
 {
-	register int total = (DV_WIDTH * (isPAL ? DV_PAL_HEIGHT : DV_NTSC_HEIGHT)) >> 1;
-	register int i;
+	register int total = DV_WIDTH * (isPAL ? DV_PAL_HEIGHT : DV_NTSC_HEIGHT);
+	register int i, j, k;
 	
-	for (i = 0; i < total; i++) {
-		img_y[i*2]   = (((short) in[0][i*2]) - 128) << DCT_YUV_PRECISION;
-		img_cb[i]    = (((short) in[1][i]) - 128) << DCT_YUV_PRECISION;
-		img_y[i*2+1] = (((short) in[0][i*2+1]) - 128) << DCT_YUV_PRECISION;
-		img_cr[i]    = (((short) in[2][i]) - 128) << DCT_YUV_PRECISION;
-	}
+	
+	for (i = 0; i < total; i++) img_y[i]   = (((short) in[0][i]) - 128) << DCT_YUV_PRECISION;
+	
+	for (i = 0; i < (isPAL ? DV_PAL_HEIGHT : DV_NTSC_HEIGHT)/2; ++i) {
+	  for (j = 0; j < DV_WIDTH/2 ; j++) {
+	    
+	    k = i * DV_WIDTH/2 + j;
+	    
+	    img_cb[2*i*DV_WIDTH/2+j]    = (((short) in[1][k]) - 128) << DCT_YUV_PRECISION;
+	    img_cr[2*i*DV_WIDTH/2+j]    = (((short) in[2][k]) - 128) << DCT_YUV_PRECISION;
+	    img_cb[(2*i+1)*DV_WIDTH/2+j]    = (((short) in[1][k]) - 128) << DCT_YUV_PRECISION;
+	    img_cr[(2*i+1)*DV_WIDTH/2+j]    = (((short) in[2][k]) - 128) << DCT_YUV_PRECISION;
+	  }//col-j
+	}//row-i
+
 }
 #endif
 

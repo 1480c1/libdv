@@ -1,3 +1,6 @@
+2003-07-08 Stefan Lucke <stefan@lucke.in-berlin.de>
+        * applied yv12 part of transcode's patch (by Thomas Östreich)
+
 2003-07-05 Stefan Lucke <stefan@lucke.in-berlin.de>
         * added audio correction for single sample failure (by Jan Schmidt)
 
