@@ -1,4 +1,4 @@
-/* 
+/*
  *  recode.c
  *
  *     Copyright (C) Dan Dennedy, Peter Schlaile
@@ -87,7 +87,7 @@ int main( int argc, char **argv)
 			decoder->clamp_chroma = FALSE;
 			encoder->clamp_luma = FALSE;
 			encoder->clamp_chroma = FALSE;
-			dv_reconfigure(FALSE, FALSE);
+			dv_reconfigure(decoder, FALSE, FALSE);
 		} else if (isPAL != encoder->isPAL) {
 			decoder->clamp_luma = TRUE;
 			decoder->clamp_chroma = TRUE;
@@ -95,7 +95,7 @@ int main( int argc, char **argv)
 			encoder->clamp_luma = TRUE;
 			encoder->clamp_chroma = TRUE;
 			encoder->rem_ntsc_setup = TRUE;
-			dv_reconfigure(TRUE, TRUE);
+			dv_reconfigure(decoder, TRUE, TRUE);
 		}
 		encoder->isPAL = isPAL;
 		encoder->is16x9 = (dv_format_wide(decoder)>0);

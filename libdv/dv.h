@@ -49,25 +49,29 @@ extern "C" {
 #endif
 
 /* Main API */
-extern dv_decoder_t *dv_decoder_new     (int add_ntsc_setup, int clamp_luma,
-	                  int clamp_chroma);
-extern void         dv_decoder_free     (dv_decoder_t*);
-extern void         dv_init             (int clamp_luma, int clamp_chroma); 
-extern void         dv_reconfigure      (int clamp_luma, int clamp_chroma); 
-extern int          dv_parse_header     (dv_decoder_t *dv, const uint8_t *buffer);
-extern void         dv_parse_packs      (dv_decoder_t *dv, const uint8_t *buffer);
-extern void         dv_decode_full_frame(dv_decoder_t *dv, 
-					  const uint8_t *buffer, dv_color_space_t color_space,
-					  uint8_t **pixels, int *pitches);
-extern int          dv_decode_full_audio(dv_decoder_t *dv, 
-					  const uint8_t *buffer, int16_t **outbufs);
-extern int          dv_set_audio_correction (dv_decoder_t *dv, int method);            
-extern FILE         *dv_set_error_log (dv_decoder_t *dv, FILE *errfile);            
-extern void         dv_report_video_error (dv_decoder_t *dv, uint8_t *data);
+extern dv_decoder_t *dv_decoder_new (int add_ntsc_setup, int clamp_luma,
+                                     int clamp_chroma);
+extern void    dv_decoder_free (dv_decoder_t*);
+extern void    dv_init (dv_decoder_t *decoder, int clamp_luma, int clamp_chroma);
+extern void    dv_reconfigure (dv_decoder_t *decoder,
+                               int clamp_luma, int clamp_chroma);
+extern int     dv_select_renderer (dv_decoder_t *decoder, int four_cc, int attr);
+extern int     dv_select_renderer_by_name (dv_decoder_t *decoder, char *name);
+extern int     dv_parse_header (dv_decoder_t *dv, const uint8_t *buffer);
+extern void    dv_parse_packs  (dv_decoder_t *dv, const uint8_t *buffer);
+extern void    dv_decode_full_frame(dv_decoder_t *dv,
+                                    const uint8_t *buffer,
+                                    dv_color_space_t color_space,
+                                    uint8_t **pixels, int *pitches);
+extern int     dv_decode_full_audio(dv_decoder_t *dv,
+                                    const uint8_t *buffer, int16_t **outbufs);
+extern int     dv_set_audio_correction (dv_decoder_t *dv, int method);
+extern FILE    *dv_set_error_log (dv_decoder_t *dv, FILE *errfile);
+extern void    dv_report_video_error (dv_decoder_t *dv, uint8_t *data);
 
 #define LIBDV_HAS_SAMPLE_CALCULATOR
-extern int          dv_calculate_samples( dv_encoder_t *, int frequency, 
-					  int frame_count );
+extern int     dv_calculate_samples (dv_encoder_t *, int frequency,
+                                     int frame_count );
 
 /*@}*/
 
@@ -76,15 +80,17 @@ extern int          dv_calculate_samples( dv_encoder_t *, int frequency,
  */
 
 extern dv_encoder_t *dv_encoder_new     (int rem_ntsc_setup, int clamp_luma,
-	                  int clamp_chroma);
+                                         int clamp_chroma);
 extern void         dv_encoder_free     (dv_encoder_t* dv_enc);
 extern int          dv_encode_full_frame(dv_encoder_t *dv_enc, uint8_t **in,
-					  dv_color_space_t color_space, uint8_t *out);
-	
-extern int          dv_encode_full_audio(dv_encoder_t *dv_enc, int16_t **pcm, 
-					  int channels, int frequency, uint8_t *frame);
+                                         dv_color_space_t color_space,
+                                         uint8_t *out);
+
+extern int          dv_encode_full_audio(dv_encoder_t *dv_enc, int16_t **pcm,
+                                         int channels, int frequency,
+                                         uint8_t *frame);
 extern void         dv_encode_metadata(uint8_t *target, int isPAL, int is16x9,
-					  time_t *datetime, int frame);
+                                       time_t *datetime, int frame);
 extern void         dv_encode_timecode(uint8_t *target, int isPAL, int frame);
 
 /*@}*/
@@ -95,16 +101,17 @@ extern void         dv_encode_timecode(uint8_t *target, int isPAL, int frame);
 
 /* Low level API */
 extern int dv_parse_video_segment(dv_videosegment_t *seg, unsigned int quality);
-extern void dv_decode_video_segment(dv_decoder_t *dv, dv_videosegment_t *seg, unsigned int quality);
+extern void dv_decode_video_segment(dv_decoder_t *dv, dv_videosegment_t *seg,
+                                    unsigned int quality);
 
 extern void dv_render_video_segment_rgb(dv_decoder_t *dv, dv_videosegment_t *seg,
-					uint8_t **pixels, int *pitches);
+                                        uint8_t **pixels, int *pitches);
 
-extern void dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, 
-					uint8_t **pixels, int *pitches);
+extern void dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg,
+                                        uint8_t **pixels, int *pitches);
 
-extern int dv_encode_videosegment( dv_encoder_t *dv_enc,
-					dv_videosegment_t *videoseg, uint8_t *vsbuffer);
+extern int dv_encode_videosegment(dv_encoder_t *dv_enc,
+                                  dv_videosegment_t *videoseg, uint8_t *vsbuffer);
 
 /* ---------------------------------------------------------------------------
  * functions based on vaux data
@@ -115,7 +122,8 @@ extern int dv_frame_changed (dv_decoder_t *dv),
            dv_system_50_fields (dv_decoder_t *dv),
            dv_format_normal (dv_decoder_t *dv),
            dv_format_wide (dv_decoder_t *dv),
-           dv_get_vaux_pack (dv_decoder_t *dv, uint8_t pack_id, uint8_t *pack_data);
+           dv_get_vaux_pack (dv_decoder_t *dv, uint8_t pack_id,
+                             uint8_t *pack_data);
 
 /* ---------------------------------------------------------------------------
  * functions based on ssyb data
@@ -125,7 +133,8 @@ extern int dv_get_timestamp (dv_decoder_t *dv, char *tstprt),
            dv_get_recording_datetime (dv_decoder_t *dv, char *dtptr),
            dv_get_timestamp_int (dv_decoder_t *dv, int *timestamp),
            dv_get_recording_datetime_tm (dv_decoder_t *dv, struct tm *rec_dt),
-           dv_get_ssyb_pack (dv_decoder_t *dv, uint8_t pack_id, uint8_t *pack_data);
+           dv_get_ssyb_pack (dv_decoder_t *dv, uint8_t pack_id,
+                             uint8_t *pack_data);
 
 /* ---------------------------------------------------------------------------
  * functions based on aaux data
@@ -137,6 +146,6 @@ extern int dv_is_new_recording (dv_decoder_t *dv, const uint8_t *buffer),
 }
 #endif
 
-#endif // DV_H 
+#endif // DV_H
 
 /*@}*/

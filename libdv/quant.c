@@ -1,4 +1,4 @@
-/* 
+/*
  *  quant.c
  *
  *     Copyright (C) Charles 'Buck' Krasic - April 2000
@@ -11,17 +11,17 @@
  *  under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your
  *  option) any later version.
- *   
+ *
  *  libdv is distributed in the hope that it will be useful, but
  *  WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *  General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU General Public License
  *  along with GNU Make; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *  The libdv homepage is http://libdv.sourceforge.net/.  
+ *  The libdv homepage is http://libdv.sourceforge.net/.
  */
 
 /** @file
@@ -33,7 +33,7 @@
  *
  *  Quantization is the primary means of controlling
  *  compression-quality tradeoff in modern hybrid coders.
- *  
+ *
  *  @{
  */
 
@@ -51,92 +51,92 @@
 #endif
 
 static uint8_t dv_88_areas[64] = {
--1,0,0,1,1,1,2,2, 
- 0,0,1,1,1,2,2,2, 
- 0,1,1,1,2,2,2,3, 
- 1,1,1,2,2,2,3,3, 
+-1,0,0,1,1,1,2,2,
+ 0,0,1,1,1,2,2,2,
+ 0,1,1,1,2,2,2,3,
+ 1,1,1,2,2,2,3,3,
 
- 1,1,2,2,2,3,3,3, 
- 1,2,2,2,3,3,3,3, 
- 2,2,2,3,3,3,3,3, 
+ 1,1,2,2,2,3,3,3,
+ 1,2,2,2,3,3,3,3,
+ 2,2,2,3,3,3,3,3,
  2,2,3,3,3,3,3,3 };
 
 static uint8_t dv_248_areas[64] = {
--1,0,1,1,1,2,2,3, 
- 0,1,1,2,2,2,3,3, 
- 1,1,2,2,2,3,3,3, 
+-1,0,1,1,1,2,2,3,
+ 0,1,1,2,2,2,3,3,
+ 1,1,2,2,2,3,3,3,
  1,2,2,2,3,3,3,3,
 
- 0,0,1,1,2,2,2,3, 
- 0,1,1,2,2,2,3,3, 
- 1,1,2,2,2,3,3,3, 
+ 0,0,1,1,2,2,2,3,
+ 0,1,1,2,2,2,3,3,
+ 1,1,2,2,2,3,3,3,
  1,2,2,3,3,3,3,3 };
 
 #if 0
 static uint8_t dv_quant_steps[22][4] = {
-  { 8,8,16,16 }, 
-  { 8,8,16,16 }, 
+  { 8,8,16,16 },
+  { 8,8,16,16 },
 
-  { 4,8,8,16 }, 
+  { 4,8,8,16 },
   { 4,8,8,16 },
 
-  { 4,4,8,8 }, 
-  { 4,4,8,8 }, 
+  { 4,4,8,8 },
+  { 4,4,8,8 },
 
-  { 2,4,4,8 }, 
-  { 2,4,4,8 }, 
+  { 2,4,4,8 },
+  { 2,4,4,8 },
 
-  { 2,2,4,4 }, 
-  { 2,2,4,4 }, 
+  { 2,2,4,4 },
+  { 2,2,4,4 },
 
-  { 1,2,2,4 }, 
-  { 1,2,2,4 }, 
+  { 1,2,2,4 },
+  { 1,2,2,4 },
 
-  { 1,1,2,2 }, 
+  { 1,1,2,2 },
   { 1,1,2,2 },
 
-  { 1,1,1,2 }, 
+  { 1,1,1,2 },
 
-  { 1,1,1,1 }, 
-  { 1,1,1,1 }, 
-  { 1,1,1,1 }, 
-  { 1,1,1,1 }, 
-  { 1,1,1,1 }, 
-  { 1,1,1,1 }, 
+  { 1,1,1,1 },
+  { 1,1,1,1 },
+  { 1,1,1,1 },
+  { 1,1,1,1 },
+  { 1,1,1,1 },
+  { 1,1,1,1 },
   { 1,1,1,1 }
 };
 #endif
 
 uint8_t dv_quant_shifts[22][4] = {
-  { 3,3,4,4 }, 
-  { 3,3,4,4 }, 
+  { 3,3,4,4 },
+  { 3,3,4,4 },
 
-  { 2,3,3,4 }, 
+  { 2,3,3,4 },
   { 2,3,3,4 },
 
-  { 2,2,3,3 }, 
-  { 2,2,3,3 }, 
+  { 2,2,3,3 },
+  { 2,2,3,3 },
 
-  { 1,2,2,3 }, 
-  { 1,2,2,3 }, 
+  { 1,2,2,3 },
+  { 1,2,2,3 },
 
-  { 1,1,2,2 }, 
-  { 1,1,2,2 }, 
+  { 1,1,2,2 },
+  { 1,1,2,2 },
 
-  { 0,1,1,2 }, 
-  { 0,1,1,2 }, 
+  { 0,1,1,2 },
+  { 0,1,1,2 },
 
-  { 0,0,1,1 }, 
+  { 0,0,1,1 },
   { 0,0,1,1 },
 
-  { 0,0,0,1 }, 
+  { 0,0,0,1 },
 
-  { 0,0,0,0 }, 
-  { 0,0,0,0 }, 
-  { 0,0,0,0 }, 
-  { 0,0,0,0 }, 
-  { 0,0,0,0 }, 
-  { 0,0,0,0 }, 
+  { 0,0,0,0 },
+  { 0,0,0,0 },
+  { 0,0,0,0 },
+  { 0,0,0,0 },
+  { 0,0,0,0 },
+  { 0,0,0,0 },
   { 0,0,0,0 }
 };
 
@@ -150,16 +150,18 @@ static void quant_248_inverse_mmx(dv_coeff_t *block,int qno,int klass,dv_248_coe
 
 void (*_dv_quant_248_inverse) (dv_coeff_t *block,int qno,int klass,dv_248_coeff_t *co);
 
+/* ---------------------------------------------------------------------------
+ */
 void
-dv_quant_init (void) 
+dv_quant_init (void)
 {
-  int	ex, qno, i;
- 
+    int   ex, qno, i;
+
   for (ex = 0; ex < 2; ++ex) {
     for (qno = 0; qno < 22; ++qno) {
       for (i = 0; i < 64; ++i) {
- 	dv_quant_248_mul_tab [ex] [qno] [i] =
-	  (1 << (dv_quant_shifts [qno] [dv_248_areas [i]] + ex)) * dv_idct_248_prescale[i];
+        dv_quant_248_mul_tab [ex] [qno] [i] =
+          (1 << (dv_quant_shifts [qno] [dv_248_areas [i]] + ex)) * dv_idct_248_prescale[i];
       }
       dv_quant_248_mul_tab [ex] [qno] [0] = dv_idct_248_prescale[0];
     }
@@ -172,7 +174,9 @@ dv_quant_init (void)
 #endif
 }
 
-void _dv_quant(dv_coeff_t *block,int qno,int klass) 
+/* ---------------------------------------------------------------------------
+ */
+void _dv_quant(dv_coeff_t *block,int qno,int klass)
 {
 	if (!(qno == 15 && klass != 3)) { /* Nothing to be done ? */
 #if !ARCH_X86
@@ -183,10 +187,10 @@ void _dv_quant(dv_coeff_t *block,int qno,int klass)
 				   factors that we'll use */
 
 		pq = dv_quant_shifts[qno+dv_quant_offset[klass]];
-		factor = 1 << (pq[0] + extra); 
+		factor = 1 << (pq[0] + extra);
                 /* There is a little difference between
 		   shifts and divisions:
-		   if you try to quantizise -1 you will 
+		   if you try to quantizise -1 you will
 		   definitely notice it... */
 		for (i = 1; i < 1+2+3; i++) {
 			block[i] /= factor;
@@ -210,39 +214,44 @@ void _dv_quant(dv_coeff_t *block,int qno,int klass)
 	}
 }
 
-void _dv_quant_88_inverse(dv_coeff_t *block,int qno,int klass) {
-  int i;
-  uint8_t *pq;			/* pointer to the four quantization
-                                   factors that we'll use */
-  int extra;
+/* ---------------------------------------------------------------------------
+ */
+void
+_dv_quant_88_inverse(dv_coeff_t *block,int qno,int klass) {
+    int     i, extra;
+    uint8_t *pq;    /* pointer to the four quantization
+                     factors that we'll use */
 
-  extra = (klass == 3);	/* if klass==3, shift
-			   everything left one
-			   more place */
+  extra = (klass == 3); /* if klass==3, shift
+                           everything left one
+                           more place */
   pq = dv_quant_shifts[qno + dv_quant_offset[klass]];
   for (i = 1; i < 64; i++)
     block[i] <<= (pq[dv_88_areas[i]] + extra);
 }
 
+/* ---------------------------------------------------------------------------
+ */
 static void
 quant_248_inverse_std(dv_coeff_t *block,int qno,int klass,dv_248_coeff_t *co) {
-  int i;
-  uint8_t *pq;			/* pointer to the four quantization
-                                   factors that we'll use */
-  int extra;
+    int     i, extra;
+    uint8_t *pq;  /* pointer to the four quantization
+                     factors that we'll use */
 
-  extra = (klass == 3);		/* if klass==3, shift everything left
-                                   one more place */
+  extra = (klass == 3);   /* if klass==3, shift everything left
+                             one more place */
   pq = dv_quant_shifts[qno + dv_quant_offset[klass]];
   co [0] = block [0] * dv_idct_248_prescale[0];
   for (i = 1; i < 64; i++)
     co [i] = (block[i] << (pq[dv_248_areas[i]] + extra)) * dv_idct_248_prescale[i];
 }
 
+/* ---------------------------------------------------------------------------
+ */
 static void
 quant_248_inverse_mmx(dv_coeff_t *block,int qno,int klass,dv_248_coeff_t *co) {
-  int i;
-  uint32_t *pm;
+    int i;
+    uint32_t *pm;
 
   pm = dv_quant_248_mul_tab [klass == 3] [qno + dv_quant_offset[klass]];
   for (i = 0; i < 64; i++) {

@@ -1,4 +1,4 @@
-/* 
+/*
  *  encodedv.c
  *
  *     Copyright (C) James Bowman  - July 2000
@@ -339,9 +339,9 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "--force-dct has to be 88 or 248!\n");
 			return(-1);
 		}
-	} 
- 
-        dv_init(FALSE, FALSE);
+	}
+
+        dv_init(NULL, FALSE, FALSE);
 
 	if (input_filter->init(wrong_interlace, force_dct) < 0) {
 		return -1;

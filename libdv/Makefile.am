@@ -1,7 +1,7 @@
 
 MAINTAINERCLEANFILES      = Makefile.in $(AUX_DIST)
 
-CLEANFILES                = asmoff.h 
+CLEANFILES                = asmoff.h
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool --silent
 
@@ -23,10 +23,10 @@ if HOST_X86
 BUILT_SOURCES = asmoff.h
 
 libdv_la_ASMS= vlc_x86.S quant_x86.S idct_block_mmx.S dct_block_mmx.S rgbtoyuv.S encode_x86.S transpose_x86.S
-libdv_la_ASM_HS=asmoff.h  mmx.h 
+libdv_la_ASM_HS=asmoff.h  mmx.h
 
 
-gasmoff_SOURCES= gasmoff.c bitstream.h 
+gasmoff_SOURCES= gasmoff.c bitstream.h
 
 else # HOST_X86
 
@@ -48,12 +48,12 @@ libdv_la_SOURCES= dv.c dct.c idct_248.c weighting.c quant.c vlc.c place.c \
         encode.c headers.c enc_input.c enc_audio_input.c enc_output.c \
 	$(libdv_la_ASMS)
 
-libdv_la_LDFLAGS = -version-info 3:0:1
+libdv_la_LDFLAGS = -version-info 3:1:1
 
-dovlc_SOURCES= dovlc.c 
+dovlc_SOURCES= dovlc.c
 dovlc_LDADD= libdv.la
 
-testvlc_SOURCES= testvlc.c 
+testvlc_SOURCES= testvlc.c
 testvlc_LDADD=libdv.la
 
 testbitstream_SOURCES= testbitstream.c  bitstream.h

@@ -6,7 +6,7 @@ AM_CONFIG_HEADER(config.h)
 RPM_RELEASE=1
 AC_CANONICAL_HOST
 AC_CANONICAL_TARGET
-AM_INIT_AUTOMAKE(libdv, 0.99)
+AM_INIT_AUTOMAKE(libdv-0.100, 0.100)
 
 AM_MAINTAINER_MODE
 AC_LIBTOOL_PICMODE(no)
@@ -27,20 +27,20 @@ fi
 
 AH_TEMPLATE([_GNU_SOURCE],
             [Define to enable GNU extensions of glibc, notably large file support])
-           
+
 AH_TEMPLATE([YUV_420_USE_YV12],
             [Define to 1 to use planar YUV format for 420 blocks in IEC PAL])
 
 AH_TEMPLATE([ARCH_X86],
             [Define as 1 if host is an IA32])
 
-AH_TEMPLATE([DEBUG], 
+AH_TEMPLATE([DEBUG],
 	    [Define to indicate DEBUGGING is enabled possibly with a level])
 
-AH_TEMPLATE([HAVE_SDL], 
+AH_TEMPLATE([HAVE_SDL],
 	    [Define as 1 if you have libsdl])
 
-AH_TEMPLATE([HAVE_GTK], 
+AH_TEMPLATE([HAVE_GTK],
 	    [Define as 1 if you have gtk])
 
 AH_TEMPLATE([HAVE_LIBXV],
@@ -151,8 +151,8 @@ AM_CONDITIONAL(HOST_X86, $arch_x86)
 
 dnl Checks for libraries.
 
-REQUIRES='glib >= 1.2.4 gtk+ >= 1.2.4'
-PKG_CHECK_MODULES(GTK,$REQUIRES)
+dnl REQUIRES='glib >= 1.2.4 gtk+ >= 1.2.4'
+dnl PKG_CHECK_MODULES(GTK,$REQUIRES)
 dnl Libs above are required for the apps, but not for the lib itself.
 REQUIRES=''
 

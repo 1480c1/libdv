@@ -51,55 +51,35 @@ static unsigned char	real_ylut_setup[768],  *ylut_setup;
 
 #if ARCH_X86
 /* Define some constants used in MMX range mapping and clamping logic */
-static mmx_t		mmx_0x0010s = (mmx_t) 0x0010001000100010LL,
-			mmx_0x8080s = (mmx_t) 0x8080808080808080LL,
-			mmx_zero = (mmx_t) 0x0000000000000000LL,
-			mmx_cch  = (mmx_t) 0x0f000f000f000f00LL,
-			mmx_ccl  = (mmx_t) 0x1f001f001f001f00LL,
-			mmx_ccb  = (mmx_t) 0x1000100010001000LL,
-			mmx_clh  = (mmx_t) 0x0014001400140014LL,
-			mmx_cll  = (mmx_t) 0x0024002400240024LL,
-			mmx_clb  = (mmx_t) 0x0010001000100010LL,
-			mmx_cbh  = (mmx_t) 0x0f140f140f140f14LL,
-			mmx_cbl  = (mmx_t) 0x1f241f241f241f24LL,
-			mmx_cbb  = (mmx_t) 0x1010101010101010LL;
+static mmx_t  mmx_0x0010s = (mmx_t) 0x0010001000100010LL,
+              mmx_0x8080s = (mmx_t) 0x8080808080808080LL,
+              mmx_zero = (mmx_t) 0x0000000000000000LL,
+              mmx_cch  = (mmx_t) 0x0f000f000f000f00LL,
+              mmx_ccl  = (mmx_t) 0x1f001f001f001f00LL,
+              mmx_ccb  = (mmx_t) 0x1000100010001000LL,
+              mmx_clh  = (mmx_t) 0x0014001400140014LL,
+              mmx_cll  = (mmx_t) 0x0024002400240024LL,
+              mmx_clb  = (mmx_t) 0x0010001000100010LL,
+              mmx_cbh  = (mmx_t) 0x0f140f140f140f14LL,
+              mmx_cbl  = (mmx_t) 0x1f241f241f241f24LL,
+              mmx_cbb  = (mmx_t) 0x1010101010101010LL;
 
 #endif // ARCH_X86
 
-/* ----------------------------------------------------------------------------
- */
-void
-dv_YUY2_init(int clamp_luma, int clamp_chroma) {
-  int i;
-  int value;
-
-  uvlut = real_uvlut + 128; // index from -128 .. 127
-  for(i=-128;
-      i<128;
-      ++i) {
-    value = i + 128;
-    if (clamp_chroma == TRUE) value = CLAMP(value, 16, 240);
-    uvlut[i] = value;
-  } /* for */
-
-  ylut = real_ylut + 256; // index from -256 .. 511
-  ylut_setup = real_ylut_setup + 256;
-  for(i=-256;
-      i<512;
-      ++i) {
-	value = i + 128;
-	if (clamp_luma == TRUE) value = CLAMP(value, 16, 235);
-	else value = CLAMP(value, 0, 255);
-	ylut[i] = value;
-	value += 16;
-	ylut_setup[i] = CLAMP(value, 0, 255);
-  } /* for */
-} /* dv_YUY2_init */
+#if ARCH_X86
+#define NUM_RENDERER    4
+#else
+#define NUM_RENDERER    2
+#endif
 
 /* ----------------------------------------------------------------------------
  */
-void
-dv_mb411_YUY2(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_setup) {
+static void
+dv_mb411_YUY2(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
+                  int add_ntsc_setup,
+                  int clamp_luma,
+                  int clamp_chroma)
+{
   dv_coeff_t		*Y[4], *cr_frame, *cb_frame;
   unsigned char	        *pyuv, *pwyuv, cb, cr, *my_ylut;
   int			i, j, row;
@@ -129,33 +109,33 @@ dv_mb411_YUY2(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_
         cr_frame++;
 
 #if 0 /* (BYTE_ORDER == BIG_ENDIAN) */
-       *pwyuv++ = cb;
-       *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
-       Ytmp++;
-       *pwyuv++ = cr;
-	*pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
-	Ytmp++;
-       
-	*pwyuv++ = cb;
-	*pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
-	Ytmp++;
-	*pwyuv++ = cr;
-	*pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
-	Ytmp++;
-#else
-	*pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
-       *pwyuv++ = cb;
-	Ytmp++;
-       *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
-	*pwyuv++ = cr;
-       Ytmp++;
+        *pwyuv++ = cb;
+        *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+        Ytmp++;
+        *pwyuv++ = cr;
+        *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+        Ytmp++;
 
-       *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
-       *pwyuv++ = cb;
-       Ytmp++;
-       *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
-       *pwyuv++ = cr;
-       Ytmp++;
+        *pwyuv++ = cb;
+        *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+        Ytmp++;
+        *pwyuv++ = cr;
+        *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+        Ytmp++;
+#else
+        *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+        *pwyuv++ = cb;
+Ytmp++;
+        *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+        *pwyuv++ = cr;
+        Ytmp++;
+
+        *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+        *pwyuv++ = cb;
+        Ytmp++;
+        *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+        *pwyuv++ = cr;
+        Ytmp++;
 #endif
       } /* for j */
 
@@ -168,12 +148,16 @@ dv_mb411_YUY2(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_
 
 /* ----------------------------------------------------------------------------
  */
-void
-dv_mb411_right_YUY2(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_setup) {
+static void
+dv_mb411_right_YUY2(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
+                  int add_ntsc_setup,
+                  int clamp_luma,
+                  int clamp_chroma)
+{
 
-  dv_coeff_t		*Y[4], *Ytmp, *cr_frame, *cb_frame;
-  unsigned char	        *pyuv, *pwyuv, cb, cr, *my_ylut;
-  int			i, j, col, row;
+  dv_coeff_t      *Y[4], *Ytmp, *cr_frame, *cb_frame;
+  unsigned char   *pyuv, *pwyuv, cb, cr, *my_ylut;
+  int             i, j, col, row;
 
 
   Y[0] = mb->b[0].coeffs;
@@ -198,37 +182,37 @@ dv_mb411_right_YUY2(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add
 
           cb = uvlut[*cb_frame];
           cr = uvlut[*cr_frame];
-	  cb_frame++;
-	  cr_frame++;
+          cb_frame++;
+          cr_frame++;
 
 #if 0 /* (BYTE_ORDER == BIG_ENDIAN) */
-         *pwyuv++ = cb;
-         *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
-         Ytmp++;
-         *pwyuv++ = cr;
-         *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
-         Ytmp++;
-       
-         *pwyuv++ = cb;
-         *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
-         Ytmp++;
-         *pwyuv++ = cr;
-         *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
-         Ytmp++;
-#else
-	  *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
-	  Ytmp++;
-	  *pwyuv++ = cb;
-	  *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
-	  Ytmp++;
-	  *pwyuv++ = cr;
+          *pwyuv++ = cb;
+          *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+          Ytmp++;
+          *pwyuv++ = cr;
+          *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+          Ytmp++;
 
-	  *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
-	  Ytmp++;
-	  *pwyuv++ = cb;
-	  *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
-	  Ytmp++;
-	  *pwyuv++ = cr;
+          *pwyuv++ = cb;
+          *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+          Ytmp++;
+          *pwyuv++ = cr;
+          *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+          Ytmp++;
+#else
+          *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+          Ytmp++;
+          *pwyuv++ = cb;
+          *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+          Ytmp++;
+          *pwyuv++ = cr;
+
+          *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+          Ytmp++;
+          *pwyuv++ = cb;
+          *pwyuv++ = my_ylut[CLAMP(*Ytmp, -256, 511)];
+          Ytmp++;
+          *pwyuv++ = cr;
 #endif
         } /* for col */
         Y[j + i] = Ytmp;
@@ -245,13 +229,17 @@ dv_mb411_right_YUY2(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add
 
 /* ----------------------------------------------------------------------------
  */
-void
-dv_mb420_YUY2 (dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
-    dv_coeff_t		*Y [4], *Ytmp0, *cr_frame, *cb_frame;
-    unsigned char	*pyuv,
-			*pwyuv0, *pwyuv1,
-			cb, cr;
-    int			i, j, col, row, inc_l2, inc_l4;
+static void
+dv_mb420_YUY2 (dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
+                  int add_ntsc_setup,
+                  int clamp_luma,
+                  int clamp_chroma)
+{
+    dv_coeff_t    *Y [4], *Ytmp0, *cr_frame, *cb_frame;
+    unsigned char *pyuv,
+                  *pwyuv0, *pwyuv1,
+                  cb, cr;
+    int           i, j, col, row, inc_l2, inc_l4;
 
   pyuv = pixels[0] + (mb->x * 2) + (mb->y * pitches[0]);
 
@@ -273,37 +261,110 @@ dv_mb420_YUY2 (dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
         for (col = 0; col < 4; ++col) {  // 4 spans of 2x2 pixels
           cb = uvlut[CLAMP(*cb_frame, -128, 127)];
           cr = uvlut[CLAMP(*cr_frame, -128, 127)];
-	  cb_frame++;
-	  cr_frame++;
+          cb_frame++;
+          cr_frame++;
 
 #if (BYTE_ORDER == LITTLE_ENDIAN)
-            *pwyuv0++ = ylut[CLAMP(*Ytmp0, -256, 511)];
-	    Ytmp0++;
-	    *pwyuv0++ = cb;
-            *pwyuv0++ = ylut[CLAMP(*Ytmp0, -256, 511)];
-	    *pwyuv0++ = cr;
-	    Ytmp0++;
+          *pwyuv0++ = ylut[CLAMP(*Ytmp0, -256, 511)];
+          Ytmp0++;
+          *pwyuv0++ = cb;
+          *pwyuv0++ = ylut[CLAMP(*Ytmp0, -256, 511)];
+          *pwyuv0++ = cr;
+          Ytmp0++;
 
-            *pwyuv1++ = ylut[CLAMP(*(Ytmp0 + 6), -256, 511)];
-	    *pwyuv1++ = cb;
-            *pwyuv1++ = ylut[CLAMP(*(Ytmp0 + 7), -256, 511)];
-	    *pwyuv1++ = cr;
+          *pwyuv1++ = ylut[CLAMP(*(Ytmp0 + 6), -256, 511)];
+          *pwyuv1++ = cb;
+          *pwyuv1++ = ylut[CLAMP(*(Ytmp0 + 7), -256, 511)];
+          *pwyuv1++ = cr;
 #else
-            *pwyuv0++ = cr;
-            *pwyuv0++ = ylut[CLAMP(*(Ytmp0 + 1), -256, 511)];
-            *pwyuv0++ = cb;
-            *pwyuv0++ = ylut[CLAMP(*(Ytmp0 + 0), -256, 511)];
+          *pwyuv0++ = cr;
+          *pwyuv0++ = ylut[CLAMP(*(Ytmp0 + 1), -256, 511)];
+          *pwyuv0++ = cb;
+          *pwyuv0++ = ylut[CLAMP(*(Ytmp0 + 0), -256, 511)];
 
-            *pwyuv1++ = cr;
-            *pwyuv1++ = ylut[CLAMP(*(Ytmp0 + 9), -256, 511)];
-            *pwyuv1++ = cb;
-            *pwyuv1++ = ylut[CLAMP(*(Ytmp0 + 8), -256, 511)];
-            Ytmp0 += 2;
+          *pwyuv1++ = cr;
+          *pwyuv1++ = ylut[CLAMP(*(Ytmp0 + 9), -256, 511)];
+          *pwyuv1++ = cb;
+          *pwyuv1++ = ylut[CLAMP(*(Ytmp0 + 8), -256, 511)];
+          Ytmp0 += 2;
 #endif
         }
         Y[j + i] = Ytmp0 + 8;
       }
       pyuv += inc_l4;
+    }
+  }
+}
+
+/* ----------------------------------------------------------------------------
+ */
+static void
+dv_mb420p_YUY2 (dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
+                  int add_ntsc_setup,
+                  int clamp_luma,
+                  int clamp_chroma)
+{
+    dv_coeff_t    *Y [4], *Ytmp0, *cr_frame, *cb_frame;
+    unsigned char *pyuv,
+                  *pwyuv0, *pwyuv1,
+                  cb, cr;
+    int           i, j, col, row, inc_l2, inc_l4;
+
+  pyuv = pixels[0] + (mb->x * 2) + (mb->y * pitches[0]);
+
+  Y [0] = mb->b[0].coeffs;
+  Y [1] = mb->b[1].coeffs;
+  Y [2] = mb->b[2].coeffs;
+  Y [3] = mb->b[3].coeffs;
+  cr_frame = mb->b[4].coeffs;
+  cb_frame = mb->b[5].coeffs;
+  inc_l2 = pitches[0];
+  inc_l4 = pitches[0]*2;
+
+  for (j = 0; j < 4; j += 2) { // Two rows of blocks j, j+1
+    for (row = 0; row < 4; row++) { // 4 pairs of two rows
+      pwyuv0 = pyuv;
+      pwyuv1 = pyuv + inc_l4;
+      for (i = 0; i < 2; ++i) { // Two columns of blocks
+        Ytmp0 = Y[j + i];
+        for (col = 0; col < 4; ++col) {  // 4 spans of 2x2 pixels
+          cb = uvlut[CLAMP(*cb_frame, -128, 127)];
+          cr = uvlut[CLAMP(*cr_frame, -128, 127)];
+          cb_frame++;
+          cr_frame++;
+
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+          *pwyuv0++ = ylut[CLAMP(*(Ytmp0 + 0), -256, 511)];
+          *pwyuv0++ = cb;
+          *pwyuv0++ = ylut[CLAMP(*(Ytmp0 + 1), -256, 511)];
+          *pwyuv0++ = cr;
+
+          *pwyuv1++ = ylut[CLAMP(*(Ytmp0 + 16), -256, 511)];
+          *pwyuv1++ = cb;
+          *pwyuv1++ = ylut[CLAMP(*(Ytmp0 + 17), -256, 511)];
+          *pwyuv1++ = cr;
+#else
+          *pwyuv0++ = cr;
+          *pwyuv0++ = ylut[CLAMP(*(Ytmp0 + 1), -256, 511)];
+          *pwyuv0++ = cb;
+          *pwyuv0++ = ylut[CLAMP(*(Ytmp0 + 0), -256, 511)];
+
+          *pwyuv1++ = cr;
+          *pwyuv1++ = ylut[CLAMP(*(Ytmp0 + 17), -256, 511)];
+          *pwyuv1++ = cb;
+          *pwyuv1++ = ylut[CLAMP(*(Ytmp0 + 16), -256, 511)];
+#endif
+          Ytmp0 += 2;
+        }
+        if (row & 1) {
+          Ytmp0 += 16;
+        }
+        Y[j + i] = Ytmp0; // + 8;
+      }
+      pyuv += inc_l2;
+      if (row & 1) {
+        pyuv += inc_l4;
+      }
     }
   }
 }
@@ -323,9 +384,12 @@ dv_mb420_YUY2 (dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
  *   DRD> No, your video card will not care about clamping to these
  *   ranges. This issue only applies to analog NTSC output.
  * */
-void
+static void
 dv_mb411_YUY2_mmx(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
-                  int add_ntsc_setup, int clamp_luma, int clamp_chroma) {
+                  int add_ntsc_setup,
+                  int clamp_luma,
+                  int clamp_chroma)
+{
     dv_coeff_t		*Y[4], *cr_frame, *cb_frame;
     unsigned char	*pyuv, *pwyuv;
     int			i, row;
@@ -363,45 +427,45 @@ dv_mb411_YUY2_mmx(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
     for (row = 0; row < 8; ++row) { // Eight rows
       pwyuv = pyuv;
       for (i = 0; i < 4; ++i) {     // Four Y blocks
-	dv_coeff_t *Ytmp = Y [i];   // less indexing in inner loop speedup?
-	/* ---------------------------------------------------------------------
-	 */
-	movq_m2r (*cb_frame, mm2);    // cb0 cb1 cb2 cb3
-	movq_m2r (*cr_frame, mm3);    // cr0 cr1 cr2 cr3
-	punpcklwd_r2r (mm3, mm2); // cb0cr0 cb1cr1
-	movq_r2r (mm2, mm3);
-	punpckldq_r2r (mm2, mm2); // cb0cr0 cb0cr0
-	movq_m2r (Ytmp [0], mm0);
-	movq_r2r (mm0, mm1);
-	punpcklwd_r2r (mm2, mm0);
-	punpckhwd_r2r (mm2, mm1);
+        dv_coeff_t *Ytmp = Y [i];   // less indexing in inner loop speedup?
+        /* ---------------------------------------------------------------------
+         */
+        movq_m2r (*cb_frame, mm2);    // cb0 cb1 cb2 cb3
+        movq_m2r (*cr_frame, mm3);    // cr0 cr1 cr2 cr3
+        punpcklwd_r2r (mm3, mm2); // cb0cr0 cb1cr1
+        movq_r2r (mm2, mm3);
+        punpckldq_r2r (mm2, mm2); // cb0cr0 cb0cr0
+        movq_m2r (Ytmp [0], mm0);
+        movq_r2r (mm0, mm1);
+        punpcklwd_r2r (mm2, mm0);
+        punpckhwd_r2r (mm2, mm1);
 
-	packsswb_r2r (mm1, mm0);
-	paddb_m2r (mmx_0x8080s, mm0);
-	paddusb_r2r (mm5, mm0);		/* clamp high		*/
-	psubusb_r2r (mm6, mm0);		/* clamp low		*/
-	paddusb_r2r (mm7, mm0);		/* to black level	*/
-	movq_r2m (mm0, pwyuv [0]);
+        packsswb_r2r (mm1, mm0);
+        paddb_m2r (mmx_0x8080s, mm0);
+        paddusb_r2r (mm5, mm0);		/* clamp high		*/
+        psubusb_r2r (mm6, mm0);		/* clamp low		*/
+        paddusb_r2r (mm7, mm0);		/* to black level	*/
+        movq_r2m (mm0, pwyuv [0]);
 
-	/* ---------------------------------------------------------------------
-	 */
-	movq_m2r (Ytmp [4], mm0);
-	punpckhdq_r2r (mm3, mm3);
-	movq_r2r (mm0, mm1);
-	punpcklwd_r2r (mm3, mm0);
-	punpckhwd_r2r (mm3, mm1);
+        /* ---------------------------------------------------------------------
+         */
+        movq_m2r (Ytmp [4], mm0);
+        punpckhdq_r2r (mm3, mm3);
+        movq_r2r (mm0, mm1);
+        punpcklwd_r2r (mm3, mm0);
+        punpckhwd_r2r (mm3, mm1);
 
-	packsswb_r2r (mm1, mm0);
-	paddb_m2r (mmx_0x8080s, mm0);
-	paddusb_r2r (mm5, mm0);		/* clamp high		*/
-	psubusb_r2r (mm6, mm0);		/* clamp low		*/
-	paddusb_r2r (mm7, mm0);		/* to black level	*/
-	movq_r2m (mm0, pwyuv [8]);
+        packsswb_r2r (mm1, mm0);
+        paddb_m2r (mmx_0x8080s, mm0);
+        paddusb_r2r (mm5, mm0);		/* clamp high		*/
+        psubusb_r2r (mm6, mm0);		/* clamp low		*/
+        paddusb_r2r (mm7, mm0);		/* to black level	*/
+        movq_r2m (mm0, pwyuv [8]);
 
-	pwyuv += 16;
-	cr_frame += 2;
-	cb_frame += 2;
-	Y [i] = Ytmp + 8;
+        pwyuv += 16;
+        cr_frame += 2;
+        cb_frame += 2;
+        Y [i] = Ytmp + 8;
       } /* for i */
       pyuv += pitches[0];
     } /* for j */
@@ -410,9 +474,12 @@ dv_mb411_YUY2_mmx(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
 
 /* ----------------------------------------------------------------------------
  */
-void
+static void
 dv_mb411_right_YUY2_mmx(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
-                        int add_ntsc_setup, int clamp_luma, int clamp_chroma) {
+                  int add_ntsc_setup,
+                  int clamp_luma,
+                  int clamp_chroma)
+{
 
   dv_coeff_t		*Y[4], *Ytmp, *cr_frame, *cb_frame;
   unsigned char	        *pyuv;
@@ -521,15 +588,18 @@ dv_mb411_right_YUY2_mmx(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
 
 /* ----------------------------------------------------------------------------
  */
-void
+static void
 dv_mb420_YUY2_mmx (dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
-                   int clamp_luma, int clamp_chroma) {
-    dv_coeff_t		*Y [4], *Ytmp0, *cr_frame, *cb_frame;
-    unsigned char	*pyuv,
-			*pwyuv0, *pwyuv1;
-    int			i, j, row, inc_l2, inc_l4;
+                  int add_ntsc_setup,
+                  int clamp_luma,
+                  int clamp_chroma)
+{
+    dv_coeff_t    *Y [4], *Ytmp0, *cr_frame, *cb_frame;
+    unsigned char *pyuv,
+                  *pwyuv0, *pwyuv1;
+    int           i, j, row;
 
-  pyuv = pixels[0] + (mb->x * 2) + (mb->y * pitches[0]);
+  pyuv = pixels[0] + (mb->x * 2) + (mb->y * DV_WIDTH_DOUBLE);
 
   Y [0] = mb->b[0].coeffs;
   Y [1] = mb->b[1].coeffs;
@@ -537,8 +607,6 @@ dv_mb420_YUY2_mmx (dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
   Y [3] = mb->b[3].coeffs;
   cr_frame = mb->b[4].coeffs;
   cb_frame = mb->b[5].coeffs;
-  inc_l2 = pitches[0];
-  inc_l4 = pitches[0]*2;
 
   if (clamp_luma && clamp_chroma) {
     movq_m2r (mmx_cbh, mm5);
@@ -561,73 +629,73 @@ dv_mb420_YUY2_mmx (dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
   for (j = 0; j < 4; j += 2) { // Two rows of blocks j, j+1
     for (row = 0; row < 8; row+=2) { // 4 pairs of two rows
       pwyuv0 = pyuv;
-      pwyuv1 = pyuv + inc_l2;
+      pwyuv1 = pyuv + DV_WIDTH_DOUBLE; //inc_l2;
       for (i = 0; i < 2; ++i) { // Two columns of blocks
         Ytmp0 = Y[j + i];
 
-	/* -------------------------------------------------------------------
-	 */
-	movq_m2r (*cb_frame, mm2);	/* mm2 = b1 b2 b3 b4	*/
-	movq_m2r (*cr_frame, mm3);	/* mm3 = r1 r2 r3 r4	*/
-	movq_r2r (mm2, mm4);		/* mm4 = b1 b2 b3 b4	*/
-	punpcklwd_r2r (mm3, mm4);	/* mm4 = b3 r3 b4 r4	*/
+        /* -------------------------------------------------------------------
+         */
+        movq_m2r (*cb_frame, mm2);	/* mm2 = b1 b2 b3 b4	*/
+        movq_m2r (*cr_frame, mm3);	/* mm3 = r1 r2 r3 r4	*/
+        movq_r2r (mm2, mm4);		/* mm4 = b1 b2 b3 b4	*/
+        punpcklwd_r2r (mm3, mm4);	/* mm4 = b3 r3 b4 r4	*/
 
-	movq_m2r (Ytmp0[0], mm0);	/* mm0 = y1 y2 y3 y4	*/
-	movq_r2r (mm0, mm1);
+        movq_m2r (Ytmp0[0], mm0);	/* mm0 = y1 y2 y3 y4	*/
+        movq_r2r (mm0, mm1);
 
-	punpcklwd_r2r (mm4, mm0);	/* mm0 = b4 y3 r4 y4	*/
-	punpckhwd_r2r (mm4, mm1);	/* mm1 = b3 y1 r3 y2	*/
+        punpcklwd_r2r (mm4, mm0);	/* mm0 = b4 y3 r4 y4	*/
+        punpckhwd_r2r (mm4, mm1);	/* mm1 = b3 y1 r3 y2	*/
 
-	packsswb_r2r (mm1, mm0);	/* mm0 = b3 y1 r3 y2 b4 y3 r4 y4	*/
-	paddb_m2r (mmx_0x8080s, mm0);
-	paddusb_r2r (mm5, mm0);		/* clamp high		*/
-	psubusb_r2r (mm6, mm0);		/* clamp low		*/
-	paddusb_r2r (mm7, mm0);		/* to black level	*/
-	movq_r2m (mm0, pwyuv0[0]);
+        packsswb_r2r (mm1, mm0);	/* mm0 = b3 y1 r3 y2 b4 y3 r4 y4	*/
+        paddb_m2r (mmx_0x8080s, mm0);
+        paddusb_r2r (mm5, mm0);		/* clamp high		*/
+        psubusb_r2r (mm6, mm0);		/* clamp low		*/
+        paddusb_r2r (mm7, mm0);		/* to black level	*/
+        movq_r2m (mm0, pwyuv0[0]);
 
-	movq_m2r (Ytmp0[8], mm0);
-	movq_r2r (mm0, mm1);
+        movq_m2r (Ytmp0[8], mm0);
+        movq_r2r (mm0, mm1);
 
-	punpcklwd_r2r (mm4, mm0);
-	punpckhwd_r2r (mm4, mm1);
-	packsswb_r2r (mm1, mm0);
-	paddb_m2r (mmx_0x8080s, mm0);
-	paddusb_r2r (mm5, mm0);		/* clamp high		*/
-	psubusb_r2r (mm6, mm0);		/* clamp low		*/
-	paddusb_r2r (mm7, mm0);		/* to black level	*/
-	movq_r2m (mm0, pwyuv1[0]);
+        punpcklwd_r2r (mm4, mm0);
+        punpckhwd_r2r (mm4, mm1);
+        packsswb_r2r (mm1, mm0);
+        paddb_m2r (mmx_0x8080s, mm0);
+        paddusb_r2r (mm5, mm0);		/* clamp high		*/
+        psubusb_r2r (mm6, mm0);		/* clamp low		*/
+        paddusb_r2r (mm7, mm0);		/* to black level	*/
+        movq_r2m (mm0, pwyuv1[0]);
 
-	movq_r2r (mm2, mm4);
-	punpckhwd_r2r (mm3, mm4);
-	movq_m2r (Ytmp0[4], mm0);
-	movq_r2r (mm0, mm1);
-	punpcklwd_r2r (mm4, mm0);
-	punpckhwd_r2r (mm4, mm1);
-	packsswb_r2r (mm1, mm0);
-	paddb_m2r (mmx_0x8080s, mm0);
-	paddusb_r2r (mm5, mm0);		/* clamp high		*/
-	psubusb_r2r (mm6, mm0);		/* clamp low		*/
-	paddusb_r2r (mm7, mm0);		/* to black level	*/
-	movq_r2m (mm0, pwyuv0[8]);
+        movq_r2r (mm2, mm4);
+        punpckhwd_r2r (mm3, mm4);
+        movq_m2r (Ytmp0[4], mm0);
+        movq_r2r (mm0, mm1);
+        punpcklwd_r2r (mm4, mm0);
+        punpckhwd_r2r (mm4, mm1);
+        packsswb_r2r (mm1, mm0);
+        paddb_m2r (mmx_0x8080s, mm0);
+        paddusb_r2r (mm5, mm0);		/* clamp high		*/
+        psubusb_r2r (mm6, mm0);		/* clamp low		*/
+        paddusb_r2r (mm7, mm0);		/* to black level	*/
+        movq_r2m (mm0, pwyuv0[8]);
 
-	movq_m2r (Ytmp0[12], mm0);
-	movq_r2r (mm0, mm1);
-	punpcklwd_r2r (mm4, mm0);
-	punpckhwd_r2r (mm4, mm1);
-	packsswb_r2r (mm1, mm0);
-	paddb_m2r (mmx_0x8080s, mm0);
-	paddusb_r2r (mm5, mm0);		/* clamp high		*/
-	psubusb_r2r (mm6, mm0);		/* clamp low		*/
-	paddusb_r2r (mm7, mm0);		/* to black level	*/
-	movq_r2m (mm0, pwyuv1[8]);
+        movq_m2r (Ytmp0[12], mm0);
+        movq_r2r (mm0, mm1);
+        punpcklwd_r2r (mm4, mm0);
+        punpckhwd_r2r (mm4, mm1);
+        packsswb_r2r (mm1, mm0);
+        paddb_m2r (mmx_0x8080s, mm0);
+        paddusb_r2r (mm5, mm0);		/* clamp high		*/
+        psubusb_r2r (mm6, mm0);		/* clamp low		*/
+        paddusb_r2r (mm7, mm0);		/* to black level	*/
+        movq_r2m (mm0, pwyuv1[8]);
 
-	pwyuv0 += 16;
-	pwyuv1 += 16;
+        pwyuv0 += 16;
+        pwyuv1 += 16;
         cb_frame += 4;
-	cr_frame += 4;
+        cr_frame += 4;
         Y[j + i] = Ytmp0 + 16;
       }
-      pyuv += inc_l4;
+      pyuv += DV_WIDTH_QUAD;
     }
   }
   emms ();
@@ -639,12 +707,15 @@ dv_mb420_YUY2_mmx (dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
 
 /* ---------------------------------------------------------------------------
  */
-void
+static void
 dv_mb411_YUY2_hh_mmx(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
-                     int add_ntsc_setup, int clamp_luma, int clamp_chroma) {
-    dv_coeff_t		*Y[4], *cr_frame, *cb_frame;
-    unsigned char	*pyuv, *pwyuv;
-    int			i, row;
+                  int add_ntsc_setup,
+                  int clamp_luma,
+                  int clamp_chroma)
+{
+    dv_coeff_t    *Y[4], *cr_frame, *cb_frame;
+    unsigned char *pyuv, *pwyuv;
+    int           i, row;
 
     Y[0] = mb->b[0].coeffs;
     Y[1] = mb->b[1].coeffs;
@@ -679,46 +750,46 @@ dv_mb411_YUY2_hh_mmx(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
     for (row = 0; row < 4; ++row) { // Eight rows
       pwyuv = pyuv;
       for (i = 0; i < 4; ++i) {     // Four Y blocks
-	dv_coeff_t *Ytmp = Y [i];   // less indexing in inner loop speedup?
-	/* ---------------------------------------------------------------------
-	 */
-	movq_m2r (*cb_frame, mm2);	// cb0 cb1 cb2 cb3
-	movq_m2r (*cr_frame, mm3);	// cr0 cr1 cr2 cr3
-	punpcklwd_r2r (mm3, mm2);	// cb0cr0 cb1cr1
-	movq_r2r (mm2, mm3);
-	punpckldq_r2r (mm2, mm2);	// cb0cr0 cb0cr0
-	movq_m2r (Ytmp [0], mm0);
-	movq_r2r (mm0, mm1);
-	punpcklwd_r2r (mm2, mm0);	/* mm0 = b4 y3 r4 y4	*/
-	punpckhwd_r2r (mm2, mm1);	/* mm1 = b3 y1 r3 y2	*/
+dv_coeff_t *Ytmp = Y [i];   // less indexing in inner loop speedup?
+/* ---------------------------------------------------------------------
+ */
+movq_m2r (*cb_frame, mm2);	// cb0 cb1 cb2 cb3
+movq_m2r (*cr_frame, mm3);	// cr0 cr1 cr2 cr3
+punpcklwd_r2r (mm3, mm2);	// cb0cr0 cb1cr1
+movq_r2r (mm2, mm3);
+punpckldq_r2r (mm2, mm2);	// cb0cr0 cb0cr0
+movq_m2r (Ytmp [0], mm0);
+movq_r2r (mm0, mm1);
+punpcklwd_r2r (mm2, mm0);	/* mm0 = b4 y3 r4 y4	*/
+punpckhwd_r2r (mm2, mm1);	/* mm1 = b3 y1 r3 y2	*/
 
-	packsswb_r2r (mm1, mm0);	/* mm0 = b3 y1 r3 y2 b4 y3 r4 y4	*/
-	paddb_m2r (mmx_0x8080s, mm0);
-	paddusb_r2r (mm5, mm0);		/* clamp high		*/
-	psubusb_r2r (mm6, mm0);		/* clamp low		*/
-	paddusb_r2r (mm7, mm0);		/* to black level	*/
-	movq_r2m (mm0, pwyuv [0]);
+packsswb_r2r (mm1, mm0);	/* mm0 = b3 y1 r3 y2 b4 y3 r4 y4	*/
+paddb_m2r (mmx_0x8080s, mm0);
+paddusb_r2r (mm5, mm0);		/* clamp high		*/
+psubusb_r2r (mm6, mm0);		/* clamp low		*/
+paddusb_r2r (mm7, mm0);		/* to black level	*/
+movq_r2m (mm0, pwyuv [0]);
 
-	/* ---------------------------------------------------------------------
-	 */
-	movq_m2r (Ytmp [4], mm0);
-	punpckhdq_r2r (mm3, mm3);
-	movq_r2r (mm0, mm1);
-	punpcklwd_r2r (mm3, mm0);	/* mm0 = b4 y3 r4 y4	*/
-	punpckhwd_r2r (mm3, mm1);	/* mm1 = b3 y1 r3 y2	*/
+/* ---------------------------------------------------------------------
+ */
+movq_m2r (Ytmp [4], mm0);
+punpckhdq_r2r (mm3, mm3);
+movq_r2r (mm0, mm1);
+punpcklwd_r2r (mm3, mm0);	/* mm0 = b4 y3 r4 y4	*/
+punpckhwd_r2r (mm3, mm1);	/* mm1 = b3 y1 r3 y2	*/
 
-	packsswb_r2r (mm1, mm0);	/* mm0 = b3 y1 r3 y2 b4 y3 r4 y4	*/
-	paddb_m2r (mmx_0x8080s, mm0);
-	paddusb_r2r (mm5, mm0);		/* clamp high		*/
-	psubusb_r2r (mm6, mm0);		/* clamp low		*/
-	paddusb_r2r (mm7, mm0);		/* to black level	*/
-	movq_r2m (mm0, pwyuv [8]);
+  packsswb_r2r (mm1, mm0);	/* mm0 = b3 y1 r3 y2 b4 y3 r4 y4	*/
+paddb_m2r (mmx_0x8080s, mm0);
+paddusb_r2r (mm5, mm0);		/* clamp high		*/
+psubusb_r2r (mm6, mm0);		/* clamp low		*/
+paddusb_r2r (mm7, mm0);		/* to black level	*/
+movq_r2m (mm0, pwyuv [8]);
 
-	pwyuv += 16;
+pwyuv += 16;
 
-	cr_frame += 2;
-	cb_frame += 2;
-	Y [i] = Ytmp + 16;
+cr_frame += 2;
+cb_frame += 2;
+Y [i] = Ytmp + 16;
       } /* for i */
       cr_frame += 8;
       cb_frame += 8;
@@ -729,13 +800,16 @@ dv_mb411_YUY2_hh_mmx(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
 
 /* ----------------------------------------------------------------------------
  */
-void
+static void
 dv_mb411_right_YUY2_hh_mmx(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
-                           int add_ntsc_setup, int clamp_luma, int clamp_chroma) {
+                  int add_ntsc_setup,
+                  int clamp_luma,
+                  int clamp_chroma)
+{
 
-  dv_coeff_t		*Y[4], *Ytmp, *cr_frame, *cb_frame;
-  unsigned char	        *pyuv;
-  int			j, row;
+  dv_coeff_t      *Y[4], *Ytmp, *cr_frame, *cb_frame;
+  unsigned char   *pyuv;
+  int             j, row;
 
   Y[0] = mb->b[0].coeffs;
   Y[1] = mb->b[1].coeffs;
@@ -840,15 +914,18 @@ dv_mb411_right_YUY2_hh_mmx(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
 
 /* ---------------------------------------------------------------------------
  */
-void
+static void
 dv_mb420_YUY2_hh_mmx (dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
-                   int clamp_luma, int clamp_chroma) {
-    dv_coeff_t		*Y [4], *Ytmp0, *cr_frame, *cb_frame;
-    unsigned char	*pyuv,
-			*pwyuv0;
-    int			i, j, row, inc_l2;
+                  int add_ntsc_setup,
+                  int clamp_luma,
+                  int clamp_chroma)
+{
+    dv_coeff_t    *Y [4], *Ytmp0, *cr_frame, *cb_frame;
+    unsigned char *pyuv,
+                  *pwyuv0;
+    int           i, j, row;
 
-  pyuv = pixels[0] + (mb->x * 2) + (mb->y * pitches[0]) / 2;
+  pyuv = pixels[0] + (mb->x * 2) + (mb->y * DV_WIDTH);
 
   Y [0] = mb->b[0].coeffs;
   Y [1] = mb->b[1].coeffs;
@@ -856,7 +933,6 @@ dv_mb420_YUY2_hh_mmx (dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
   Y [3] = mb->b[3].coeffs;
   cr_frame = mb->b[4].coeffs;
   cb_frame = mb->b[5].coeffs;
-  inc_l2 = pitches[0];
 
   if (clamp_luma && clamp_chroma) {
     movq_m2r (mmx_cbh, mm5);
@@ -876,53 +952,131 @@ dv_mb420_YUY2_hh_mmx (dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
     movq_m2r (mmx_zero, mm7);
   }
 
-  for (j = 0; j < 4; j += 2) { // Two rows of blocks j, j+1
-    for (row = 0; row < 8; row+=2) { // 4 pairs of two rows
+  for (j = 0; j < 4; j += 2) {        // Two rows of blocks j, j+1
+    for (row = 0; row < 8; row+=2) {  // 4 pairs of two rows
       pwyuv0 = pyuv;
-      for (i = 0; i < 2; ++i) { // Two columns of blocks
+      for (i = 0; i < 2; ++i) {       // Two columns of blocks
         Ytmp0 = Y[j + i];
 
-	/* -------------------------------------------------------------------
-	 */
-	movq_m2r (*cb_frame, mm2);	/* mm2 = b1 b2 b3 b4	*/
-	movq_m2r (*cr_frame, mm3);	/* mm3 = r1 r2 r3 r4	*/
-	movq_r2r (mm2, mm4);		/* mm4 = b1 b2 b3 b4	*/
-	punpcklwd_r2r (mm3, mm4);	/* mm4 = b3 r3 b4 r4	*/
+        /* -------------------------------------------------------------------
+         */
+        movq_m2r (*cb_frame, mm2);    /* mm2 = b1 b2 b3 b4	*/
+        movq_m2r (*cr_frame, mm3);    /* mm3 = r1 r2 r3 r4	*/
+        movq_r2r (mm2, mm4);          /* mm4 = b1 b2 b3 b4	*/
+        punpcklwd_r2r (mm3, mm4);     /* mm4 = b3 r3 b4 r4	*/
 
-	movq_m2r (Ytmp0[0], mm0);	/* mm0 = y1 y2 y3 y4	*/
-	movq_r2r (mm0, mm1);
+        movq_m2r (Ytmp0[0], mm0);     /* mm0 = y1 y2 y3 y4	*/
+        movq_r2r (mm0, mm1);
 
-	punpcklwd_r2r (mm4, mm0);	/* mm0 = b4 y3 r4 y4	*/
-	punpckhwd_r2r (mm4, mm1);	/* mm1 = b3 y1 r3 y2	*/
+        punpcklwd_r2r (mm4, mm0);     /* mm0 = b4 y3 r4 y4	*/
+        punpckhwd_r2r (mm4, mm1);     /* mm1 = b3 y1 r3 y2	*/
 
-	packsswb_r2r (mm1, mm0);	/* mm4 = b3 y1 r3 y2 b4 y3 r4 y4	*/
-	paddb_m2r (mmx_0x8080s, mm0);
-	paddusb_r2r (mm5, mm0);		/* clamp high		*/
-	psubusb_r2r (mm6, mm0);		/* clamp low		*/
-	paddusb_r2r (mm7, mm0);		/* to black level	*/
-	movq_r2m (mm0, pwyuv0[0]);
+        packsswb_r2r (mm1, mm0);      /* mm4 = b3 y1 r3 y2 b4 y3 r4 y4	*/
+        paddb_m2r (mmx_0x8080s, mm0);
+        paddusb_r2r (mm5, mm0);       /* clamp high		*/
+        psubusb_r2r (mm6, mm0);       /* clamp low		*/
+        paddusb_r2r (mm7, mm0);       /* to black level	*/
+        movq_r2m (mm0, pwyuv0[0]);
 
-	movq_r2r (mm2, mm4);
-	punpckhwd_r2r (mm3, mm4);
-	movq_m2r (Ytmp0[4], mm0);
-	movq_r2r (mm0, mm1);
-	punpcklwd_r2r (mm4, mm0);	/* mm4 = b4 y3 r4 y4	*/
-	punpckhwd_r2r (mm4, mm1);	/* mm5 = b3 y1 r3 y2	*/
-	packsswb_r2r (mm1, mm0);	/* mm4 = b3 y1 r3 y2 b4 y3 r4 y4	*/
-	paddb_m2r (mmx_0x8080s, mm0);
-	paddusb_r2r (mm5, mm0);		/* clamp high		*/
-	psubusb_r2r (mm6, mm0);		/* clamp low		*/
-	paddusb_r2r (mm7, mm0);		/* to black level	*/
-	movq_r2m (mm0, pwyuv0[8]);
+        movq_r2r (mm2, mm4);
+        punpckhwd_r2r (mm3, mm4);
+        movq_m2r (Ytmp0[4], mm0);
+        movq_r2r (mm0, mm1);
+        punpcklwd_r2r (mm4, mm0);     /* mm4 = b4 y3 r4 y4	*/
+        punpckhwd_r2r (mm4, mm1);     /* mm5 = b3 y1 r3 y2	*/
+        packsswb_r2r (mm1, mm0);      /* mm4 = b3 y1 r3 y2 b4 y3 r4 y4	*/
+        paddb_m2r (mmx_0x8080s, mm0);
+        paddusb_r2r (mm5, mm0);       /* clamp high		*/
+        psubusb_r2r (mm6, mm0);       /* clamp low		*/
+        paddusb_r2r (mm7, mm0);       /* to black level	*/
+        movq_r2m (mm0, pwyuv0[8]);
 
-	pwyuv0 += 16;
+        pwyuv0 += 16;
         cb_frame += 4;
-	cr_frame += 4;
+        cr_frame += 4;
         Y[j + i] = Ytmp0 + 16;
       }
-      pyuv += inc_l2;
+      pyuv += DV_WIDTH_DOUBLE;
     }
   }
   emms ();
 }
 #endif // ARCH_X86
+
+dv_renderer YUY2_renderer [NUM_RENDERER] =
+        {{{dv_mb411_YUY2, dv_mb411_right_YUY2,
+           dv_mb420_YUY2, dv_mb420_YUY2},
+          {720, 720, 720, 720},
+          {480, 480, 576, 576},
+          DV_ATTR_FULL_HIGH | DV_ATTR_C,
+          DV_FOURCC_YUY2,
+          "YUY2",
+          "YUY2 std C render functions"
+         },
+         {{dv_mb411_YUY2, dv_mb411_right_YUY2,
+           dv_mb420p_YUY2, dv_mb420p_YUY2},
+          {720, 720, 720, 720},
+          {480, 480, 576, 576},
+          DV_ATTR_FULL_HIGH | DV_ATTR_C,
+          DV_FOURCC_YUY2,
+          "YUY2_palfix",
+          "YUY2 std C render functions"
+         },
+#if ARCH_X86
+         {{dv_mb411_YUY2_mmx, dv_mb411_right_YUY2_mmx,
+           dv_mb420_YUY2_mmx, dv_mb420_YUY2_mmx},
+          {720, 720, 720, 720},
+          {480, 480, 576, 576},
+          DV_ATTR_FULL_HIGH | DV_ATTR_MMX,
+          DV_FOURCC_YUY2,
+          "YUY2_mmx",
+          "YUY2 mmx   render functions"
+         },
+#endif
+#if ARCH_X86
+         {{dv_mb411_YUY2_hh_mmx, dv_mb411_right_YUY2_hh_mmx,
+           dv_mb420_YUY2_hh_mmx, dv_mb420_YUY2_hh_mmx},
+          {720, 720, 720, 720},
+          {240, 240, 288, 288},
+          DV_ATTR_HALF_HIGH | DV_ATTR_MMX,
+          DV_FOURCC_YUY2,
+          "YUY2_mmx_hh",
+          "YUY2 half high mmx   render functions"
+         },
+#endif
+        };
+
+/* ----------------------------------------------------------------------------
+ */
+void
+dv_YUY2_init(dv_decoder_t *decoder, int clamp_luma, int clamp_chroma) {
+  int i;
+  int value;
+
+  uvlut = real_uvlut + 128; // index from -128 .. 127
+  for(i=-128; i<128; ++i) {
+    value = i + 128;
+    if (clamp_chroma == TRUE)
+      value = CLAMP(value, 16, 240);
+    uvlut[i] = value;
+  } /* for */
+
+  ylut = real_ylut + 256; // index from -256 .. 511
+  ylut_setup = real_ylut_setup + 256;
+  for(i=-256; i<512; ++i) {
+    value = i + 128;
+    if (clamp_luma == TRUE)
+      value = CLAMP(value, 16, 235);
+    else
+      value = CLAMP(value, 0, 255);
+    ylut[i] = value;
+    value += 16;
+    ylut_setup[i] = CLAMP(value, 0, 255);
+  } /* for */
+  if (decoder) {
+    for (i = 0; i < NUM_RENDERER; ++i) {
+      dv_add_renderer (decoder, &YUY2_renderer [i]);
+    }
+  }
+} /* dv_YUY2_init */
+

@@ -10,7 +10,7 @@
  *  under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your
  *  option) any later version.
- *   
+ *
  *  libdv is distributed in the hope that it will be useful, but
  *  WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
@@ -20,7 +20,7 @@
  *  along with GNU Make; see the file COPYING.  If not, write to
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
  *
- *  The libdv homepage is http://libdv.sourceforge.net/.  
+ *  The libdv homepage is http://libdv.sourceforge.net/.
  */
 
 /** @file
@@ -60,11 +60,11 @@
 #endif
 
 #if YUV_420_USE_YV12
-#define DV_MB420_YUV(a,b,c)     dv_mb420_YV12    (a,b,c)
-#define DV_MB420_YUV_MMX(a,b,c,d,e) dv_mb420_YV12_mmx(a,b,c,d,e)
+#define DV_MB420_YUV(a,b,c,d,e,f)     dv_mb420_YV12    (a,b,c,d,e,f)
+#define DV_MB420_YUV_MMX(a,b,c,d,e,f) dv_mb420_YV12_mmx(a,b,c,d,e,f)
 #else
-#define DV_MB420_YUV(a,b,c)     dv_mb420_YUY2    (a,b,c)
-#define DV_MB420_YUV_MMX(a,b,c,d,e) dv_mb420_YUY2_mmx(a,b,c,d,e)
+#define DV_MB420_YUV(a,b,c,d,e,f)     dv_mb420_YUY2    (a,b,c,d,e,f)
+#define DV_MB420_YUV_MMX(a,b,c,d,e,f) dv_mb420_YUY2_mmx(a,b,c,d,e,f)
 #endif 
 
 #define MIN(a,b) ((a)<(b)?(a):(b))
@@ -74,8 +74,10 @@ int dv_use_mmx;
 pthread_mutex_t dv_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 #if HAVE_LIBPOPT
+/* ---------------------------------------------------------------------------
+ */
 static void
-dv_decoder_popt_callback(poptContext con, enum poptCallbackReason reason, 
+dv_decoder_popt_callback(poptContext con, enum poptCallbackReason reason,
 		       const struct poptOption * opt, const char * arg, const void * data)
 {
   dv_decoder_t *decoder = (dv_decoder_t *)data;
@@ -83,22 +85,22 @@ dv_decoder_popt_callback(poptContext con, enum poptCallbackReason reason,
   if((decoder->arg_video_system < 0) || (decoder->arg_video_system > 3)) {
     dv_opt_usage(con, decoder->option_table, DV_DECODER_OPT_SYSTEM);
   } /* if */
-  
+
 } /* dv_decoder_popt_callback  */
 #endif /* HAVE_LIBPOPT */
 
-dv_decoder_t * 
+dv_decoder_t *
 dv_decoder_new(int add_ntsc_setup, int clamp_luma, int clamp_chroma) {
   dv_decoder_t *result;
-  
+
   result = (dv_decoder_t *)calloc(1,sizeof(dv_decoder_t));
   if(!result) goto no_mem;
-  
+
   result->add_ntsc_setup = add_ntsc_setup;
   result->clamp_luma = clamp_luma;
   result->clamp_chroma = clamp_chroma;
-  dv_init(clamp_luma, clamp_chroma);
-	
+  dv_init(result, clamp_luma, clamp_chroma);
+
   result->video = dv_video_new();
   if(!result->video) goto no_video;
   result->video->dv_decoder = result;
@@ -111,11 +113,11 @@ dv_decoder_new(int add_ntsc_setup, int clamp_luma, int clamp_chroma) {
   dv_set_audio_correction (result, DV_AUDIO_CORRECT_AVERAGE);
 #if HAVE_LIBPOPT
   result->option_table[DV_DECODER_OPT_SYSTEM] = (struct poptOption) {
-    longName: "video-system", 
-    shortName: 'V', 
-    argInfo: POPT_ARG_INT, 
-    descrip: "video standard:" 
-    "0=autoselect [default]," 
+    longName: "video-system",
+    shortName: 'V',
+    argInfo: POPT_ARG_INT,
+    descrip: "video standard:"
+    "0=autoselect [default],"
     " 1=525/60 4:1:1 (NTSC),"
     " 2=625/50 4:2:0 (PAL,IEC 61834 DV),"
     " 3=625/50 4:1:1 (PAL,SMPTE 314M DV)",
@@ -124,9 +126,9 @@ dv_decoder_new(int add_ntsc_setup, int clamp_luma, int clamp_chroma) {
   }; /* system */
 
   result->option_table[DV_DECODER_OPT_NTSCSETUP] = (struct poptOption){
-    longName:  "ntsc-setup", 
+    longName:  "ntsc-setup",
     arg:       &result->add_ntsc_setup,
-    argInfo: POPT_ARG_INT, 
+    argInfo: POPT_ARG_INT,
     argDescrip: "(0|1)",
     descrip:   "add 7.5 IRE setup to NTSC only: "
     " 0=off, 1=on [default]"
@@ -163,24 +165,127 @@ dv_decoder_new(int add_ntsc_setup, int clamp_luma, int clamp_chroma) {
   return(result);
 } /* dv_decoder_new */
 
-
+/* ---------------------------------------------------------------------------
+ */
 void
 dv_decoder_free( dv_decoder_t *decoder)
 {
-	if (decoder != NULL) {
-		if (decoder->audio != NULL) free(decoder->audio);
-		if (decoder->video != NULL) free(decoder->video);
-		free(decoder);
-	}
+  if (decoder != NULL) {
+    if (decoder->audio != NULL)
+      free(decoder->audio);
+    if (decoder->video != NULL)
+      free(decoder->video);
+    free(decoder);
+  }
 } /* dv_decoder_free */
 
+/* ---------------------------------------------------------------------------
+ */
+void
+dv_add_renderer (dv_decoder_t *decoder, dv_renderer *renderer)
+{
+  if (!decoder -> all_renderer) {
+    if ((decoder -> all_renderer = malloc (8 * sizeof (dv_renderer *)))) {
+      decoder -> all_renderer_count = 0;
+      decoder -> all_renderer_size = 8;
+    } else {
+      fprintf (stderr, "dv_add_renderer: failed to malloc all_renderer array\n");
+      decoder -> all_renderer_count = 0;
+      decoder -> all_renderer_size = 0;
+    }
+  } else if (decoder -> all_renderer_count == decoder -> all_renderer_size) {
+      void  *tmp;
 
-void 
-dv_init(int clamp_luma, int clamp_chroma) {
+    if ((tmp = realloc (decoder -> all_renderer,
+                       2 * decoder -> all_renderer_size * sizeof (dv_renderer *)))) {
+      decoder -> all_renderer = tmp;
+      decoder -> all_renderer_size *= 2;
+    } else {
+      fprintf (stderr,
+               "dv_add_renderer: failed to realloc all_renderer array (old count = %d)\n",
+               decoder -> all_renderer_size);
+    }
+  }
+  if (decoder -> all_renderer_count < decoder -> all_renderer_size) {
+    decoder -> all_renderer [decoder -> all_renderer_count] = renderer;
+    decoder -> all_renderer_count++;
+  }
+      fprintf (stderr, "dv_add_renderer: now at %d/%d (%d bytes)\n",
+               decoder -> all_renderer_count,
+               decoder -> all_renderer_size,
+               decoder -> all_renderer_size * sizeof (dv_renderer *));
+  decoder -> current_renderer = renderer;
+}
+
+/* ---------------------------------------------------------------------------
+ * select a render by number
+ * returns != 0 if number is valid
+ * returns    0 if number is invalid
+ */
+int
+dv_select_renderer (dv_decoder_t *decoder, int four_cc, int attr)
+{
+    int i;
+
+  for (i = 0; i < decoder -> all_renderer_count; ++i) {
+    if (decoder -> all_renderer [i] -> attr == attr &&
+        decoder -> all_renderer [i] -> four_cc == four_cc) {
+      decoder -> current_renderer = decoder -> all_renderer [i];
+      fprintf (stderr,
+               "dv_select_renderer: width (%d/%d) high (%d/%d) %s\n",
+               decoder -> current_renderer -> widths [0],
+               decoder -> current_renderer -> widths [2],
+               decoder -> current_renderer -> heights [0],
+               decoder -> current_renderer -> heights [2],
+               decoder -> current_renderer -> comment);
+      return 1;
+    }
+  }
+  fprintf (stderr,
+           "dv_select_renderer: selection failed for 0x%08x - 0x%04x\n",
+           four_cc,
+           attr);
+  return 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * select a render by number
+ * returns != 0 if number is valid
+ * returns    0 if number is invalid
+ */
+int
+dv_select_renderer_by_name (dv_decoder_t *decoder, char *name)
+{
+    int i;
+
+  for (i = 0; i < decoder -> all_renderer_count; ++i) {
+    if (!strcmp (decoder -> all_renderer [i] -> name, name)) {
+      decoder -> current_renderer = decoder -> all_renderer [i];
+      fprintf (stderr,
+               "dv_select_renderer: width (%d/%d) high (%d/%d) (%s) %s\n",
+               decoder -> current_renderer -> widths [0],
+               decoder -> current_renderer -> widths [2],
+               decoder -> current_renderer -> heights [0],
+               decoder -> current_renderer -> heights [2],
+               decoder -> current_renderer -> name,
+               decoder -> current_renderer -> comment);
+      return 1;
+    }
+  }
+  fprintf (stderr,
+           "dv_select_renderer: selection failed for name:(%s)\n",
+           name);
+  return 0;
+}
+
+/* ---------------------------------------------------------------------------
+ */
+void
+dv_init(dv_decoder_t *decoder, int clamp_luma, int clamp_chroma) {
   static int done=FALSE;
   if(done) goto init_done;
 #if ARCH_X86
-  dv_use_mmx = mmx_ok(); 
+  dv_use_mmx = mmx_ok();
 #endif
   _dv_weight_init();
   _dv_dct_init();
@@ -189,9 +294,9 @@ dv_init(int clamp_luma, int clamp_chroma) {
   dv_parse_init();
   dv_place_init();
   dv_quant_init();
-  dv_rgb_init(clamp_luma, clamp_chroma);
-  dv_YUY2_init(clamp_luma, clamp_chroma);
-  dv_YV12_init(clamp_luma, clamp_chroma);
+  dv_rgb_init(decoder, clamp_luma, clamp_chroma);
+  dv_YUY2_init(decoder, clamp_luma, clamp_chroma);
+  dv_YV12_init(decoder, clamp_luma, clamp_chroma);
   _dv_init_vlc_test_lookup();
   _dv_init_vlc_encode_lookup();
   _dv_init_qno_start();
@@ -202,23 +307,26 @@ dv_init(int clamp_luma, int clamp_chroma) {
   return;
 } /* dv_init */
 
-
+/* ---------------------------------------------------------------------------
+ */
 void
-dv_reconfigure(int clamp_luma, int clamp_chroma) {
-  dv_rgb_init( clamp_luma, clamp_chroma);
-  dv_YUY2_init( clamp_luma, clamp_chroma);
-  dv_YV12_init( clamp_luma, clamp_chroma);
+dv_reconfigure(dv_decoder_t *decoder, int clamp_luma, int clamp_chroma) {
+  dv_rgb_init(decoder, clamp_luma, clamp_chroma);
+  dv_YUY2_init(decoder, clamp_luma, clamp_chroma);
+  dv_YV12_init(decoder, clamp_luma, clamp_chroma);
 } /* dv_reconfigure */
 
-
-static inline void 
-dv_decode_macroblock(dv_decoder_t *dv, dv_macroblock_t *mb, unsigned int quality) {
+/* ---------------------------------------------------------------------------
+ */
+static inline void
+dv_decode_macroblock(dv_decoder_t *dv, dv_macroblock_t *mb, unsigned int quality)
+{
   int i;
   for (i=0;
        i<((quality & DV_QUALITY_COLOR) ? 6 : 4);
        i++) {
     if (mb->b[i].dct_mode == DV_DCT_248) {
-	dv_248_coeff_t co248[64];
+      dv_248_coeff_t co248[64];
 
       _dv_quant_248_inverse (mb->b[i].coeffs, mb->qno, mb->b[i].class_no, co248);
       dv_idct_248 (co248, mb->b[i].coeffs);
@@ -235,8 +343,11 @@ dv_decode_macroblock(dv_decoder_t *dv, dv_macroblock_t *mb, unsigned int quality
   } /* for b */
 } /* dv_decode_macroblock */
 
-void 
-dv_decode_video_segment(dv_decoder_t *dv, dv_videosegment_t *seg, unsigned int quality) {
+/* ---------------------------------------------------------------------------
+ */
+void
+dv_decode_video_segment(dv_decoder_t *dv, dv_videosegment_t *seg, unsigned int quality)
+{
   dv_macroblock_t *mb;
   dv_block_t *bl;
   int m, b;
@@ -244,43 +355,73 @@ dv_decode_video_segment(dv_decoder_t *dv, dv_videosegment_t *seg, unsigned int q
        m<5;
        m++,mb++) {
     for (b=0,bl = mb->b;
-	 b<((quality & DV_QUALITY_COLOR) ? 6 : 4);
-	 b++,bl++) {
+         b<((quality & DV_QUALITY_COLOR) ? 6 : 4);
+         b++,bl++) {
       if (bl->dct_mode == DV_DCT_248) {
-	  dv_248_coeff_t co248[64];
+        dv_248_coeff_t co248[64];
 
-	_dv_quant_248_inverse (mb->b[b].coeffs, mb->qno, mb->b[b].class_no, co248);
-	dv_idct_248 (co248, mb->b[b].coeffs);
+        _dv_quant_248_inverse (mb->b[b].coeffs, mb->qno, mb->b[b].class_no, co248);
+        dv_idct_248 (co248, mb->b[b].coeffs);
       } else {
 #if ARCH_X86
-	_dv_quant_88_inverse_x86(bl->coeffs,mb->qno,bl->class_no);
-	_dv_weight_88_inverse(bl->coeffs);
-	_dv_idct_88(bl->coeffs);
+        _dv_quant_88_inverse_x86(bl->coeffs,mb->qno,bl->class_no);
+        _dv_weight_88_inverse(bl->coeffs);
+        _dv_idct_88(bl->coeffs);
 #else /* ARCH_X86 */
-	_dv_quant_88_inverse(bl->coeffs,mb->qno,bl->class_no);
-	_dv_weight_88_inverse(bl->coeffs);
-	_dv_idct_88(bl->coeffs);
+        _dv_quant_88_inverse(bl->coeffs,mb->qno,bl->class_no);
+        _dv_weight_88_inverse(bl->coeffs);
+        _dv_idct_88(bl->coeffs);
 #endif /* ARCH_X86 */
       } /* else */
     } /* for b */
   } /* for mb */
 } /* dv_decode_video_segment */
 
+/* ---------------------------------------------------------------------------
+ */
 static inline void
-dv_render_macroblock_rgb(dv_decoder_t *dv, dv_macroblock_t *mb, uint8_t **pixels, int *pitches ) {
+dv_render_macroblock (dv_decoder_t *dv, dv_macroblock_t *mb,
+                      uint8_t **pixels, int *pitches, int render_type) {
+
+  render_type += mb -> x >= 704;
+  dv -> current_renderer -> dv_render_func [render_type] (mb, pixels, pitches,
+                                                          dv -> add_ntsc_setup,
+                                                          dv -> clamp_luma,
+                                                          dv -> clamp_chroma);
+} /* dv_render_macroblock */
+
+#if 0
+/* ---------------------------------------------------------------------------
+ */
+static inline void
+dv_render_macroblock_rgb(dv_decoder_t *dv, dv_macroblock_t *mb,
+                         uint8_t **pixels, int *pitches ) {
   if(dv->sampling == e_dv_sample_411) {
     if(mb->x >= 704) {
-      dv_mb411_right_rgb(mb, pixels, pitches, dv->add_ntsc_setup); /* Right edge are 16x16 */
+      dv_mb411_right_rgb(mb, pixels, pitches,
+                         dv->add_ntsc_setup,
+                         dv->clamp_luma,
+                         dv->clamp_chroma);
     } else {
-      dv_mb411_rgb(mb, pixels, pitches, dv->add_ntsc_setup);
+      dv_mb411_rgb(mb, pixels, pitches,
+                   dv->add_ntsc_setup,
+                   dv->clamp_luma,
+                   dv->clamp_chroma);
     } /* else */
   } else {
-    dv_mb420_rgb(mb, pixels, pitches);
+    dv_mb420_rgb(mb, pixels, pitches,
+                 dv->add_ntsc_setup,
+                 dv->clamp_luma,
+                 dv->clamp_chroma);
   } /* else */
 } /* dv_render_macroblock_rgb */
 
+/* ---------------------------------------------------------------------------
+ */
 void
-dv_render_video_segment_rgb(dv_decoder_t *dv, dv_videosegment_t *seg, uint8_t **pixels, int *pitches ) {
+dv_render_video_segment_rgb(dv_decoder_t *dv, dv_videosegment_t *seg,
+                            uint8_t **pixels, int *pitches )
+{
   dv_macroblock_t *mb;
   int m;
   for (m=0,mb = seg->mb;
@@ -288,31 +429,57 @@ dv_render_video_segment_rgb(dv_decoder_t *dv, dv_videosegment_t *seg, uint8_t **
        m++,mb++) {
     if(dv->sampling == e_dv_sample_411) {
       if(mb->x >= 704) {
-	dv_mb411_right_rgb(mb, pixels, pitches, dv->add_ntsc_setup); /* Right edge are 16x16 */
+        dv_mb411_right_rgb(mb, pixels, pitches,
+                           dv->add_ntsc_setup,
+                           dv->clamp_luma,
+                           dv->clamp_chroma);
       } else {
-	dv_mb411_rgb(mb, pixels, pitches, dv->add_ntsc_setup);
+        dv_mb411_rgb(mb, pixels, pitches,
+                     dv->add_ntsc_setup,
+                     dv->clamp_luma,
+                     dv->clamp_chroma);
       } /* else */
     } else {
-      dv_mb420_rgb(mb, pixels, pitches);
+      dv_mb420_rgb(mb, pixels, pitches,
+                   dv->add_ntsc_setup,
+                   dv->clamp_luma,
+                   dv->clamp_chroma);
     } /* else */
   } /* for    */
 } /* dv_render_video_segment_rgb */
 
+/* ---------------------------------------------------------------------------
+ */
 static inline void
-dv_render_macroblock_bgr0(dv_decoder_t *dv, dv_macroblock_t *mb, uint8_t **pixels, int *pitches ) {
+dv_render_macroblock_bgr0(dv_decoder_t *dv, dv_macroblock_t *mb,
+                          uint8_t **pixels, int *pitches )
+{
   if(dv->sampling == e_dv_sample_411) {
     if(mb->x >= 704) {
-      dv_mb411_right_bgr0(mb, pixels, pitches, dv->add_ntsc_setup); /* Right edge are 16x16 */
+      dv_mb411_right_bgr0(mb, pixels, pitches,
+                          dv->add_ntsc_setup,
+                          dv->clamp_luma,
+                          dv->clamp_chroma);
     } else {
-      dv_mb411_bgr0(mb, pixels, pitches, dv->add_ntsc_setup);
+      dv_mb411_bgr0(mb, pixels, pitches,
+                    dv->add_ntsc_setup,
+                    dv->clamp_luma,
+                    dv->clamp_chroma);
     } /* else */
   } else {
-    dv_mb420_bgr0(mb, pixels, pitches);
+    dv_mb420_bgr0(mb, pixels, pitches,
+                  dv->add_ntsc_setup,
+                  dv->clamp_luma,
+                  dv->clamp_chroma);
   } /* else */
 } /* dv_render_macroblock_bgr0 */
 
+/* ---------------------------------------------------------------------------
+ */
 void
-dv_render_video_segment_bgr0(dv_decoder_t *dv, dv_videosegment_t *seg, uint8_t **pixels, int *pitches ) {
+dv_render_video_segment_bgr0(dv_decoder_t *dv, dv_videosegment_t *seg,
+                             uint8_t **pixels, int *pitches )
+{
   dv_macroblock_t *mb;
   int m;
   for (m=0,mb = seg->mb;
@@ -320,47 +487,80 @@ dv_render_video_segment_bgr0(dv_decoder_t *dv, dv_videosegment_t *seg, uint8_t *
        m++,mb++) {
     if(dv->sampling == e_dv_sample_411) {
       if(mb->x >= 704) {
-	dv_mb411_right_bgr0(mb, pixels, pitches, dv->add_ntsc_setup); /* Right edge are 16x16 */
+        dv_mb411_right_bgr0(mb, pixels, pitches,
+                            dv->add_ntsc_setup,
+                            dv->clamp_luma,
+                            dv->clamp_chroma);
       } else {
-	dv_mb411_bgr0(mb, pixels, pitches, dv->add_ntsc_setup);
+        dv_mb411_bgr0(mb, pixels, pitches,
+                      dv->add_ntsc_setup,
+                      dv->clamp_luma,
+                      dv->clamp_chroma);
       } /* else */
     } else {
-      dv_mb420_bgr0(mb, pixels, pitches);
+      dv_mb420_bgr0(mb, pixels, pitches,
+                    dv->add_ntsc_setup,
+                    dv->clamp_luma,
+                    dv->clamp_chroma);
     } /* else */
   } /* for    */
 } /* dv_render_video_segment_bgr0 */
 
 #if ARCH_X86
 
+/* ---------------------------------------------------------------------------
+ */
 static inline void
-dv_render_macroblock_yuv(dv_decoder_t *dv, dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
+dv_render_macroblock_yuv(dv_decoder_t *dv, dv_macroblock_t *mb,
+                         uint8_t **pixels, int *pitches) {
   if(dv_use_mmx) {
     if(dv->sampling == e_dv_sample_411) {
       if(mb->x >= 704) {
-	dv_mb411_right_YUY2_mmx(mb, pixels, pitches,
-	      dv->add_ntsc_setup, dv->clamp_luma, dv->clamp_chroma); /* Right edge are 420! */
+        dv_mb411_right_YUY2_mmx(mb, pixels, pitches,
+                                dv->add_ntsc_setup,
+                                dv->clamp_luma,
+                                dv->clamp_chroma);
       } else {
-	dv_mb411_YUY2_mmx(mb, pixels, pitches,
-	      dv->add_ntsc_setup, dv->clamp_luma, dv->clamp_chroma);
+        dv_mb411_YUY2_mmx(mb, pixels, pitches,
+                          dv->add_ntsc_setup,
+                          dv->clamp_luma,
+                          dv->clamp_chroma);
       } /* else */
     } else {
-      DV_MB420_YUV_MMX(mb, pixels, pitches, dv->clamp_luma, dv->clamp_chroma);
+      DV_MB420_YUV_MMX(mb, pixels, pitches,
+                       dv->add_ntsc_setup,
+                       dv->clamp_luma,
+                       dv->clamp_chroma);
     } /* else */
   } else {
     if(dv->sampling == e_dv_sample_411) {
       if(mb->x >= 704) {
-	dv_mb411_right_YUY2(mb, pixels, pitches, dv->add_ntsc_setup); /* Right edge are 420! */
+        dv_mb411_right_YUY2(mb, pixels, pitches,
+                            dv->add_ntsc_setup,
+                            dv->clamp_luma,
+                            dv->clamp_chroma);
       } else {
-	dv_mb411_YUY2(mb, pixels, pitches, dv->add_ntsc_setup);
+        dv_mb411_YUY2(mb, pixels, pitches,
+                      dv->add_ntsc_setup,
+                      dv->clamp_luma,
+                      dv->clamp_chroma);
       } /* else */
     } else {
-      DV_MB420_YUV(mb, pixels, pitches);
+      DV_MB420_YUV(mb, pixels, pitches,
+                   dv->add_ntsc_setup,
+                   dv->clamp_luma,
+                   dv->clamp_chroma);
     } /* else */
   } /* else */
 } /* dv_render_macroblock_yuv */
 
+
+/* ---------------------------------------------------------------------------
+ */
 void
-dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, uint8_t **pixels, int *pitches) {
+dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg,
+                            uint8_t **pixels, int *pitches)
+{
   dv_macroblock_t *mb;
   int m;
   for (m=0,mb = seg->mb;
@@ -368,25 +568,41 @@ dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, uint8_t **
        m++,mb++) {
     if(dv_use_mmx) {
       if(dv->sampling == e_dv_sample_411) {
-	if(mb->x >= 704) {
-	  dv_mb411_right_YUY2_mmx(mb, pixels, pitches,
-		dv->add_ntsc_setup, dv->clamp_luma, dv->clamp_chroma); /* Right edge are 420! */
-	} else {
-	  dv_mb411_YUY2_mmx(mb, pixels, pitches,
-		dv->add_ntsc_setup, dv->clamp_luma, dv->clamp_chroma);
-	} /* else */
+        if(mb->x >= 704) {
+          dv_mb411_right_YUY2_mmx(mb, pixels, pitches,
+                                  dv->add_ntsc_setup,
+                                  dv->clamp_luma,
+                                  dv->clamp_chroma);
+        } else {
+          dv_mb411_YUY2_mmx(mb, pixels, pitches,
+                            dv->add_ntsc_setup,
+                            dv->clamp_luma,
+                            dv->clamp_chroma);
+        } /* else */
       } else {
-	DV_MB420_YUV_MMX(mb, pixels, pitches, dv->clamp_luma, dv->clamp_chroma);
+        DV_MB420_YUV_MMX(mb, pixels, pitches,
+                         dv->add_ntsc_setup,
+                         dv->clamp_luma,
+                         dv->clamp_chroma);
       } /* else */
     } else {
       if(dv->sampling == e_dv_sample_411) {
-	if(mb->x >= 704) {
-	  dv_mb411_right_YUY2(mb, pixels, pitches, dv->add_ntsc_setup); /* Right edge are 420! */
-	} else {
-	  dv_mb411_YUY2(mb, pixels, pitches, dv->add_ntsc_setup);
-	} /* else */
+        if(mb->x >= 704) {
+          dv_mb411_right_YUY2(mb, pixels, pitches,
+                              dv->add_ntsc_setup,
+                              dv->clamp_luma,
+                              dv->clamp_chroma);
+        } else {
+          dv_mb411_YUY2(mb, pixels, pitches,
+                        dv->add_ntsc_setup,
+                        dv->clamp_luma,
+                        dv->clamp_chroma);
+        } /* else */
       } else {
-	DV_MB420_YUV(mb, pixels, pitches);
+        DV_MB420_YUV(mb, pixels, pitches,
+                     dv->add_ntsc_setup,
+                     dv->clamp_luma,
+                     dv->clamp_chroma);
       } /* else */
     } /* else */
   } /* for    */
@@ -394,21 +610,39 @@ dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, uint8_t **
 
 #else /* ARCH_X86 */
 
+/* ---------------------------------------------------------------------------
+ */
 static inline void
-dv_render_macroblock_yuv(dv_decoder_t *dv, dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
+dv_render_macroblock_yuv(dv_decoder_t *dv, dv_macroblock_t *mb,
+                         uint8_t **pixels, int *pitches)
+{
   if(dv->sampling == e_dv_sample_411) {
     if(mb->x >= 704) {
-      dv_mb411_right_YUY2(mb, pixels, pitches, dv->add_ntsc_setup); /* Right edge are 420! */
+      dv_mb411_right_YUY2(mb, pixels, pitches,
+                          dv->add_ntsc_setup,
+                          dv->clamp_luma,
+                          dv->clamp_chroma);
+
     } else {
-      dv_mb411_YUY2(mb, pixels, pitches, dv->add_ntsc_setup);
+      dv_mb411_YUY2(mb, pixels, pitches,
+                    dv->add_ntsc_setup,
+                    dv->clamp_luma,
+                    dv->clamp_chroma);
     } /* else */
   } else {
-    DV_MB420_YUV(mb, pixels, pitches);
+    DV_MB420_YUV(mb, pixels, pitches,
+                 dv->add_ntsc_setup,
+                 dv->clamp_luma,
+                 dv->clamp_chroma);
   } /* else */
 } /* dv_render_macroblock_yuv */
 
+/* ---------------------------------------------------------------------------
+ */
 void
-dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, uint8_t **pixels, int *pitches) {
+dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg,
+                            uint8_t **pixels, int *pitches)
+{
   dv_macroblock_t *mb;
   int m;
   for (m=0,mb = seg->mb;
@@ -416,20 +650,32 @@ dv_render_video_segment_yuv(dv_decoder_t *dv, dv_videosegment_t *seg, uint8_t **
        m++,mb++) {
     if(dv->sampling == e_dv_sample_411) {
       if(mb->x >= 704) {
-	dv_mb411_right_YUY2(mb, pixels, pitches, dv->add_ntsc_setup); /* Right edge are 420! */
+        dv_mb411_right_YUY2(mb, pixels, pitches,
+                            dv->add_ntsc_setup,
+                            dv->clamp_luma,
+                            dv->clamp_chroma);
       } else {
-	dv_mb411_YUY2(mb, pixels, pitches, dv->add_ntsc_setup);
+        dv_mb411_YUY2(mb, pixels, pitches,
+                      dv->add_ntsc_setup,
+                      dv->clamp_luma,
+                      dv->clamp_chroma);
       } /* else */
     } else {
-      DV_MB420_YUV(mb, pixels, pitches);
+      DV_MB420_YUV(mb, pixels, pitches,
+                   dv->add_ntsc_setup,
+                   dv->clamp_luma,
+                   dv->clamp_chroma);
     } /* else */
   } /* for    */
 } /* dv_render_video_segment_yuv */
 
 #endif /* ! ARCH_X86 */
+#endif
 
 static int32_t ranges[6][2];
 
+/* ---------------------------------------------------------------------------
+ */
 void dv_check_coeff_ranges(dv_macroblock_t *mb) {
   dv_block_t *bl;
   int b, i;
@@ -443,6 +689,9 @@ void dv_check_coeff_ranges(dv_macroblock_t *mb) {
   }
 }
 
+#if 0
+/* ---------------------------------------------------------------------------
+ */
 void
 dv_decode_full_frame(dv_decoder_t *dv, const uint8_t *buffer,
 		     dv_color_space_t color_space, uint8_t **pixels, int *pitches) {
@@ -469,7 +718,7 @@ dv_decode_full_frame(dv_decoder_t *dv, const uint8_t *buffer,
        for the VLC stage can spill bits between blocks in the same
        video segment.  So parsing needs the whole segment to decode
        the VLC data
-	*/
+     */
     dif += 6;
     audio=0;
     /* Loop through video segments  */
@@ -477,8 +726,8 @@ dv_decode_full_frame(dv_decoder_t *dv, const uint8_t *buffer,
       /* skip audio block - interleaved before every 3rd video segment */
       if(!(v % 3)) {
         /*dv_dump_aaux_as(buffer+(dif*80), ds, audio); */
-	dif++;
-	audio++;
+        dif++;
+        audio++;
       } /* if */
       /* stage 1: parse and VLC decode 5 macroblocks that make up a video segment */
       offset = dif * 80;
@@ -491,35 +740,35 @@ dv_decode_full_frame(dv_decoder_t *dv, const uint8_t *buffer,
 
       switch(color_space) {
       case e_dv_color_yuv:
-	for (m=0,mb = seg->mb;
-	     m<5;
-	     m++,mb++) {
-	  dv_decode_macroblock(dv, mb, dv->quality);
-	  dv_place_macroblock(dv, seg, mb, m);
-	  dv_render_macroblock_yuv(dv, mb, pixels, pitches);
-	} /* for m */
-	break;
+        for (m=0,mb = seg->mb;
+             m<5;
+             m++,mb++) {
+          dv_decode_macroblock(dv, mb, dv->quality);
+          dv_place_macroblock(dv, seg, mb, m);
+          dv_render_macroblock_yuv(dv, mb, pixels, pitches);
+        } /* for m */
+        break;
       case e_dv_color_bgr0:
-	for (m=0,mb = seg->mb;
-	     m<5;
-	     m++,mb++) {
-	  dv_decode_macroblock(dv, mb, dv->quality);
-	  dv_place_macroblock(dv, seg, mb, m);
-	  dv_render_macroblock_bgr0(dv, mb, pixels, pitches);
-	} /* for m */
+        for (m=0,mb = seg->mb;
+             m<5;
+             m++,mb++) {
+          dv_decode_macroblock(dv, mb, dv->quality);
+          dv_place_macroblock(dv, seg, mb, m);
+          dv_render_macroblock_bgr0(dv, mb, pixels, pitches);
+        } /* for m */
         break;
       case e_dv_color_rgb:
-	for (m=0,mb = seg->mb;
-	     m<5;
-	     m++,mb++) {
-	  dv_decode_macroblock(dv, mb, dv->quality);
-	  dv_place_macroblock(dv, seg, mb, m);
+        for (m=0,mb = seg->mb;
+             m<5;
+             m++,mb++) {
+          dv_decode_macroblock(dv, mb, dv->quality);
+          dv_place_macroblock(dv, seg, mb, m);
 #if RANGE_CHECKING
-	  dv_check_coeff_ranges(mb);
+          dv_check_coeff_ranges(mb);
 #endif
-	  dv_render_macroblock_rgb(dv, mb, pixels, pitches);
-	} /* for m */
-	break;
+          dv_render_macroblock_rgb(dv, mb, pixels, pitches);
+        } /* for m */
+        break;
       } /* switch */
 
     } /* for v */
@@ -537,6 +786,80 @@ dv_decode_full_frame(dv_decoder_t *dv, const uint8_t *buffer,
   fprintf(stderr,"no memory for bitstream!\n");
   exit(-1);
 } /* dv_decode_full_frame  */
+#endif
+
+/* ---------------------------------------------------------------------------
+ */
+void
+dv_decode_full_frame (dv_decoder_t *dv, const uint8_t *buffer,
+                      dv_color_space_t color_space,
+                      uint8_t **pixels, int *pitches) {
+
+    static dv_videosegment_t  vs;
+    dv_videosegment_t         *seg = &vs;
+    dv_macroblock_t           *mb;
+    int                       ds, v, m;
+    unsigned int              offset = 0, dif = 0, audio=0;
+
+  if(!seg->bs) {
+    seg->bs = _dv_bitstream_init();
+    if(!seg->bs)
+      goto no_mem;
+  } /* if */
+  seg->isPAL = (dv->system == e_dv_system_625_50);
+  pthread_mutex_lock(&dv_mutex);
+  /* each DV frame consists of a sequence of DIF segments  */
+  for (ds=0; ds < dv->num_dif_seqs; ds++) {
+    /** Each DIF segment conists of 150 dif blocks, 135 of which are video blocks
+       A video segment consists of 5 video blocks, where each video
+       block contains one compressed macroblock.  DV bit allocation
+       for the VLC stage can spill bits between blocks in the same
+       video segment.  So parsing needs the whole segment to decode
+       the VLC data
+     */
+    dif += 6;
+    audio=0;
+    /* Loop through video segments  */
+    for (v=0;v<27;v++) {
+      /* skip audio block - interleaved before every 3rd video segment */
+      if(!(v % 3)) {
+        /*dv_dump_aaux_as(buffer+(dif*80), ds, audio); */
+        dif++;
+        audio++;
+      } /* if */
+      /* stage 1: parse and VLC decode 5 macroblocks that make up a video segment */
+      offset = dif * 80;
+      _dv_bitstream_new_buffer(seg->bs, (uint8_t *)buffer + offset, 80*5);
+      dv_parse_video_segment(seg, dv->quality);
+      /* stage 2: dequant/unweight/iDCT blocks, and place the macroblocks */
+      dif+=5;
+      seg->i = ds;
+      seg->k = v;
+
+      for (m=0, mb = seg -> mb; m<5; m++, mb++) {
+        dv_decode_macroblock (dv, mb, dv -> quality);
+        dv_place_macroblock (dv, seg, mb, m);
+#if RANGE_CHECKING
+        dv_check_coeff_ranges(mb);
+#endif
+        dv_render_macroblock (dv, mb, pixels, pitches, (seg->isPAL * 2));
+      } /* for m */
+
+    } /* for v */
+
+  } /* ds */
+  pthread_mutex_unlock(&dv_mutex);
+
+#if RANGE_CHECKING
+  for(i=0;i<6;i++) {
+    fprintf(stderr, "range[%d] min %d max %d\n", i, ranges[i][0], ranges[i][1]);
+  }
+#endif
+  return;
+ no_mem:
+  fprintf(stderr,"no memory for bitstream!\n");
+  exit(-1);
+} /* dv_decode_full_frame_new  */
 
 /* ---------------------------------------------------------------------------
  */
@@ -596,10 +919,10 @@ dv_decode_full_audio(dv_decoder_t *dv, const uint8_t *buffer, int16_t **outbufs)
 
   return(TRUE);
 
- fail:
-fprintf (stderr, "# decode failure \n");
- no_audio:
-fprintf (stderr, "# no audio\n");
+  fail:
+    fprintf (stderr, "# decode failure \n");
+  no_audio:
+    fprintf (stderr, "# no audio\n");
   return(FALSE);
 
 } /* dv_decode_full_audio */
@@ -653,7 +976,7 @@ int
 dv_get_vaux_pack (dv_decoder_t *dv, uint8_t pack_id, uint8_t *data)
 {
   uint8_t  id;
-  if ((id = dv -> vaux_pack [pack_id]) == 0xff) 
+  if ((id = dv -> vaux_pack [pack_id]) == 0xff)
     return -1;
   memcpy (data, dv -> vaux_data [id], 4);
   return 0;

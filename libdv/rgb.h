@@ -1,4 +1,4 @@
-/* 
+/*
  *  rgb.h
  *
  *     Copyright (C) Charles 'Buck' Krasic - April 2000
@@ -48,23 +48,49 @@
 extern "C" {
 #endif
 
-extern void dv_rgb_init(int clamp_luma, int clamp_chroma);
+extern void dv_rgb_init(dv_decoder_t *decoder, int clamp_luma, int clamp_chroma);
 
 /* scalar versions */
-extern void dv_mb411_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_setup);
-extern void dv_mb411_right_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_setup);
-extern void dv_mb420_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches);
+extern void dv_mb411_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
+                         int add_ntsc_setup,
+                         int clamp_luma,
+                         int clamp_chroma);
+extern void dv_mb411_right_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
+                         int add_ntsc_setup,
+                         int clamp_luma,
+                         int clamp_chroma);
+extern void dv_mb420_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
+                         int add_ntsc_setup,
+                         int clamp_luma,
+                         int clamp_chroma);
 
-extern void dv_mb411_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_setup);
-extern void dv_mb411_right_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_setup);
-extern void dv_mb420_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches);
+extern void dv_mb411_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
+                         int add_ntsc_setup,
+                         int clamp_luma,
+                         int clamp_chroma);
+extern void dv_mb411_right_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
+                         int add_ntsc_setup,
+                         int clamp_luma,
+                         int clamp_chroma);
+extern void dv_mb420_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
+                         int add_ntsc_setup,
+                         int clamp_luma,
+                         int clamp_chroma);
 
 #if ARCH_X86
 /* pentium architecture mmx version */
 extern void dv_mb411_rgb_mmx(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
-                             int add_ntsc_setup);
-extern void dv_mb411_right_rgb_mmx(dv_macroblock_t *mb, uint8_t **pixels, int *pitches);
-extern void dv_mb420_rgb_mmx(dv_macroblock_t *mb, uint8_t **pixels, int *pitches);
+                         int add_ntsc_setup,
+                         int clamp_luma,
+                         int clamp_chroma);
+extern void dv_mb411_right_rgb_mmx(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
+                         int add_ntsc_setup,
+                         int clamp_luma,
+                         int clamp_chroma);
+extern void dv_mb420_rgb_mmx(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
+                         int add_ntsc_setup,
+                         int clamp_luma,
+                         int clamp_chroma);
 #endif // ARCH_X86
 
 #ifdef __cplusplus

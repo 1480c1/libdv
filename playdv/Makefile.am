@@ -7,6 +7,7 @@ MAINTAINERCLEANFILES      = Makefile.in $(AUX_DIST)
 CLEANFILES                = 
 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool --silent
+#LIBTOOL = $(SHELL) $(top_builddir)/libtool --silent -static
 
 CFLAGS = @CFLAGS@ $(SDL_CFLAGS) $(GTK_CFLAGS)
 
@@ -15,4 +16,5 @@ bin_PROGRAMS= playdv
 noinst_HEADERS=  display.h oss.h
 
 playdv_SOURCES= playdv.c display.c display.h oss.c
+playdv_LDFLAGS = -static
 playdv_LDADD= $(SDL_LIBS) $(GTK_LIBS) $(XV_LIB) ../libdv/libdv.la $(POPT_LIB)

@@ -75,11 +75,11 @@ dv_oss_new(void)
 } /* dv_oss_new */
 
 /* Very simplistic for sound output using the OSS API */
-gboolean
+int
 dv_oss_init(dv_audio_t *audio, dv_oss_t *oss)
 {
-  gint format = AFMT_S16_NE, rate_request, channels_request; 
-  gchar *device;
+  int   format = AFMT_S16_NE, rate_request, channels_request;
+  char  *device;
 
   channels_request = audio->num_channels;
   rate_request = audio->frequency;
@@ -87,11 +87,11 @@ dv_oss_init(dv_audio_t *audio, dv_oss_t *oss)
   oss->fd=-1;
   if(oss->arg_audio_device && oss->arg_audio_file) goto usage;
   if(oss->arg_audio_file) {
-    if ((oss->fd = open(oss->arg_audio_file, 
-			O_WRONLY|O_CREAT|O_TRUNC|O_LARGEFILE,
-			S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP)) == -1) goto no_file;
+    if ((oss->fd = open(oss->arg_audio_file,
+                        O_WRONLY|O_CREAT|O_TRUNC|O_LARGEFILE,
+                        S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP)) == -1) goto no_file;
   } else {
-    device = (gchar *)(oss->arg_audio_device ? oss->arg_audio_device : default_device);
+    device = (char *)(oss->arg_audio_device ? oss->arg_audio_device : default_device);
     /* open audio device */
     if ((oss->fd = open(device, O_RDWR, 0)) == -1) goto no_device;
     /* set sample format -- try for 16bit */
@@ -104,7 +104,9 @@ dv_oss_init(dv_audio_t *audio, dv_oss_t *oss)
     if (ioctl(oss->fd, SNDCTL_DSP_SPEED, &rate_request) == -1) goto rate_ioctl;
     if(rate_request != audio->frequency) goto rate_unsupported;
   }
-  if(!(oss->buffer = malloc(DV_AUDIO_MAX_SAMPLES * audio->num_channels * sizeof(gint16)))) goto no_memory;
+  if(!(oss->buffer = malloc(DV_AUDIO_MAX_SAMPLES * audio->num_channels * sizeof(short))))
+    goto no_memory;
+
   return(TRUE);
 
  usage:
@@ -153,10 +155,10 @@ dv_oss_init(dv_audio_t *audio, dv_oss_t *oss)
   return(FALSE);
 } /* dv_oss_init */
 
-gboolean
-dv_oss_play(dv_audio_t *audio, dv_oss_t *oss, gint16 **out)
+int
+dv_oss_play(dv_audio_t *audio, dv_oss_t *oss, short **out)
 {
-  gint ch, i, j=0, total, written=0, result;
+  int   ch, i, j=0, total, written=0, result;
 
   /* Interleave the audio into a single buffer */
   for(i=0; i < audio->samples_this_frame; i++) {
@@ -166,7 +168,7 @@ dv_oss_play(dv_audio_t *audio, dv_oss_t *oss, gint16 **out)
   } /* for */
 
   /* Send the audio to the device */
-  total = audio->samples_this_frame * audio->num_channels * sizeof(gint16);
+  total = audio->samples_this_frame * audio->num_channels * sizeof(short);
   do {
     result = write(oss->fd, oss->buffer + written, total - written);
     if(result <= 0) goto write_error;
@@ -189,7 +191,7 @@ dv_oss_play(dv_audio_t *audio, dv_oss_t *oss, gint16 **out)
 } /* dv_oss_play */
 
 void
-dv_oss_close(dv_oss_t *oss) 
+dv_oss_close(dv_oss_t *oss)
 {
   if(oss->fd != -1) {
     close(oss->fd);

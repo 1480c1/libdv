@@ -1,4 +1,4 @@
-/* 
+/*
  *  bitstream.h
  *
  *	Copyright (C) Aaron Holtzman - Dec 1999
@@ -58,7 +58,7 @@ void _dv_bitstream_next_buffer(bitstream_t * bs);
 void _dv_bitstream_new_buffer(bitstream_t *bs,uint8_t *buf,uint32_t len);
 void _dv_bitstream_byte_align(bitstream_t *bs);
 
-static void bitstream_next_word(bitstream_t *bs) {
+static inline void bitstream_next_word(bitstream_t *bs) {
   uint32_t diff = bs->buflen - bs->bufoffset;
 
   if (diff == 0)

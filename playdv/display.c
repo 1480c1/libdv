@@ -19,7 +19,7 @@
  *   
  *  You should have received a copy of the GNU General Public License
  *  along with GNU Make; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
@@ -52,11 +52,13 @@
 
 static dv_display_t *_dv_dpy;
 
-static int      dv_display_SDL_init(dv_display_t *dv_dpy, gchar *w_name, gchar   *i_name           );
-static gboolean dv_display_gdk_init(dv_display_t *dv_dpy, gint  *argc,   gchar ***argv             );
+#if HAVE_GTK
+static gboolean dv_display_gdk_init(dv_display_t *dv_dpy, gint  *argc,   gchar ***argv);
+#endif
 
 #if HAVE_SDL
 static void dv_center_window(SDL_Surface *screen);
+static int  dv_display_SDL_init(dv_display_t *dv_dpy, char *w_name, char   *i_name);
 #endif
 
 #if HAVE_LIBXV
@@ -77,14 +79,16 @@ static void dv_center_window(SDL_Surface *screen);
 #define DV_FORMAT_WIDE		1
 
 static void dv_display_event (dv_display_t *dv_dpy);
-static gint dv_display_Xv_init (dv_display_t *dv_dpy, gchar *w_name,
-				gchar   *i_name, int flags, int size);
-#endif 
+static int  dv_display_Xv_init (dv_display_t *dv_dpy, char *w_name,
+                                char *i_name, int flags, int size);
+#endif
 
 
 #if HAVE_LIBPOPT
+/* ----------------------------------------------------------------------------
+ */
 static void
-dv_display_popt_callback(poptContext con, enum poptCallbackReason reason, 
+dv_display_popt_callback(poptContext con, enum poptCallbackReason reason,
 			 const struct poptOption * opt,
 			 const char * arg, const void * data)
 {
@@ -118,7 +122,7 @@ dv_display_popt_callback(poptContext con, enum poptCallbackReason reason,
   }
 
   if ((display->arg_size_val != 0) &&
-      ((display->arg_size_val < 10) || (display->arg_size_val > 100))) {
+      ((display->arg_size_val < 10) || (display->arg_size_val > 400))) {
     dv_opt_usage(con, display->option_table, DV_DISPLAY_OPT_SIZE);
   } /* if */
 #endif /* HAVE_LIBXV */
@@ -126,8 +130,10 @@ dv_display_popt_callback(poptContext con, enum poptCallbackReason reason,
 } /* dv_display_popt_callback */
 #endif /* HAVE_LIBPOPT */
 
+/* ----------------------------------------------------------------------------
+ */
 dv_display_t *
-dv_display_new(void) 
+dv_display_new(void)
 {
   dv_display_t *result;
 
@@ -164,8 +170,8 @@ dv_display_new(void)
 		  }; /* display method */
 
   result->option_table[DV_DISPLAY_OPT_XV_PORT] = (struct poptOption) {
-    longName:   "xvport", 
-    argInfo:    POPT_ARG_INT, 
+    longName:   "xvport",
+    argInfo:    POPT_ARG_INT,
     arg:        &result->arg_xv_port,
     argDescrip: "number",
     descrip:    "set Xvideo port (defaults to the first usable)",
@@ -186,6 +192,8 @@ dv_display_new(void)
   return(result);
 } /* dv_display_new */
 
+/* ----------------------------------------------------------------------------
+ */
 void
 dv_display_show(dv_display_t *dv_dpy) {
   switch(dv_dpy->lib) {
@@ -193,13 +201,13 @@ dv_display_show(dv_display_t *dv_dpy) {
 #if HAVE_LIBXV
     dv_display_event(dv_dpy);
     XvShmPutImage(dv_dpy->dpy, dv_dpy->port,
-		  dv_dpy->win, dv_dpy->gc,
-		  dv_dpy->xv_image,
-		  0, 0,					        /* sx, sy */
-		  dv_dpy->swidth, dv_dpy->sheight,	        /* sw, sh */
-		  dv_dpy->lxoff,  dv_dpy->lyoff,                /* dx, dy */
-		  dv_dpy->lwidth, dv_dpy->lheight,	        /* dw, dh */
-		  True);
+                  dv_dpy->win, dv_dpy->gc,
+                  dv_dpy->xv_image,
+                  0, 0,                              /* sx, sy */
+                  dv_dpy->swidth, dv_dpy->sheight,   /* sw, sh */
+                  dv_dpy->lxoff,  dv_dpy->lyoff,     /* dx, dy */
+                  dv_dpy->lwidth, dv_dpy->lheight,   /* dw, dh */
+                  True);
     XFlush(dv_dpy->dpy);
 #endif /* HAVE_LIBXV */
     break;
@@ -208,9 +216,9 @@ dv_display_show(dv_display_t *dv_dpy) {
   case e_dv_dpy_gtk:
 #if HAVE_GTK
     gdk_draw_rgb_image(dv_dpy->image->window,
-		       dv_dpy->image->style->fg_gc[dv_dpy->image->state],
-		       0, 0, dv_dpy->width, dv_dpy->height,
-		       GDK_RGB_DITHER_MAX, dv_dpy->pixels[0], dv_dpy->pitches[0]);
+                       dv_dpy->image->style->fg_gc[dv_dpy->image->state],
+                       0, 0, dv_dpy->width, dv_dpy->height,
+                       GDK_RGB_DITHER_MAX, dv_dpy->pixels[0], dv_dpy->pitches[0]);
     gdk_flush();
     while(gtk_events_pending()) {
       gtk_main_iteration();
@@ -230,6 +238,8 @@ dv_display_show(dv_display_t *dv_dpy) {
   } /* switch */
 } /* dv_display_show */
 
+/* ----------------------------------------------------------------------------
+ */
 void
 dv_display_exit(dv_display_t *dv_dpy) {
   if(!dv_dpy)
@@ -267,10 +277,12 @@ dv_display_exit(dv_display_t *dv_dpy) {
   free(dv_dpy);
 } /* dv_display_exit */
 
+#if HAVE_GTK
+/* ----------------------------------------------------------------------------
+ */
 static gboolean
 dv_display_gdk_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv) {
 
-#if HAVE_GTK
   dv_dpy->pixels[0] = (guchar *)calloc(1,dv_dpy->width * dv_dpy->height * 3);
   if(!dv_dpy) goto no_mem;
   gtk_init(argc, argv);
@@ -280,10 +292,10 @@ dv_display_gdk_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv) {
   dv_dpy->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   dv_dpy->image = gtk_drawing_area_new();
   gtk_container_add(GTK_CONTAINER(dv_dpy->window),dv_dpy->image);
-  gtk_drawing_area_size(GTK_DRAWING_AREA(dv_dpy->image), 
-			dv_dpy->width, dv_dpy->height);
+  gtk_drawing_area_size(GTK_DRAWING_AREA(dv_dpy->image),
+                        dv_dpy->width, dv_dpy->height);
   gtk_widget_set_usize(GTK_WIDGET(dv_dpy->image),
-			dv_dpy->width, dv_dpy->height);
+                       dv_dpy->width, dv_dpy->height);
   gtk_widget_show(dv_dpy->image);
   gtk_widget_show(dv_dpy->window);
   gdk_flush();
@@ -293,9 +305,19 @@ dv_display_gdk_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv) {
 
   return TRUE;
  no_mem:
-#endif /* HAVE_GTK */
   return FALSE;
 } /* dv_display_gdk_init */
+#else
+
+/* ----------------------------------------------------------------------------
+ */
+static int
+dv_display_gdk_init(dv_display_t *dv_dpy, int *argc, char ***argv) {
+  fprintf(stderr,"playdv was compiled without gdk support\n");
+  return(FALSE);
+} /* dv_display_gdk_init */
+
+#endif /* HAVE_GTK */
 
 #if HAVE_LIBXV
 
@@ -307,11 +329,11 @@ dv_display_event (dv_display_t *dv_dpy)
     gint	old_pic_format;
 
   while (XCheckTypedWindowEvent (dv_dpy->dpy, dv_dpy->win,
-				 ConfigureNotify, &dv_dpy->event)) {
+                                 ConfigureNotify, &dv_dpy->event)) {
     switch (dv_dpy->event.type) {
       case ConfigureNotify:
-	dv_dpy->dwidth = dv_dpy->event.xconfigure.width;
-	dv_dpy->dheight = dv_dpy->event.xconfigure.height;
+        dv_dpy->dwidth = dv_dpy->event.xconfigure.width;
+        dv_dpy->dheight = dv_dpy->event.xconfigure.height;
         /* --------------------------------------------------------------------
          * set current picture format to unknown, so that .._check_format
          * does some work.
@@ -319,9 +341,9 @@ dv_display_event (dv_display_t *dv_dpy)
         old_pic_format = dv_dpy->pic_format;
         dv_dpy->pic_format = DV_FORMAT_UNKNOWN;
         dv_display_check_format (dv_dpy, old_pic_format);
-	break;
+        break;
       default:
-	break;
+        break;
     } /* switch */
   } /* while */
 } /* dv_display_event */
@@ -335,6 +357,9 @@ dv_display_set_norm (dv_display_t *dv_dpy, dv_system_t norm)
 {
 #if HAVE_LIBXV
   dv_dpy->sheight = (norm == e_dv_system_625_50) ? 576: 480;
+  if (dv_dpy->attr & DV_ATTR_HALF_HIGH) {
+    dv_dpy->sheight /= 2;
+  }
 #endif /* HAVE_LIBXV */
 } /* dv_display_set_norm */
 
@@ -345,7 +370,7 @@ dv_display_check_format(dv_display_t *dv_dpy, int pic_format)
 {
 #if HAVE_LIBXV
   /*  return immediate if ther is no format change or no format
-   * specific flag was set upon initialisation 
+   * specific flag was set upon initialisation
    */
   if (pic_format == dv_dpy->pic_format ||
       !(dv_dpy->flags & XV_FORMAT_MASK))
@@ -387,20 +412,20 @@ dv_display_check_format(dv_display_t *dv_dpy, int pic_format)
 #if HAVE_LIBXV
 /* ----------------------------------------------------------------------------
  */
-static gint
+static int
 dv_display_Xv_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name,
                    int flags, int size) {
-  int		scn_id,
-                ad_cnt, fmt_cnt,
-                got_port, got_fmt,
-                i, k;
-  XGCValues	values;
-  XSizeHints	hints;
-  XWMHints	wmhints;
-  XTextProperty	x_wname, x_iname;
+  int                 scn_id,
+                      ad_cnt, fmt_cnt,
+                      got_port, got_fmt,
+                      i, k;
+  XGCValues           values;
+  XSizeHints          hints;
+  XWMHints            wmhints;
+  XTextProperty       x_wname, x_iname;
 
-  XvAdaptorInfo	*ad_info;
-  XvImageFormatValues	*fmt_info;
+  XvAdaptorInfo       *ad_info;
+  XvImageFormatValues *fmt_info;
 
   if(!(dv_dpy->dpy = XOpenDisplay(NULL))) {
     return 0;
@@ -413,72 +438,72 @@ dv_display_Xv_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name,
    * So let's first check for an available adaptor and port
    */
   if(Success == XvQueryAdaptors(dv_dpy->dpy, dv_dpy->rwin, &ad_cnt, &ad_info)) {
-  
+
     for(i = 0, got_port = False; i < ad_cnt; ++i) {
       fprintf(stderr,
-	      "Xv: %s: ports %ld - %ld\n",
-	      ad_info[i].name,
-	      ad_info[i].base_id,
-	      ad_info[i].base_id +
-	      ad_info[i].num_ports - 1);
+              "Xv: %s: ports %ld - %ld\n",
+              ad_info[i].name,
+              ad_info[i].base_id,
+              ad_info[i].base_id +
+              ad_info[i].num_ports - 1);
 
-      if (dv_dpy->arg_xv_port != 0 && 
-	      (dv_dpy->arg_xv_port < ad_info[i].base_id ||
-	       dv_dpy->arg_xv_port >= ad_info[i].base_id+ad_info[i].num_ports)) {
-	  fprintf(stderr,
-		    "Xv: %s: skipping (looking for port %i)\n",
-		    ad_info[i].name,
-		    dv_dpy->arg_xv_port);
-	  continue;
+      if (dv_dpy->arg_xv_port != 0 &&
+          (dv_dpy->arg_xv_port < ad_info[i].base_id ||
+           dv_dpy->arg_xv_port >= ad_info[i].base_id+ad_info[i].num_ports)) {
+        fprintf(stderr,
+                "Xv: %s: skipping (looking for port %i)\n",
+                ad_info[i].name,
+                dv_dpy->arg_xv_port);
+        continue;
       }
 
       if (!(ad_info[i].type & XvImageMask)) {
-	fprintf(stderr,
-		"Xv: %s: XvImage NOT in capabilty list (%s%s%s%s%s )\n",
-		ad_info[i].name,
-		(ad_info[i].type & XvInputMask) ? " XvInput"  : "",
-		(ad_info[i]. type & XvOutputMask) ? " XvOutput" : "",
-		(ad_info[i]. type & XvVideoMask)  ?  " XvVideo"  : "",
-		(ad_info[i]. type & XvStillMask)  ?  " XvStill"  : "",
-		(ad_info[i]. type & XvImageMask)  ?  " XvImage"  : "");
-	continue;
+        fprintf(stderr,
+                "Xv: %s: XvImage NOT in capabilty list (%s%s%s%s%s )\n",
+                ad_info[i].name,
+                (ad_info[i].type & XvInputMask) ? " XvInput"  : "",
+                (ad_info[i]. type & XvOutputMask) ? " XvOutput" : "",
+                (ad_info[i]. type & XvVideoMask)  ?  " XvVideo"  : "",
+                (ad_info[i]. type & XvStillMask)  ?  " XvStill"  : "",
+                (ad_info[i]. type & XvImageMask)  ?  " XvImage"  : "");
+        continue;
       } /* if */
       fmt_info = XvListImageFormats(dv_dpy->dpy, ad_info[i].base_id,&fmt_cnt);
       if (!fmt_info || fmt_cnt == 0) {
-	fprintf(stderr, "Xv: %s: NO supported formats\n", ad_info[i].name);
-	continue;
+        fprintf(stderr, "Xv: %s: NO supported formats\n", ad_info[i].name);
+        continue;
       } /* if */
       for(got_fmt = False, k = 0; k < fmt_cnt; ++k) {
-	if (dv_dpy->format == fmt_info[k].id) {
-	  got_fmt = True;
-	  break;
-	} /* if */
+        if (dv_dpy->format == fmt_info[k].id) {
+          got_fmt = True;
+          break;
+        } /* if */
       } /* for */
       if (!got_fmt) {
-	fprintf(stderr,
-		"Xv: %s: format %#08x is NOT in format list ( ",
-		ad_info[i].name,
+        fprintf(stderr,
+                "Xv: %s: format %#08x is NOT in format list ( ",
+                ad_info[i].name,
                 dv_dpy->format);
-	for (k = 0; k < fmt_cnt; ++k) {
-	  fprintf (stderr, "%#08x[%s] ", fmt_info[k].id, fmt_info[k].guid);
-	}
-	fprintf(stderr, ")\n");
-	continue;
+        for (k = 0; k < fmt_cnt; ++k) {
+          fprintf (stderr, "%#08x[%s] ", fmt_info[k].id, fmt_info[k].guid);
+        }
+        fprintf(stderr, ")\n");
+        continue;
       } /* if */
 
       for(dv_dpy->port = ad_info[i].base_id, k = 0;
-	  k < ad_info[i].num_ports;
-	  ++k, ++(dv_dpy->port)) {
-	if (dv_dpy->arg_xv_port != 0 && dv_dpy->arg_xv_port != dv_dpy->port) continue;
-	if(!XvGrabPort(dv_dpy->dpy, dv_dpy->port, CurrentTime)) {
-	  fprintf(stderr, "Xv: grabbed port %ld\n",
-		  dv_dpy->port);
-	  got_port = True;
-	  break;
-	} /* if */
+          k < ad_info[i].num_ports;
+          ++k, ++(dv_dpy->port)) {
+        if (dv_dpy->arg_xv_port != 0 && dv_dpy->arg_xv_port != dv_dpy->port)
+          continue;
+        if(!XvGrabPort(dv_dpy->dpy, dv_dpy->port, CurrentTime)) {
+          fprintf(stderr, "Xv: grabbed port %ld\n", dv_dpy->port);
+          got_port = True;
+          break;
+        } /* if */
       } /* for */
       if(got_port)
-	break;
+        break;
     } /* for */
 
   } else {
@@ -520,6 +545,9 @@ dv_display_Xv_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name,
    */
   dv_dpy->lwidth = dv_dpy->dwidth = dv_dpy->swidth = dv_dpy->width;
   dv_dpy->lheight = dv_dpy->dheight = dv_dpy->sheight = dv_dpy->height;
+  if (dv_dpy->attr & DV_ATTR_HALF_HIGH) {
+    dv_dpy->sheight /= 2;
+  }
   dv_dpy->lxoff = dv_dpy->lyoff = 0;
   dv_dpy-> flags = flags;
 
@@ -549,18 +577,18 @@ dv_display_Xv_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name,
 
   if (!(flags & XV_NOSAWINDOW)) {
     dv_dpy->win = XCreateSimpleWindow(dv_dpy->dpy,
-				       dv_dpy->rwin,
-				       0, 0,
-				       dv_dpy->dwidth, dv_dpy->dheight,
-				       0,
-				       XWhitePixel(dv_dpy->dpy, scn_id),
-				       XBlackPixel(dv_dpy->dpy, scn_id));
+                                      dv_dpy->rwin,
+                                      0, 0,
+                                      dv_dpy->dwidth, dv_dpy->dheight,
+                                      0,
+                                      XWhitePixel(dv_dpy->dpy, scn_id),
+                                      XBlackPixel(dv_dpy->dpy, scn_id));
   } else {
   }
   XSetWMProperties(dv_dpy->dpy, dv_dpy->win,
-		    &x_wname, &x_iname,
-		    NULL, 0,
-		    &hints, &wmhints, NULL);
+                   &x_wname, &x_iname,
+                   NULL, 0,
+                   &hints, &wmhints, NULL);
 
   XSelectInput(dv_dpy->dpy, dv_dpy->win, ExposureMask | StructureNotifyMask);
   XMapRaised(dv_dpy->dpy, dv_dpy->win);
@@ -568,20 +596,20 @@ dv_display_Xv_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name,
 
   dv_dpy->gc = XCreateGC(dv_dpy->dpy, dv_dpy->win, 0, &values);
 
-  /* 
+  /*
    * Now we do shared memory allocation etc..
    */
   dv_dpy->xv_image = XvShmCreateImage(dv_dpy->dpy, dv_dpy->port,
-					 dv_dpy->format, dv_dpy->pixels[0],
-					 720, 576,
-				      /*					 dv_dpy->width, dv_dpy->height, */
-					 &dv_dpy->shminfo);
+                                      dv_dpy->format, dv_dpy->pixels[0],
+                                      720, 576,
+                                      /* dv_dpy->width, dv_dpy->height, */
+                                      &dv_dpy->shminfo);
 
   dv_dpy->shminfo.shmid = shmget(IPC_PRIVATE,
-				     dv_dpy->len,
-				     IPC_CREAT | 0777);
+                                 dv_dpy->len,
+                                 IPC_CREAT | 0777);
 
-  dv_dpy->xv_image->data = dv_dpy->pixels[0] = dv_dpy->shminfo.shmaddr = 
+  dv_dpy->xv_image->data = dv_dpy->pixels[0] = dv_dpy->shminfo.shmaddr =
     shmat(dv_dpy->shminfo.shmid, 0, 0);
 
   XShmAttach(dv_dpy->dpy, &dv_dpy->shminfo);
@@ -596,7 +624,8 @@ dv_display_Xv_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name,
 
 
 #if HAVE_SDL
-
+/* ----------------------------------------------------------------------------
+ */
 static void
 dv_center_window(SDL_Surface *screen)
 {
@@ -620,6 +649,8 @@ dv_center_window(SDL_Surface *screen)
     } /* if  */
 } /* dv_center_window */
 
+/* ----------------------------------------------------------------------------
+ */
 static int
 dv_display_SDL_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name) {
   const SDL_VideoInfo *video_info;
@@ -638,10 +669,10 @@ dv_display_SDL_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name) {
     break;
   } /* switch  */
   dv_dpy->sdl_screen = SDL_SetVideoMode(dv_dpy->width,dv_dpy->height,
-					video_bpp,SDL_HWSURFACE);
+                                        video_bpp,SDL_HWSURFACE);
   SDL_WM_SetCaption(w_name, i_name);
   dv_dpy->overlay = SDL_CreateYUVOverlay(dv_dpy->width, dv_dpy->height, dv_dpy->format,
-					 dv_dpy->sdl_screen);
+                                         dv_dpy->sdl_screen);
   if((!dv_dpy->overlay || (!dv_dpy->overlay->hw_overlay) ||  /* we only want HW overlays */
       SDL_LockYUVOverlay(dv_dpy->overlay)<0)) {
     goto no_overlay;
@@ -660,7 +691,7 @@ dv_display_SDL_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name) {
   return(True);
 
  no_overlay:
-  if(dv_dpy->overlay) 
+  if(dv_dpy->overlay)
     SDL_FreeYUVOverlay(dv_dpy->overlay);
   SDL_Quit();
  no_sdl:
@@ -669,9 +700,10 @@ dv_display_SDL_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name) {
 } /* dv_display_SDL_init */
 
 #else
-
+/* ----------------------------------------------------------------------------
+ */
 static int
-dv_display_SDL_init(dv_display_t *dv_dpy, gchar *w_name, gchar *i_name) {
+dv_display_SDL_init(dv_display_t *dv_dpy, char *w_name, char *i_name) {
   fprintf(stderr,"playdv was compiled without SDL support\n");
   return(FALSE);
 } /* dv_display_SDL_init */
@@ -687,38 +719,22 @@ dv_display_exit_handler (void)
 } /* dv_display_exit_handler */
 
 
-gboolean
-dv_display_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv, gint width, gint height, 
-		dv_sample_t sampling, gchar *w_name, gchar *i_name) {
+/* ---------------------------------------------------------------------------
+ */
+int
+dv_display_init(dv_display_t *dv_dpy,
+                int *argc, char ***argv,
+                int width, int height,
+                dv_sample_t sampling,
+                int format, int attr,
+                char *w_name, char *i_name) {
 
   dv_dpy->width = width;
   dv_dpy->height = height;
-  
-  switch(sampling) {
-  case e_dv_sample_411:
-  case e_dv_sample_422:
-#if ! YUV_420_USE_YV12
-  case e_dv_sample_420:
-#endif
-    dv_dpy->format = DV_FOURCC_YUY2;
-#if 0
-    dv_dpy->len = dv_dpy->width * dv_dpy->height * 2;
-#else
-    /* don't spare with space. just allocate enough
-     */
-    dv_dpy->len = 720 * 576 * 4;
-#endif
-    break;
-#if YUV_420_USE_YV12
-  case e_dv_sample_420:
-    dv_dpy->format = DV_FOURCC_YV12;
-    dv_dpy->len = (dv_dpy->width * dv_dpy->height * 3) / 2;
-    break;
-#endif
-  default:
-    /* Not possible */
-    break;
-  } /* switch */
+
+  dv_dpy->len = 720 * 576 * 4;
+  dv_dpy->format = format;
+  dv_dpy->attr = attr;
 
   switch(dv_dpy->arg_display) {
   case 0:
@@ -726,10 +742,10 @@ dv_display_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv, gint width, gin
 #if HAVE_LIBXV
     /* Try to use Xv first, then SDL */
     if(dv_display_Xv_init(dv_dpy, w_name, i_name,
-			  dv_dpy->arg_aspect_val,
-			  dv_dpy->arg_size_val)) {
+                          dv_dpy->arg_aspect_val,
+                          dv_dpy->arg_size_val)) {
       goto Xv_ok;
-    } else 
+    } else
 #endif /* HAVE_LIBXV */
     if(dv_display_SDL_init(dv_dpy, w_name, i_name)) {
       goto SDL_ok;
@@ -745,8 +761,8 @@ dv_display_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv, gint width, gin
 #if HAVE_LIBXV
     /* Xv */
     if(dv_display_Xv_init(dv_dpy, w_name, i_name,
-			  dv_dpy->arg_aspect_val,
-			  dv_dpy->arg_size_val)) {
+                          dv_dpy->arg_aspect_val,
+                          dv_dpy->arg_size_val)) {
       goto Xv_ok;
     } else {
       fprintf(stderr, "Attempt to display via Xv failed\n");
@@ -788,12 +804,12 @@ dv_display_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv, gint width, gin
 
   switch(dv_dpy->format) {
   case DV_FOURCC_YUY2:
-    dv_dpy->pitches[0] = width * 2;
-    break;
+//    break;
   case DV_FOURCC_YV12:
     dv_dpy->pixels[1] = dv_dpy->pixels[0] + (width * height);
     dv_dpy->pixels[2] = dv_dpy->pixels[1] + (width * height / 4);
-    dv_dpy->pitches[0] = width;
+    dv_dpy->pitches[0] = width * 2;
+//    dv_dpy->pitches[0] = width;
     dv_dpy->pitches[1] = width / 2;
     dv_dpy->pitches[2] = width / 2;
     break;
@@ -820,6 +836,25 @@ dv_display_init(dv_display_t *dv_dpy, gint *argc, gchar ***argv, gint width, gin
   return(TRUE);
 
  fail:
-  fprintf(stderr, " Unable to establish a display method\n");
-  return(FALSE);
+  if (!(dv_dpy->pixels[0] = malloc (720 * 576 * 4))) {
+    fprintf(stderr, " Unable to establish a display method\n");
+    fprintf(stderr, " Unable to establish memory out method\n");
+    return(FALSE);
+  }
+  switch(dv_dpy->format) {
+    case DV_FOURCC_YUY2:
+    case DV_FOURCC_YV12:
+      dv_dpy->pixels[1] = dv_dpy->pixels[0] + (width * height);
+      dv_dpy->pixels[2] = dv_dpy->pixels[1] + (width * height / 4);
+      dv_dpy->pitches[0] = width * 2;
+      dv_dpy->pitches[1] = width / 2;
+      dv_dpy->pitches[2] = width / 2;
+      break;
+    default:
+      dv_dpy->pitches[0] = width * 3;
+      break;
+  } /* switch */
+
+  fprintf(stderr, " Only memory out method available\n");
+  return(TRUE);
 } /* dv_display_init */

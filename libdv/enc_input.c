@@ -1,4 +1,4 @@
-/* 
+/*
  *  enc_input.c
  *
  *     Copyright (C) Peter Schlaile - Feb 2001
@@ -18,11 +18,11 @@
  *   
  *  You should have received a copy of the GNU General Public License
  *  along with GNU Make; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *  The libdv homepage is http://libdv.sourceforge.net/.  
+ *  The libdv homepage is http://libdv.sourceforge.net/.
  */
- 
+
 #if HAVE_CONFIG_H
 # include <config.h>
 #endif
@@ -67,7 +67,7 @@ static inline int f2b(float f)
 		b = 0;
 	if (b > 255)
 		b = 255;
-	
+
 	return b;
 }
 
@@ -75,7 +75,7 @@ static inline int f2b(float f)
 static inline int f2sb(float f)
 {
 	int b = rint(f);
-	
+
 	return b;
 }
 #endif
@@ -94,27 +94,27 @@ void dv_enc_rgb_to_ycb(unsigned char* img_rgb, int height,
        register long r,g,b ;
        long colr, colb;
        register short int *ty, *tr, *tb;
-       ip =  img_rgb;  
+       ip =  img_rgb;
        colr = colb =  0;
-       ty = img_y;     
+       ty = img_y;
        tr = img_cr;
        tb = img_cb;
        ti = height * DV_WIDTH ;
        for (i = 0; i < ti; i++) {
 	       r = *ip++;
-	       g = *ip++; 
+	       g = *ip++;
 	       b = *ip++;
 
 	       *ty++ =  (( ( (16828 * r) + (33038 * g) + (6416 * b) )
 			   >> 16   ) - 128 + 16) << DCT_YUV_PRECISION;
 
-	       colr +=  ( (28784 * r) + (-24121 * g) + (-4663 * b) ) ; 
+	       colr +=  ( (28784 * r) + (-24121 * g) + (-4663 * b) ) ;
 	       colb +=  ( (-9729 * r) + (-19055 * g) + (28784 * b) ) ;
 	       if (! (i % 2)) {
 		       *tr++ = colr >> (16 + 1 - DCT_YUV_PRECISION);
 		       *tb++ = colb >> (16 + 1 - DCT_YUV_PRECISION);
 		       colr = colb = 0;
-	       }       
+	       }
        }
 #else
 	int x,y;
@@ -142,8 +142,8 @@ void dv_enc_rgb_to_ycb(unsigned char* img_rgb, int height,
 				(cm[1][2] * b);
 			cb =    (cm[2][0] * r) + (cm[2][1] * g) +
 				(cm[2][2] * b);
-			
-			img_y[y * DV_WIDTH + x] = 
+
+			img_y[y * DV_WIDTH + x] =
 				(f2sb(cy) - 128 + 16) * fac;
 			tmp_cr[y][x] = cr * fac;
 			tmp_cb[y][x] = cb * fac;
@@ -151,10 +151,10 @@ void dv_enc_rgb_to_ycb(unsigned char* img_rgb, int height,
 	}
 	for (y = 0; y < height; y++) {
 		for (x = 0; x < DV_WIDTH / 2; x++) {
-			img_cr[y * DV_WIDTH / 2 + x] = 
+			img_cr[y * DV_WIDTH / 2 + x] =
 				f2sb((tmp_cr[y][2*x] +
 				      tmp_cr[y][2*x+1]) / 2.0);
-			img_cb[y * DV_WIDTH / 2 + x] = 
+			img_cb[y * DV_WIDTH / 2 + x] =
 				f2sb((tmp_cb[y][2*x] +
 				      tmp_cb[y][2*x+1]) / 2.0);
 		}
@@ -184,7 +184,7 @@ static int need_dct_248_transposed(dv_coeff_t * bl)
 	int res_cols = 1;
 	int res_rows = 1;
 	int i,j;
-	
+
 	for (j = 0; j < 7; j ++) {
 		for (i = 0; i < 8; i++) {
 			int a = bl[i * 8 + j] - bl[i * 8 + j + 1];
@@ -242,8 +242,8 @@ static void finish_mb_mmx(dv_macroblock_t* mb)
 
 	if (force_dct == -1) {
 		for (b = 0; b < 6; b++) {
-			bl[b].dct_mode = 
-				((need_dct_248_rows[b] * 65536 / 
+			bl[b].dct_mode =
+				((need_dct_248_rows[b] * 65536 /
 				  (_dv_need_dct_248_mmx_rows(bl[b].coeffs) + 1))
 				 > DCT_248_THRESHOLD) ? DV_DCT_248 : DV_DCT_88;
 		}
@@ -267,31 +267,31 @@ static int read_ppm_stream(FILE* f, int * isPAL, int * height_)
 		fprintf(stderr, "Bad PPM file!\n");
 		return -1;
 	}
-	if (width != DV_WIDTH || 
+	if (width != DV_WIDTH ||
 	    (height != DV_PAL_HEIGHT && height != DV_NTSC_HEIGHT)) {
 		fprintf(stderr, "Invalid picture size! (%d, %d)\n"
 			"Allowed sizes are 720x576 for PAL and "
 			"720x480 for NTSC\n"
-			"Probably you should try ppmqscale...\n", 
+			"Probably you should try ppmqscale...\n",
 			width, height);
 		return -1;
 	}
 	fgets(line, sizeof(line), f);	/* 255 */
-	
+
 	fread(readbuf, 1, 3 * DV_WIDTH * height, f);
 
 	*height_ = height;
 	*isPAL = (height == DV_PAL_HEIGHT);
 
 	if (wrong_interlace) {
-		memcpy(readbuf + DV_WIDTH * height*3, 
+		memcpy(readbuf + DV_WIDTH * height*3,
 		       readbuf + DV_WIDTH * (height-1)*3, DV_WIDTH*3);
 	}
 
 	return 0;
 }
 
-static int ppm_init(int wrong_interlace_, int force_dct_) 
+static int ppm_init(int wrong_interlace_, int force_dct_)
 {
 	wrong_interlace = wrong_interlace_;
 
@@ -349,7 +349,7 @@ static int ppm_skip(const char* filename, int * isPAL)
 
 	if (strcmp(filename, "-") == 0) {
 		rval = read_ppm_stream(stdin, isPAL, &height);
-	} 
+	}
 
 	return rval;
 }
@@ -365,21 +365,21 @@ static void ppm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 		int i,j;
 		for (j = 0; j < 8; j++) {
 			for (i = 0; i < 8; i++) {
-				bl[0].coeffs[8 * i + j] = 
+				bl[0].coeffs[8 * i + j] =
 					img_y[(y + j) * DV_WIDTH +  x + i];
-				bl[1].coeffs[8 * i + j] = 
+				bl[1].coeffs[8 * i + j] =
 					img_y[(y + j) * DV_WIDTH +  x + 8 + i];
-				bl[2].coeffs[8 * i + j] = 
+				bl[2].coeffs[8 * i + j] =
 					img_y[(y + 8 + j) * DV_WIDTH + x + i];
-				bl[3].coeffs[8 * i + j] = 
-					img_y[(y + 8 + j) * DV_WIDTH 
+				bl[3].coeffs[8 * i + j] =
+					img_y[(y + 8 + j) * DV_WIDTH
 					     + x + 8 + i];
-				bl[4].coeffs[8 * i + j] = 
-					(img_cr[(y + 2*j) * DV_WIDTH/2 
+				bl[4].coeffs[8 * i + j] =
+					(img_cr[(y + 2*j) * DV_WIDTH/2
 					       + x / 2 + i]
 					+ img_cr[(y + 2*j + 1) * DV_WIDTH/2
 						+ x / 2 + i]) >> 1;
-				bl[5].coeffs[8 * i + j] = 
+				bl[5].coeffs[8 * i + j] =
 					(img_cb[(y + 2*j) * DV_WIDTH/2
 					      + x / 2 + i]
 					+ img_cb[(y + 2*j + 1) * DV_WIDTH/2
@@ -390,36 +390,36 @@ static void ppm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 		int i,j;
 		for (j = 0; j < 8; j++) {
 			for (i = 0; i < 8; i++) {
-				bl[0].coeffs[8 * i + j] = 
+				bl[0].coeffs[8 * i + j] =
 					img_y[(y + j) * DV_WIDTH +  x + i];
-				bl[1].coeffs[8 * i + j] = 
+				bl[1].coeffs[8 * i + j] =
 					img_y[(y + j) * DV_WIDTH +  x + 8 + i];
-				bl[2].coeffs[8 * i + j] = 
+				bl[2].coeffs[8 * i + j] =
 					img_y[(y + 8 + j) * DV_WIDTH + x + i];
-				bl[3].coeffs[8 * i + j] = 
-					img_y[(y + 8 + j) * DV_WIDTH 
+				bl[3].coeffs[8 * i + j] =
+					img_y[(y + 8 + j) * DV_WIDTH
 					     + x + 8 + i];
 			}
 			for (i = 0; i < 4; i++) {
-				bl[4].coeffs[8 * i + j] = 
+				bl[4].coeffs[8 * i + j] =
 					(img_cr[(y + j) * DV_WIDTH/2
 					       + x / 2 + i*2]
-					 + img_cr[(y + j) * DV_WIDTH/2 
+					 + img_cr[(y + j) * DV_WIDTH/2
 						 + x / 2 + 1 + i*2]) >> 1;
-				bl[5].coeffs[8 * i + j] = 
+				bl[5].coeffs[8 * i + j] =
 					(img_cb[(y + j) * DV_WIDTH/2
 					       + x / 2 + i*2]
-					 + img_cb[(y + j) * DV_WIDTH/2 
+					 + img_cb[(y + j) * DV_WIDTH/2
 						 + x / 2 + 1 + i*2]) >> 1;
-				bl[4].coeffs[8 * (i + 4) + j] = 
+				bl[4].coeffs[8 * (i + 4) + j] =
 					(img_cr[(y + j + 8) * DV_WIDTH/2
 					       + x / 2 + i*2]
-					 + img_cr[(y + j + 8) * DV_WIDTH/2 
+					 + img_cr[(y + j + 8) * DV_WIDTH/2
 						 + x / 2 + 1 + i*2]) >> 1;
-				bl[5].coeffs[8 * (i + 4) + j] = 
+				bl[5].coeffs[8 * (i + 4) + j] =
 					(img_cb[(y + j + 8) * DV_WIDTH/2
 					       + x / 2 + i*2]
-					 + img_cb[(y + j + 8) * DV_WIDTH/2 
+					 + img_cb[(y + j + 8) * DV_WIDTH/2
 						 + x / 2 + 1 + i*2]) >> 1;
 			}
 		}
@@ -427,23 +427,23 @@ static void ppm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 		int i,j;
 		for (j = 0; j < 8; j++) {
 			for (i = 0; i < 8; i++) {
-				bl[0].coeffs[8 * i + j] = 
+				bl[0].coeffs[8 * i + j] =
 					img_y[(y + j) * DV_WIDTH +  x + i];
-				bl[1].coeffs[8 * i + j] = 
+				bl[1].coeffs[8 * i + j] =
 					img_y[(y + j) * DV_WIDTH +  x + 8 + i];
-				bl[2].coeffs[8 * i + j] = 
+				bl[2].coeffs[8 * i + j] =
 					img_y[(y + j) * DV_WIDTH + x + 16 + i];
-				bl[3].coeffs[8 * i + j] = 
+				bl[3].coeffs[8 * i + j] =
 					img_y[(y + j) * DV_WIDTH + x + 24 + i];
-				bl[4].coeffs[8 * i + j] = 
+				bl[4].coeffs[8 * i + j] =
 					(img_cr[(y + j) * DV_WIDTH/2
 					       + x / 2 + i*2]
-					 + img_cr[(y + j) * DV_WIDTH/2 
+					 + img_cr[(y + j) * DV_WIDTH/2
 						 + x / 2 + 1 + i*2]) >> 1;
-				bl[5].coeffs[8 * i + j] = 
+				bl[5].coeffs[8 * i + j] =
 					(img_cb[(y + j) * DV_WIDTH/2
 					       + x / 2 + i*2]
-					 + img_cb[(y + j) * DV_WIDTH/2 
+					 + img_cb[(y + j) * DV_WIDTH/2
 						 + x / 2 + 1 + i*2]) >> 1;
 			}
 		}
@@ -456,7 +456,7 @@ static void ppm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 	} else {
 		int b;
 		for (b = 0; b < 6; b++) {
-			bl[b].dct_mode = need_dct_248_transposed(bl[b].coeffs) 
+			bl[b].dct_mode = need_dct_248_transposed(bl[b].coeffs)
 				? DV_DCT_248 : DV_DCT_88;
 		}
 	}
@@ -482,25 +482,25 @@ static void ppm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 
 		for (j = 0; j < 8; j++) {
 			for (i = 0; i < 4; i++) {
-				bl[4].coeffs[8 * j + i] = 
+				bl[4].coeffs[8 * j + i] =
 					(img_cr[(y + j) * DV_WIDTH/2
 					       + x / 2 + i*2]
-					 + img_cr[(y + j) * DV_WIDTH/2 
+					 + img_cr[(y + j) * DV_WIDTH/2
 						 + x / 2 + 1 + i*2]) >> 1;
-				bl[5].coeffs[8 * j + i] = 
+				bl[5].coeffs[8 * j + i] =
 					(img_cb[(y + j) * DV_WIDTH/2
 					       + x / 2 + i*2]
-					 + img_cb[(y + j) * DV_WIDTH/2 
+					 + img_cb[(y + j) * DV_WIDTH/2
 						 + x / 2 + 1 + i*2]) >> 1;
-				bl[4].coeffs[8 * j + i + 4] = 
+				bl[4].coeffs[8 * j + i + 4] =
 					(img_cr[(y + j + 8) * DV_WIDTH/2
 					       + x / 2 + i*2]
-					 + img_cr[(y + j + 8) * DV_WIDTH/2 
+					 + img_cr[(y + j + 8) * DV_WIDTH/2
 						 + x / 2 + 1 + i*2]) >> 1;
-				bl[5].coeffs[8 * j + i + 4] = 
+				bl[5].coeffs[8 * j + i + 4] =
 					(img_cb[(y + j + 8) * DV_WIDTH/2
 					       + x / 2 + i*2]
-					 + img_cb[(y + j + 8) * DV_WIDTH/2 
+					 + img_cb[(y + j + 8) * DV_WIDTH/2
 						 + x / 2 + 1 + i*2]) >> 1;
 			}
 		}
@@ -540,34 +540,34 @@ static int read_pgm_stream(FILE* f, int * isPAL, int * height_)
 		return -1;
 	}
 	height = height / 3 * 2;
-	if (width != DV_WIDTH || 
+	if (width != DV_WIDTH ||
 	    (height != DV_PAL_HEIGHT && height != DV_NTSC_HEIGHT)) {
 		fprintf(stderr, "Invalid picture size! (%d, %d)\n"
 			"Allowed sizes are 720x864 for PAL and "
 			"720x720 for NTSC\n"
-			"Probably you should try ppms and ppmqscale...\n" 
+			"Probably you should try ppms and ppmqscale...\n"
 			"(Or write pgmqscale and include it in libdv ;-)\n",
 			width, height);
 		return -1;
 	}
 	fgets(line, sizeof(line), f);	/* 255 */
-	
+
 	fread(readbuf, 1, DV_WIDTH * height * 3 / 2, f);
 
 	*height_ = height;
 	*isPAL = (height == DV_PAL_HEIGHT);
 
 	if (wrong_interlace) {
-		memcpy(readbuf + DV_WIDTH * height, 
+		memcpy(readbuf + DV_WIDTH * height,
 		       readbuf + DV_WIDTH * (height-1), DV_WIDTH);
-		memcpy(readbuf + DV_WIDTH * (height*3/2), 
+		memcpy(readbuf + DV_WIDTH * (height*3/2),
 		       readbuf + DV_WIDTH * (height*3/2-1), DV_WIDTH);
 	}
 
 	return 0;
 }
 
-static int pgm_init(int wrong_interlace_, int force_dct_) 
+static int pgm_init(int wrong_interlace_, int force_dct_)
 {
 	wrong_interlace = wrong_interlace_;
 	force_dct = force_dct_;
@@ -614,7 +614,7 @@ static int pgm_skip(const char* filename, int * isPAL)
 
 	if (strcmp(filename, "-") == 0) {
 		rval = read_pgm_stream(stdin, isPAL, &height);
-	} 
+	}
 
 	return rval;
 }
@@ -646,8 +646,8 @@ static inline short pgm_get_y(int y, int x)
 
 static inline short pgm_get_cr_pal(int y, int x)
 {
-	return (real_readbuf[DV_PAL_HEIGHT * DV_WIDTH + DV_WIDTH/2  
-			    + y * DV_WIDTH + x] 
+	return (real_readbuf[DV_PAL_HEIGHT * DV_WIDTH + DV_WIDTH/2
+			    + y * DV_WIDTH + x]
 		- 128) << DCT_YUV_PRECISION;
 
 }
@@ -679,9 +679,9 @@ static void pgm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 				bl[1].coeffs[8*i + j] = pgm_get_y(y+j,x+8+i);
 				bl[2].coeffs[8*i + j] = pgm_get_y(y+8+j,x+i);
 				bl[3].coeffs[8*i + j] = pgm_get_y(y+8+j,x+8+i);
-				bl[4].coeffs[8*i + j] = 
+				bl[4].coeffs[8*i + j] =
 					pgm_get_cr_pal(y/2+j, x/2+i);
-				bl[5].coeffs[8*i + j] = 
+				bl[5].coeffs[8*i + j] =
 					pgm_get_cb_pal(y/2+j, x/2+i);
 			}
 		}
@@ -695,17 +695,17 @@ static void pgm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 				bl[3].coeffs[8*i + j] = pgm_get_y(y+8+j,x+8+i);
 			}
 			for (i = 0; i < 4; i++) {
-				bl[4].coeffs[8*j + i*2] = 
-					bl[4].coeffs[8*j + i*2 + 1] = 
+				bl[4].coeffs[8*j + i*2] =
+					bl[4].coeffs[8*j + i*2 + 1] =
 					pgm_get_cr_ntsc(y/2 + j, x/2 + i * 2);
-				bl[5].coeffs[8*j + i*2] = 
-					bl[5].coeffs[8*j + i*2 + 1] = 
+				bl[5].coeffs[8*j + i*2] =
+					bl[5].coeffs[8*j + i*2 + 1] =
 					pgm_get_cb_ntsc(y/2 + j, x/2 + i * 2);
-				bl[4].coeffs[8*j + (i+4)*2] = 
-					bl[4].coeffs[8*j + (i+4)*2 + 1] = 
+				bl[4].coeffs[8*j + (i+4)*2] =
+					bl[4].coeffs[8*j + (i+4)*2 + 1] =
 					pgm_get_cr_ntsc(y/2 + j +8, x/2 + i * 2);
-				bl[5].coeffs[8*j + (i+4)*2] = 
-					bl[5].coeffs[8*j + (i+4)*2 + 1] = 
+				bl[5].coeffs[8*j + (i+4)*2] =
+					bl[5].coeffs[8*j + (i+4)*2 + 1] =
 					pgm_get_cb_ntsc(y/2 + j +8, x/2 + i * 2);
 			}
 		}
@@ -719,11 +719,11 @@ static void pgm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 				bl[3].coeffs[8*i + j] = pgm_get_y(y+j,x+24+i);
 			}
 			for (i = 0; i < 4; i++) {
-				bl[4].coeffs[8*j + i*2] = 
-					bl[4].coeffs[8*j + i*2 + 1] = 
+				bl[4].coeffs[8*j + i*2] =
+					bl[4].coeffs[8*j + i*2 + 1] =
 					pgm_get_cr_ntsc(y/2 + i, x/2 + j * 2);
-				bl[5].coeffs[8*j + i*2] = 
-					bl[5].coeffs[8*j + i*2 + 1] = 
+				bl[5].coeffs[8*j + i*2] =
+					bl[5].coeffs[8*j + i*2 + 1] =
 					pgm_get_cb_ntsc(y/2 + i, x/2 + j * 2);
 			}
 		}
@@ -736,16 +736,16 @@ static void pgm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 	} else {
 		int b;
 		for (b = 0; b < 6; b++) {
-			bl[b].dct_mode = need_dct_248_transposed(bl[b].coeffs) 
+			bl[b].dct_mode = need_dct_248_transposed(bl[b].coeffs)
 				? DV_DCT_248 : DV_DCT_88;
 		}
 	}
 #else
 	if (isPAL) { /* PAL */
 		unsigned char* start_y = real_readbuf + y * DV_WIDTH + x;
-		unsigned char* img_cr = real_readbuf 
+		unsigned char* img_cr = real_readbuf
 			+ DV_WIDTH * DV_PAL_HEIGHT + DV_WIDTH / 2;
-		unsigned char* img_cb = real_readbuf 
+		unsigned char* img_cb = real_readbuf
 			+ DV_WIDTH * DV_PAL_HEIGHT;
 
 		_dv_pgm_copy_y_block_mmx(bl[0].coeffs, start_y);
@@ -759,11 +759,11 @@ static void pgm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 	} else if (x == DV_WIDTH- 16) {  /* rightmost NTSC block */
 		unsigned char* start_y = real_readbuf + y * DV_WIDTH + x;
 #if 0
-		unsigned char* img_cr = real_readbuf 
+		unsigned char* img_cr = real_readbuf
 			+ (isPAL ? (DV_WIDTH * DV_PAL_HEIGHT)
 			   : (DV_WIDTH * DV_NTSC_HEIGHT)) + DV_WIDTH / 2;
-		unsigned char* img_cb = real_readbuf 
-			+ (isPAL ? (DV_WIDTH * DV_PAL_HEIGHT) 
+		unsigned char* img_cb = real_readbuf
+			+ (isPAL ? (DV_WIDTH * DV_PAL_HEIGHT)
 			   : (DV_WIDTH * DV_NTSC_HEIGHT));
 #endif
 		int i,j;
@@ -775,25 +775,25 @@ static void pgm_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 
 		for (j = 0; j < 8; j++) {
 			for (i = 0; i < 4; i++) {
-				bl[4].coeffs[8*j + i*2] = 
-					bl[4].coeffs[8*j + i*2 + 1] = 
+				bl[4].coeffs[8*j + i*2] =
+					bl[4].coeffs[8*j + i*2 + 1] =
 					pgm_get_cr_ntsc(y/2 + j, x/2 + i * 2);
-				bl[5].coeffs[8*j + i*2] = 
-					bl[5].coeffs[8*j + i*2 + 1] = 
+				bl[5].coeffs[8*j + i*2] =
+					bl[5].coeffs[8*j + i*2 + 1] =
 					pgm_get_cb_ntsc(y/2 + j, x/2 + i * 2);
-				bl[4].coeffs[8*j + (i+4)*2] = 
-					bl[4].coeffs[8*j + (i+4)*2 + 1] = 
+				bl[4].coeffs[8*j + (i+4)*2] =
+					bl[4].coeffs[8*j + (i+4)*2 + 1] =
 					pgm_get_cr_ntsc(y/2 + j +8, x/2 + i * 2);
-				bl[5].coeffs[8*j + (i+4)*2] = 
-					bl[5].coeffs[8*j + (i+4)*2 + 1] = 
+				bl[5].coeffs[8*j + (i+4)*2] =
+					bl[5].coeffs[8*j + (i+4)*2 + 1] =
 					pgm_get_cb_ntsc(y/2 + j +8, x/2 + i * 2);
 			}
 		}
 	} else {                              /* NTSC */
 		unsigned char* start_y = real_readbuf + y * DV_WIDTH + x;
-		unsigned char* img_cr = real_readbuf 
+		unsigned char* img_cr = real_readbuf
 			+ DV_WIDTH * DV_NTSC_HEIGHT + DV_WIDTH / 2;
-		unsigned char* img_cb = real_readbuf 
+		unsigned char* img_cb = real_readbuf
 			+ DV_WIDTH * DV_NTSC_HEIGHT;
 		_dv_pgm_copy_y_block_mmx(bl[0].coeffs, start_y);
 		_dv_pgm_copy_y_block_mmx(bl[1].coeffs, start_y + 8);
@@ -837,14 +837,14 @@ static int init_vid_device(const char* filename)
 	vid_in = open(filename, O_RDWR);
 
 	ioerror("open", vid_in);
-	
+
 	ioerror("VIDIOCGMBUF", ioctl(vid_in, VIDIOCGMBUF, &gb_buffers));
-	vid_map = (unsigned char*) mmap(0, gb_buffers.size, 
+	vid_map = (unsigned char*) mmap(0, gb_buffers.size,
 					PROT_READ | PROT_WRITE,
 					MAP_SHARED, vid_in, 0);
 	ioerror("mmap", (long) vid_map);
 
-	fprintf(stderr, "encodedv-capture: found %d buffers\n", 
+	fprintf(stderr, "encodedv-capture: found %d buffers\n",
 		gb_buffers.frames);
 
 	ioerror("VIDIOCGTUNER", ioctl(vid_in, VIDIOCGTUNER, &tuner));
@@ -865,7 +865,7 @@ static int init_vid_device(const char* filename)
 	}
 
 	for (i = 0; i < gb_buffers.frames; i++) {
-		ioerror("VIDIOCMCAPTURE", 
+		ioerror("VIDIOCMCAPTURE",
 			ioctl(vid_in, VIDIOCMCAPTURE, &gb_frames[i]));
 	}
 	return 0;
@@ -900,7 +900,7 @@ static int video_load(const char* filename, int * isPAL)
 	fnumber = (frame_counter++) % gb_buffers.frames;
 
 	ioerror("VIDIOCSYNC", ioctl(vid_in, VIDIOCSYNC, &gb_frames[fnumber]));
-	
+
 	real_readbuf = vid_map + gb_buffers.offsets[fnumber];
 
 	*isPAL = video_is_pal;
@@ -938,7 +938,7 @@ static inline short video_get_cr_pal(int y, int x)
 	return ((((short) real_readbuf[DV_PAL_HEIGHT * DV_WIDTH
 				      + y * DV_WIDTH + x]) - 128)
 		+ (((short) real_readbuf[DV_PAL_HEIGHT * DV_WIDTH
-					+ y * DV_WIDTH + DV_WIDTH / 2+ x]) 
+					+ y * DV_WIDTH + DV_WIDTH / 2+ x])
 		   - 128)) << (DCT_YUV_PRECISION - 1);
 }
 
@@ -947,7 +947,7 @@ static inline short video_get_cb_pal(int y, int x)
 	return ((((short) real_readbuf[DV_PAL_HEIGHT * DV_WIDTH * 3/2
 				      + y * DV_WIDTH + x]) - 128)
 		+ (((short) real_readbuf[DV_PAL_HEIGHT * DV_WIDTH * 3/2
-					+ y * DV_WIDTH + DV_WIDTH / 2+ x]) 
+					+ y * DV_WIDTH + DV_WIDTH / 2+ x])
 		   - 128)) << (DCT_YUV_PRECISION - 1);
 }
 
@@ -973,9 +973,9 @@ static void video_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 				bl[1].coeffs[8*i + j] = video_get_y(y+j,x+8+i);
 				bl[2].coeffs[8*i + j] = video_get_y(y+8+j,x+i);
 				bl[3].coeffs[8*i + j] = video_get_y(y+8+j,x+8+i);
-				bl[4].coeffs[8*i + j] = 
+				bl[4].coeffs[8*i + j] =
 					video_get_cr_pal(y/2+j, x/2+i);
-				bl[5].coeffs[8*i + j] = 
+				bl[5].coeffs[8*i + j] =
 					video_get_cb_pal(y/2+j, x/2+i);
 			}
 		}
@@ -989,17 +989,17 @@ static void video_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 				bl[3].coeffs[8*i + j] = video_get_y(y+8+j,x+8+i);
 			}
 			for (i = 0; i < 4; i++) {
-				bl[4].coeffs[8*i + j] = 
+				bl[4].coeffs[8*i + j] =
 					video_get_cr_ntsc(y/2+j, x/2+i);
-				bl[5].coeffs[8*i + j] = 
+				bl[5].coeffs[8*i + j] =
 					video_get_cb_ntsc(y/2+j, x/2+i);
-				bl[4].coeffs[8*(i+4) + j] = 
+				bl[4].coeffs[8*(i+4) + j] =
 					video_get_cr_ntsc(y/2+j+8, x/2+i);
-				bl[5].coeffs[8*(i+4) + j] = 
+				bl[5].coeffs[8*(i+4) + j] =
 					video_get_cb_ntsc(y/2+j+8, x/2+i);
 			}
 		}
-		
+
 	} else {                        /* NTSC */
 		int i,j;
 		for (i = 0; i < 8; i++) {
@@ -1008,9 +1008,9 @@ static void video_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 				bl[1].coeffs[8*i + j] = video_get_y(y+j,x+8+i);
 				bl[2].coeffs[8*i + j] = video_get_y(y+j,x+16+i);
 				bl[3].coeffs[8*i + j] = video_get_y(y+j,x+24+i);
-				bl[4].coeffs[8*i + j] = 
+				bl[4].coeffs[8*i + j] =
 					video_get_cr_ntsc(y/2+j, x/2+i);
-				bl[5].coeffs[8*i + j] = 
+				bl[5].coeffs[8*i + j] =
 					video_get_cb_ntsc(y/2+j, x/2+i);
 			}
 		}
@@ -1023,17 +1023,17 @@ static void video_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 	} else {
 		int b;
 		for (b = 0; b < 6; b++) {
-			bl[b].dct_mode = need_dct_248_transposed(bl[b].coeffs) 
+			bl[b].dct_mode = need_dct_248_transposed(bl[b].coeffs)
 				? DV_DCT_248 : DV_DCT_88;
 		}
 	}
 #else
 	if (isPAL) { /* PAL */
 		unsigned char* start_y = real_readbuf + y * DV_WIDTH + x;
-		unsigned char* img_cr = real_readbuf 
-			+ (isPAL ? DV_WIDTH * DV_PAL_HEIGHT * 3/2  
+		unsigned char* img_cr = real_readbuf
+			+ (isPAL ? DV_WIDTH * DV_PAL_HEIGHT * 3/2
 			   : DV_WIDTH * DV_NTSC_HEIGHT * 3/2);
-		unsigned char* img_cb = real_readbuf 
+		unsigned char* img_cb = real_readbuf
 			+ (isPAL ? DV_WIDTH * DV_PAL_HEIGHT
 			   : DV_WIDTH * DV_NTSC_HEIGHT);
 
@@ -1048,10 +1048,10 @@ static void video_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 	} else if (x == DV_WIDTH- 16) {       /* rightmost NTSC block */
 		unsigned char* start_y = real_readbuf + y * DV_WIDTH + x;
 #if 0
-		unsigned char* img_cr = real_readbuf 
-			+ (isPAL ? DV_WIDTH * DV_PAL_HEIGHT * 3/2  
+		unsigned char* img_cr = real_readbuf
+			+ (isPAL ? DV_WIDTH * DV_PAL_HEIGHT * 3/2
 			   : DV_WIDTH * DV_NTSC_HEIGHT * 3/2);
-		unsigned char* img_cb = real_readbuf 
+		unsigned char* img_cb = real_readbuf
 			+ (isPAL ? DV_WIDTH * DV_PAL_HEIGHT
 			   : DV_WIDTH * DV_NTSC_HEIGHT);
 #endif
@@ -1061,7 +1061,7 @@ static void video_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 		_dv_video_copy_y_block_mmx(bl[1].coeffs, start_y + 8);
 		_dv_video_copy_y_block_mmx(bl[2].coeffs, start_y + 8 * DV_WIDTH);
 		_dv_video_copy_y_block_mmx(bl[3].coeffs, start_y + 8 * DV_WIDTH+8);
-		
+
 
 		for (j = 0; j < 8; j++) {
 			for (i = 0; i < 4; i++) {
@@ -1069,17 +1069,17 @@ static void video_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 					video_get_cr_ntsc(y/2+j, x/2+i);
 				bl[5].coeffs[8*j + i] = 
 					video_get_cb_ntsc(y/2+j, x/2+i);
-				bl[4].coeffs[8*j + (i+4)] = 
+				bl[4].coeffs[8*j + (i+4)] =
 					video_get_cr_ntsc(y/2+j+8, x/2+i);
-				bl[5].coeffs[8*j + (i+4)] = 
+				bl[5].coeffs[8*j + (i+4)] =
 					video_get_cb_ntsc(y/2+j+8, x/2+i);
 			}
 		}
 	} else {                              /* NTSC */
 		unsigned char* start_y = real_readbuf + y * DV_WIDTH + x;
-		unsigned char* img_cr = real_readbuf 
+		unsigned char* img_cr = real_readbuf
 			+ DV_WIDTH * DV_NTSC_HEIGHT * 3 / 2;
-		unsigned char* img_cb = real_readbuf 
+		unsigned char* img_cb = real_readbuf
 			+ DV_WIDTH * DV_NTSC_HEIGHT;
 		_dv_video_copy_y_block_mmx(bl[0].coeffs, start_y);
 		_dv_video_copy_y_block_mmx(bl[1].coeffs, start_y + 8);
@@ -1100,17 +1100,66 @@ static void video_fill_macroblock(dv_macroblock_t *mb, int isPAL)
 #endif
 
 
-static dv_enc_input_filter_t filters[DV_ENC_MAX_INPUT_FILTERS] = {
-	{ ppm_init, ppm_finish, ppm_load, ppm_skip, 
-	  ppm_fill_macroblock, "ppm" },
-#if HAVE_DEV_VIDEO
-	{ video_init, video_finish, video_load, video_load, 
-	  video_fill_macroblock,"video" },
-#endif
-	{ pgm_init, pgm_finish, pgm_load, pgm_skip, 
-	  pgm_fill_macroblock, "pgm" },
-	{ NULL, NULL, NULL, NULL }};
+/* ---------------------------------------------------------------------------
+ */
+static int
+yuv_load(const char* filename, int * isPAL)
+{
+    FILE                  *ppm_in = NULL;
+    static unsigned char  save_data [DV_WIDTH * DV_PAL_HEIGHT * 2];
+    unsigned char         *py, *pcb, *pcr;
+    int                   height, i, k, rval = -1;
 
+
+  if (strcmp(filename, "-") == 0) {
+    ppm_in = stdin;
+  } else {
+    ppm_in = fopen(filename, "r");
+    if (ppm_in == NULL) {
+      return -1;
+    }
+  }
+
+  rval = read_ppm_stream(ppm_in, isPAL, &height);
+  if (ppm_in != stdin) {
+    fclose(ppm_in);
+  }
+  height = (isPAL) ? DV_PAL_HEIGHT: DV_NTSC_HEIGHT;
+  memcpy (save_data, real_readbuf, DV_WIDTH * height * 2);
+  memset (real_readbuf, 0, DV_WIDTH * height * 2);
+
+  py = real_readbuf;
+  pcr = py + (DV_WIDTH * height);
+  pcb = pcr + ((DV_WIDTH * height) / 2);
+
+
+  for (i = 0, k = 0; i < ((DV_WIDTH * height) / 2); ++i, k += 4)
+  {
+    *(py++)  = save_data [k + 0];
+    *(pcb++) = save_data [k + 3];
+    *(py++)  = save_data [k + 2];
+    *(pcr++) = save_data [k + 1];
+  }
+  return rval;
+}
+
+/* ---------------------------------------------------------------------------
+ */
+static dv_enc_input_filter_t filters[DV_ENC_MAX_INPUT_FILTERS] = {
+  { ppm_init, ppm_finish, ppm_load, ppm_skip,
+    ppm_fill_macroblock, "ppm" },
+#if HAVE_DEV_VIDEO
+  { video_init, video_finish, video_load, video_load,
+    video_fill_macroblock,"video" },
+#endif
+  { pgm_init, pgm_finish, pgm_load, pgm_skip,
+    pgm_fill_macroblock, "pgm" },
+  { ppm_init, ppm_finish, yuv_load, yuv_load,
+    video_fill_macroblock, "yuv" },
+  { NULL, NULL, NULL, NULL }};
+
+/* ---------------------------------------------------------------------------
+ */
 void dv_enc_register_input_filter(dv_enc_input_filter_t filter)
 {
 	dv_enc_input_filter_t * p = filters;
@@ -1145,21 +1194,21 @@ void _dv_ycb_fill_macroblock(dv_encoder_t *dv_enc, dv_macroblock_t *mb)
 		int i,j;
 		for (j = 0; j < 8; j++) {
 			for (i = 0; i < 8; i++) {
-				bl[0].coeffs[8 * i + j] = 
+				bl[0].coeffs[8 * i + j] =
 					dv_enc->img_y[(y + j) * DV_WIDTH +  x + i];
-				bl[1].coeffs[8 * i + j] = 
+				bl[1].coeffs[8 * i + j] =
 					dv_enc->img_y[(y + j) * DV_WIDTH +  x + 8 + i];
-				bl[2].coeffs[8 * i + j] = 
+				bl[2].coeffs[8 * i + j] =
 					dv_enc->img_y[(y + 8 + j) * DV_WIDTH + x + i];
-				bl[3].coeffs[8 * i + j] = 
-					dv_enc->img_y[(y + 8 + j) * DV_WIDTH 
+				bl[3].coeffs[8 * i + j] =
+					dv_enc->img_y[(y + 8 + j) * DV_WIDTH
 					     + x + 8 + i];
-				bl[4].coeffs[8 * i + j] = 
-					(dv_enc->img_cr[(y + 2*j) * DV_WIDTH/2 
+				bl[4].coeffs[8 * i + j] =
+					(dv_enc->img_cr[(y + 2*j) * DV_WIDTH/2
 					       + x / 2 + i]
 					+ dv_enc->img_cr[(y + 2*j + 1) * DV_WIDTH/2
 						+ x / 2 + i]) >> 1;
-				bl[5].coeffs[8 * i + j] = 
+				bl[5].coeffs[8 * i + j] =
 					(dv_enc->img_cb[(y + 2*j) * DV_WIDTH/2
 					      + x / 2 + i]
 					+ dv_enc->img_cb[(y + 2*j + 1) * DV_WIDTH/2
@@ -1181,37 +1230,37 @@ void _dv_ycb_fill_macroblock(dv_encoder_t *dv_enc, dv_macroblock_t *mb)
 		int i,j;
 		for (j = 0; j < 8; j++) {
 			for (i = 0; i < 8; i++) {
-				bl[0].coeffs[8 * i + j] = 
+				bl[0].coeffs[8 * i + j] =
 					dv_enc->img_y[(y + j) * DV_WIDTH +  x + i];
-				bl[1].coeffs[8 * i + j] = 
+				bl[1].coeffs[8 * i + j] =
 					dv_enc->img_y[(y + j) * DV_WIDTH +  x + 8 + i];
-				bl[2].coeffs[8 * i + j] = 
+				bl[2].coeffs[8 * i + j] =
 					dv_enc->img_y[(y + 8 + j) * DV_WIDTH + x + i];
-				bl[3].coeffs[8 * i + j] = 
-					dv_enc->img_y[(y + 8 + j) * DV_WIDTH 
+				bl[3].coeffs[8 * i + j] =
+					dv_enc->img_y[(y + 8 + j) * DV_WIDTH
 					     + x + 8 + i];
 			}
 
 			for (i = 0; i < 4; i++) {
-				bl[4].coeffs[8 * i + j] = 
+				bl[4].coeffs[8 * i + j] =
 					(dv_enc->img_cr[(y + j) * DV_WIDTH/2
 					       + x / 2 + i*2]
-					 + dv_enc->img_cr[(y + j) * DV_WIDTH/2 
+					 + dv_enc->img_cr[(y + j) * DV_WIDTH/2
 						 + x / 2 + 1 + i*2]) >> 1;
-				bl[5].coeffs[8 * i + j] = 
+				bl[5].coeffs[8 * i + j] =
 					(dv_enc->img_cb[(y + j) * DV_WIDTH/2
 					       + x / 2 + i*2]
-					 + dv_enc->img_cb[(y + j) * DV_WIDTH/2 
+					 + dv_enc->img_cb[(y + j) * DV_WIDTH/2
 						 + x / 2 + 1 + i*2]) >> 1;
-				bl[4].coeffs[8 * (i + 4) + j] = 
+				bl[4].coeffs[8 * (i + 4) + j] =
 					(dv_enc->img_cr[(y + j + 8) * DV_WIDTH/2
 					       + x / 2 + i*2]
-					 + dv_enc->img_cr[(y + j + 8) * DV_WIDTH/2 
+					 + dv_enc->img_cr[(y + j + 8) * DV_WIDTH/2
 						 + x / 2 + 1 + i*2]) >> 1;
-				bl[5].coeffs[8 * (i + 4) + j] = 
+				bl[5].coeffs[8 * (i + 4) + j] =
 					(dv_enc->img_cb[(y + j + 8) * DV_WIDTH/2
 					       + x / 2 + i*2]
-					 + dv_enc->img_cb[(y + j + 8) * DV_WIDTH/2 
+					 + dv_enc->img_cb[(y + j + 8) * DV_WIDTH/2
 						 + x / 2 + 1 + i*2]) >> 1;
 			}
 			for (i = 0; i < 8; i++) {
@@ -1308,7 +1357,7 @@ void _dv_ycb_fill_macroblock(dv_encoder_t *dv_enc, dv_macroblock_t *mb)
 				bl[5].coeffs[8 * j + i] = 
 					(dv_enc->img_cb[(y + j) * DV_WIDTH/2
 					       + x / 2 + i*2]
-					 + dv_enc->img_cb[(y + j) * DV_WIDTH/2 
+					 + dv_enc->img_cb[(y + j) * DV_WIDTH/2
 						 + x / 2 + 1 + i*2]) >> 1;
 				bl[4].coeffs[8 * j + i + 4] = 
 					(dv_enc->img_cr[(y + j + 8) * DV_WIDTH/2

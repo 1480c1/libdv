@@ -44,7 +44,7 @@ function automake_version_msg () {
     echo
     echo "You must have automake 1.5 or greater to bootstrap $package."
     echo "Get the latest version from ftp://ftp.gnu.org/gnu/automake/"
-    DIE=1
+#    DIE=1
 }
 ($AUTOMAKE --version) < /dev/null > /dev/null 2>&1 || {
     automake_version_msg
@@ -66,7 +66,7 @@ function libtool_version_msg () {
 	echo
 	echo "You must have libtool 1.4 or greater to bootstrap $package."
 	echo "Get the latest version from ftp://alpha.gnu.org/gnu/libtool/"
-	DIE=1
+#	DIE=1
 } 
 
 ($LIBTOOL --version) < /dev/null > /dev/null 2>&1 || {
@@ -112,7 +112,7 @@ function sdl_version_msg () {
 	echo "You must have SDL installed to bootstrap $package."
 	echo "Download the appropriate package for your distribution,"
 	echo "or get the source tarball at http://libsdl.org/"
-	DIE=1
+#	DIE=1
 } 
 
 (sdl-config --version) < /dev/null > /dev/null 2>&1 || {

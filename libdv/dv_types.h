@@ -135,6 +135,21 @@
 #define DV_QUALITY_BEST       (DV_QUALITY_COLOR | DV_QUALITY_AC_2)
 #define DV_QUALITY_FASTEST     0     /* Monochrome, DC coeffs only */
 
+#define DV_WIDTH 720
+#define DV_WIDTH_DOUBLE (DV_WIDTH * 2)
+#define DV_WIDTH_QUAD   (DV_WIDTH * 4)
+#define DV_WIDTH_HALF   (DV_WIDTH / 2)
+
+#define DV_ATTR_C           0
+#define DV_ATTR_MMX         1
+#define DV_ATTR_FULL_HIGH   0
+#define DV_ATTR_HALF_HIGH   2
+
+#define DV_FOURCC_YV12    0x32315659	/* 4:2:0 Planar: Y + V + U  (3 planes) */
+#define DV_FOURCC_YUY2    0x32595559	/* 4:2:2 Packed: Y0+U0+Y1+V0 (1 plane) */
+#define DV_FOURCC_RGB24   0x00000124
+#define DV_FOURCC_BRG32   0x00000232
+
 static const int header_size = 80 * 52; // upto first audio AAUX AS
 static const int frame_size_525_60 = 10 * 150 * 80;
 static const int frame_size_625_50 = 12 * 150 * 80;
@@ -428,36 +443,57 @@ typedef struct {
 } dv_audio_t;
 
 typedef struct {
-  unsigned int              quality;
-  int               arg_block_quality; // default 3
-  int               arg_monochrome;
+  unsigned int        quality;
+  int                 arg_block_quality; // default 3
+  int                 arg_monochrome;
   /* -------------------------------------------------------------------------
    * video error log file
    */
-  FILE              *error_log;
-  dv_decoder_tp     dv_decoder;
+  FILE                *error_log;
+  dv_decoder_tp       dv_decoder;
 #if HAVE_LIBPOPT
   struct poptOption  option_table[DV_VIDEO_NUM_OPTS+1];
 #endif // HAVE_LIBPOPT
 
 } dv_video_t;
 
+typedef void (*render) (dv_macroblock_t *mb,
+                        uint8_t **pixels,
+                        int *pitches,
+                        int add_ntsc_setup,
+                        int clamp_luma,
+                        int clamp_chroma);
+
+typedef struct {
+  render              dv_render_func [4];
+  int                 widths [4],
+                      heights [4],
+                      attr;
+  int                 four_cc;
+  char                *name,
+                      *comment;
+} dv_renderer;
+
 typedef struct dv_decoder_s {
-  unsigned int       quality;
-  dv_system_t        system;
-  dv_std_t           std;
-  dv_sample_t        sampling;
-  int                num_dif_seqs; // DIF sequences per frame
-  int                height, width;
-  size_t             frame_size;
-  dv_header_t        header;
-  dv_audio_t        *audio;
-  dv_video_t        *video;
-  int                arg_video_system;
-  int                add_ntsc_setup;
-  int                clamp_luma;
-  int                clamp_chroma;
-  int                prev_frame_decoded;
+  unsigned int        quality;
+  dv_system_t         system;
+  dv_std_t            std;
+  dv_sample_t         sampling;
+  int                 num_dif_seqs; // DIF sequences per frame
+  int                 height, width;
+  size_t              frame_size;
+  dv_header_t         header;
+  dv_audio_t          *audio;
+  dv_video_t          *video;
+  dv_renderer         *current_renderer,
+                      **all_renderer;
+  int                 all_renderer_count;
+  size_t              all_renderer_size;
+  int                 arg_video_system;
+  int                 add_ntsc_setup;
+  int                 clamp_luma;
+  int                 clamp_chroma;
+  int                 prev_frame_decoded;
   /* -------------------------------------------------------------------------
    * per dif sequence! there are 45 vaux data packs
    * 1 byte header 4 byte data.
@@ -490,7 +526,7 @@ typedef struct {
   int    is16x9;
   int    vlc_encode_passes;
   int    static_qno;
-  int    force_dct; 
+  int    force_dct;
   int    rem_ntsc_setup;
   int    clamp_luma;
   int    clamp_chroma;
@@ -505,5 +541,7 @@ typedef struct {
 #if ARCH_X86
 extern int dv_use_mmx;
 #endif
+
+extern void   dv_add_renderer (dv_decoder_t *decoder, dv_renderer *renderer);
 
 #endif // DV_TYPES_H

@@ -61,8 +61,8 @@
 #ifdef __GNUC__
 #if PARSE_VLC_TRACE
 #define vlc_trace(format,args...) fprintf(stdout,format,##args)
-#else 
-#define vlc_trace(format,args...) 
+#else
+#define vlc_trace(format,args...)
 #endif  /* PARSE_VLC_TRACE */
 #else
 static inline void vlc_trace(char *format, ...)
@@ -95,7 +95,7 @@ static int8_t  dv_88_reorder_prime[64] = {
 0, 1, 8, 16, 9, 2, 3, 10,		17, 24, 32, 25, 18, 11, 4, 5,
 12, 19, 26, 33, 40, 48, 41, 34,		27, 20, 13, 6, 7, 14, 21, 28,
 35, 42, 49, 56, 57, 50, 43, 36,		29, 22, 15, 23, 30, 37, 44, 51,
-58, 59, 52, 45, 38, 31, 39, 46,		53, 60, 61, 54, 47, 55, 62, 63 
+58, 59, 52, 45, 38, 31, 39, 46,		53, 60, 61, 54, 47, 55, 62, 63
 };
 
 int8_t  dv_reorder[2][64] = {
@@ -111,11 +111,11 @@ int8_t  dv_reorder[2][64] = {
 /* ---------------------------------------------------------------------------
  */
 static void
-dv_video_popt_callback(poptContext con, enum poptCallbackReason reason, 
+dv_video_popt_callback(poptContext con, enum poptCallbackReason reason,
 		       const struct poptOption * opt, const char * arg, const void * data)
 {
   dv_video_t *video = (dv_video_t *)data;
-  
+
   switch(video->arg_block_quality) {
   case 1:
     video->quality |= DV_QUALITY_DC;
@@ -133,7 +133,7 @@ dv_video_popt_callback(poptContext con, enum poptCallbackReason reason,
   if(!video->arg_monochrome) {
     video->quality |= DV_QUALITY_COLOR;
   } /* if */
-  
+
 } /* dv_video_popt_callback  */
 #endif /* HAVE_LIBPOPT */
 
@@ -143,7 +143,7 @@ dv_video_t *
 dv_video_new(void)
 {
   dv_video_t *result;
-  
+
   result = (dv_video_t *)calloc(1,sizeof(dv_video_t));
   if(!result) goto noopt;
 
@@ -151,9 +151,9 @@ dv_video_new(void)
 
 #if HAVE_LIBPOPT
   result->option_table[DV_VIDEO_OPT_BLOCK_QUALITY] = (struct poptOption){
-    longName:   "quality", 
-    shortName:  'q', 
-    argInfo:    POPT_ARG_INT, 
+    longName:   "quality",
+    shortName:  'q',
+    argInfo:    POPT_ARG_INT,
     arg:        &result->arg_block_quality,
     argDescrip: "(1|2|3)",
     descrip:    "video quality level (coeff. parsing):"
@@ -163,8 +163,8 @@ dv_video_new(void)
   }; /* block quality */
 
   result->option_table[DV_VIDEO_OPT_MONOCHROME] = (struct poptOption){
-    longName:  "monochrome", 
-    shortName: 'm', 
+    longName:  "monochrome",
+    shortName: 'm',
     arg:       &result->arg_monochrome,
     descrip:   "skip decoding of color blocks",
   }; /* monochrome */
@@ -206,14 +206,15 @@ dv_parse_init(void) {
  * Scan the blocks of a macroblock.  We're looking to find the next
  * block from which unused space was borrowed
  */
-static inline int
+//static inline int
+static int
 dv_find_mb_unused_bits(dv_macroblock_t *mb, dv_block_t **lender) {
   int b;
 
   for(b=0; b<6; b++) {
     if((mb->b[b].eob) &&    /* an incomplete block can only "borrow" bits
-			* from other blocks that are themselves
-                        * already completely decoded */
+                             * from other blocks that are themselves
+                             * already completely decoded */
        (mb->b[b].end > mb->b[b].offset) && /* the lender must have unused bits */
        (!mb->b[b].mark)) {  /* the lender musn't already be lending... */
       mb->b[b].mark = TRUE;
@@ -226,11 +227,12 @@ dv_find_mb_unused_bits(dv_macroblock_t *mb, dv_block_t **lender) {
 
 /* ---------------------------------------------------------------------------
  * After parsing vlcs from borrowed space, we must clear the trail of
- * marks we used to track lenders.  found_vlc indicates whether the 
+ * marks we used to track lenders.  found_vlc indicates whether the
  * scanning process successfully found a complete vlc.  If it did,
- * then we update all blocks that lent bits as having no bits left. 
+ * then we update all blocks that lent bits as having no bits left.
  * If so, the last block gets fixed in the caller.
  */
+//static inline void
 static void
 dv_clear_mb_marks(dv_macroblock_t *mb, int found_vlc) {
   dv_block_t *bl; int b;
@@ -248,16 +250,17 @@ dv_clear_mb_marks(dv_macroblock_t *mb, int found_vlc) {
 /* ---------------------------------------------------------------------------
  * For pass 3, we scan all blocks of a video segment for unused bits
  */
+//static inline int
 static int
 dv_find_vs_unused_bits(dv_videosegment_t *seg, dv_block_t **lender) {
   dv_macroblock_t *mb;
   int m;
-  
+
   for(m=0,mb=seg->mb;
       m<5;
       m++,mb++) {
     if((mb->eob_count == 6) && /* We only borrow bits from macroblocks that are themselves complete */
-       dv_find_mb_unused_bits(mb,lender)) 
+       dv_find_mb_unused_bits(mb,lender))
       return(TRUE);
   } /* for */
   return(FALSE);
@@ -266,14 +269,15 @@ dv_find_vs_unused_bits(dv_videosegment_t *seg, dv_block_t **lender) {
 /* ---------------------------------------------------------------------------
  * For pass 3, the trail of lenders can span the whole video segment
  */
+//static inline void
 static void
 dv_clear_vs_marks(dv_videosegment_t *seg,int found_vlc) {
   dv_macroblock_t *mb;
   int m;
-  
+
   for(m=0,mb=seg->mb;
       m<5;
-      m++,mb++) 
+      m++,mb++)
     dv_clear_mb_marks(mb,found_vlc);
 } /* dv_clear_vs_marks */
 
@@ -283,6 +287,7 @@ dv_clear_vs_marks(dv_videosegment_t *seg,int found_vlc) {
  * blocks of the same macroblock.  Pass 3 uses space from blocks of
  * other macroblocks of the videosegment.
  */
+//static inline int
 static int
 dv_find_spilled_vlc(dv_videosegment_t *seg, dv_macroblock_t *mb, dv_block_t **bl_lender, int pass) {
   dv_vlc_t vlc;
@@ -314,17 +319,17 @@ dv_find_spilled_vlc(dv_videosegment_t *seg, dv_macroblock_t *mb, dv_block_t **bl
       /* still no vlc */
       bits_left += found_bits_left;
       broken_vlc = bitstream_get(bs, bits_left);
-      if(pass == 1) 
-	found_bits = dv_find_mb_unused_bits(mb,&bl_new_lender);
+      if(pass == 1)
+        found_bits = dv_find_mb_unused_bits(mb,&bl_new_lender);
       else if(!(found_bits = dv_find_mb_unused_bits(mb,&bl_new_lender)))
-	found_bits = dv_find_vs_unused_bits(seg,&bl_new_lender);
+        found_bits = dv_find_vs_unused_bits(seg,&bl_new_lender);
     } else {
-      if(pass == 1) dv_clear_mb_marks(mb,found_vlc); 
+      if(pass == 1) dv_clear_mb_marks(mb,found_vlc);
       else dv_clear_vs_marks(seg,found_vlc);
       return(-1);
     } /* else */
   } /* while */
-  if(pass == 1) dv_clear_mb_marks(mb,found_vlc); 
+  if(pass == 1) dv_clear_mb_marks(mb,found_vlc);
   else dv_clear_vs_marks(seg,found_vlc);
   if(found_vlc) {
     bl_new_lender->offset = save_offset; /* fixup offset clobbered by clear marks  */
@@ -355,84 +360,84 @@ dv_parse_ac_coeffs(dv_videosegment_t *seg) {
     vlc_trace("P%d",pass);
     if((pass == 2) && vlc_error) break;
     for (m=0,mb=seg->mb;
-	 m<5;
-	 m++,mb++) {
+         m<5;
+         m++,mb++) {
       /* if(vlc_error) goto abort_segment; */
       vlc_trace("\nM%d",m);
       if((pass == 1) && mb->vlc_error) continue;
       for (b=0,bl=mb->b;
-	   b<6;
-	   b++,bl++) {
-	if(bl->eob) continue;
-	coeffs = bl->coeffs;
-	vlc_trace("\nB%d",b);
-	bitstream_seek_set(bs,bl->offset);
-	reorder = &bl->reorder;
-	reorder_sentinel = bl->reorder_sentinel;
-	bl_bit_source = bl;
-	/* Main coeffient parsing loop */
-	while(1) {
-	  bits_left = bl_bit_source->end - bl_bit_source->offset;
-	  dv_peek_vlc(bs,bits_left,&vlc);
-	  if(vlc.run < 0) goto bh;
-	  /* complete, valid vlc found */
-	  vlc_trace("(%d,%d,%d)",vlc.run,vlc.amp,vlc.len);
-	  bl_bit_source->offset += vlc.len;
-	  bitstream_flush(bs,vlc.len);
-	  *reorder += vlc.run;
-	  if((*reorder) < reorder_sentinel) {
-	    SET_COEFF(coeffs,(*reorder),vlc.amp);
-	  } else {
-	    vlc_trace("! vlc code overran coeff block");
-	    goto vlc_error;
-	  } /* else  */
-	  continue;
-	bh:
-	  if(vlc.amp == 0) {
-	    /* found eob vlc */
-	    vlc_trace("#");
-	    /* EOb -- zero out the rest of block */
-	    *reorder = reorder_sentinel;
-	    bl_bit_source->offset += 4;
-	    bitstream_flush(bs,4);
-	    bl->eob = 1;
-	    mb->eob_count++;
-	    break;
-	  } else if(vlc.len == VLC_NOBITS) {
-	    bl_bit_source->mark = TRUE;
-	    switch(dv_find_spilled_vlc(seg,mb,&bl_bit_source,pass)) {
-	    case 1: /* found: keep parsing */
-	      break;
-	    case 0: /* not found: move on to next block */
-	      if(pass==1) goto mb_done;
-	      else goto seg_done;
-	      break;
-	    case -1: 
-	      goto vlc_error;
-	      break;
-	    } /* switch */
-	  } else if(vlc.len == VLC_ERROR) {
-	    goto vlc_error;
-	  } /* else (used == ?)  */
-	} /* while !bl->eob */
-	goto bl_done;
-  vlc_error:
-	vlc_trace("X\n");
-	vlc_error = TRUE;
-	if(pass == 1) goto mb_done;
-	else goto abort_segment;
-  bl_done:
+           b<6;
+           b++,bl++) {
+        if(bl->eob) continue;
+        coeffs = bl->coeffs;
+        vlc_trace("\nB%d",b);
+        bitstream_seek_set(bs,bl->offset);
+        reorder = &bl->reorder;
+        reorder_sentinel = bl->reorder_sentinel;
+        bl_bit_source = bl;
+        /* Main coeffient parsing loop */
+        while(1) {
+          bits_left = bl_bit_source->end - bl_bit_source->offset;
+          dv_peek_vlc(bs,bits_left,&vlc);
+          if(vlc.run < 0) goto bh;
+          /* complete, valid vlc found */
+          vlc_trace("(%d,%d,%d)",vlc.run,vlc.amp,vlc.len);
+          bl_bit_source->offset += vlc.len;
+          bitstream_flush(bs,vlc.len);
+          *reorder += vlc.run;
+          if((*reorder) < reorder_sentinel) {
+            SET_COEFF(coeffs,(*reorder),vlc.amp);
+          } else {
+            vlc_trace("! vlc code overran coeff block");
+            goto vlc_error;
+          } /* else  */
+          continue;
+          bh:
+          if(vlc.amp == 0) {
+            /* found eob vlc */
+            vlc_trace("#");
+            /* EOb -- zero out the rest of block */
+            *reorder = reorder_sentinel;
+            bl_bit_source->offset += 4;
+            bitstream_flush(bs,4);
+            bl->eob = 1;
+            mb->eob_count++;
+            break;
+          } else if(vlc.len == VLC_NOBITS) {
+            bl_bit_source->mark = TRUE;
+            switch(dv_find_spilled_vlc(seg,mb,&bl_bit_source,pass)) {
+            case 1: /* found: keep parsing */
+              break;
+            case 0: /* not found: move on to next block */
+              if(pass==1) goto mb_done;
+              else goto seg_done;
+              break;
+            case -1:
+              goto vlc_error;
+              break;
+            } /* switch */
+          } else if(vlc.len == VLC_ERROR) {
+            goto vlc_error;
+          } /* else (used == ?)  */
+        } /* while !bl->eob */
+        goto bl_done;
+        vlc_error:
+        vlc_trace("X\n");
+        vlc_error = TRUE;
+        if(pass == 1) goto mb_done;
+        else goto abort_segment;
+        bl_done:
 #if PARSE_VLC_TRACE
-	if((bits_left = bl->end - bl->offset)) {
-	  int x;
-	  bitstream_seek_set(bs,bl->offset);
-	  vlc_trace("\n\tunused bits:\n\t");
-	  for(x=bits_left-1;x>=0;x--) 
-	    vlc_trace("%s", (bitstream_get(bs,1)) ? "1" : "0");
-	} else { vlc_trace("\n\tno unused bits"); }
+        if((bits_left = bl->end - bl->offset)) {
+            int x;
+          bitstream_seek_set(bs,bl->offset);
+          vlc_trace("\n\tunused bits:\n\t");
+          for(x=bits_left-1;x>=0;x--)
+            vlc_trace("%s", (bitstream_get(bs,1)) ? "1" : "0");
+        } else { vlc_trace("\n\tno unused bits"); }
 #endif /* PARSE_VLC_TRACE */
-	; } /* for b  */
-  mb_done: 
+        ; } /* for b  */
+        mb_done:
       ; } /* for m  */
     vlc_trace("\n");
   } /* for pass  */
@@ -453,7 +458,7 @@ dv_parse_ac_coeffs(dv_videosegment_t *seg) {
       coeffs = bl->coeffs;
       reorder = &bl->reorder;
       reorder_sentinel = bl->reorder_sentinel;
-      while((*reorder) < reorder_sentinel) { 
+      while((*reorder) < reorder_sentinel) {
 	SET_COEFF(coeffs,(*reorder),0);
 	x++;
       } /* while */
@@ -502,7 +507,7 @@ dv_parse_ac_coeffs_pass0(bitstream_t *bs,
   while(1) {
     bits_left = bl->end - bl->offset;
     bits = bitstream_show(bs,16);
-    if(bits_left >= 16) 
+    if(bits_left >= 16)
       __dv_decode_vlc(bits, &vlc);
     else
       dv_decode_vlc(bits, bits_left,&vlc);
@@ -532,7 +537,7 @@ dv_parse_ac_coeffs_pass0(bitstream_t *bs,
     int x;
     bitstream_seek_set(bs,bl->offset);
     vlc_trace("\n\tunused bits:\n\t");
-    for(x=bits_left-1;x>=0;x--) 
+    for(x=bits_left-1;x>=0;x--)
       vlc_trace("%s", (bitstream_get(bs,1)) ? "1" : "0");
   } else { vlc_trace("\n\tno unused bits"); }
 #endif /* PARSE_VLC_TRACE */
@@ -550,7 +555,7 @@ dv_parse_ac_coeffs_pass0(bitstream_t *bs,
  *
  * The most conservative is to assume that any further spilled data is suspect.
  * So, on pass 1, a VLC error means do the rest, and skip passes 2 & 3
- * On passes 2 & 3, just abort.  This seems to drop a lot more coefficients, 21647 
+ * On passes 2 & 3, just abort.  This seems to drop a lot more coefficients, 21647
  * in a single frame, that more tolerant aproaches.
  */
 #if ! ARCH_X86
@@ -600,37 +605,37 @@ dv_parse_video_segment(dv_videosegment_t *seg, unsigned int quality) {
     if ((quality & DV_QUALITY_AC_MASK) == DV_QUALITY_DC) {
       /* DC only */
       for(b=0,bl=mb->b;
-	  b < n_blocks;
-	  b++,bl++) {
-	memset(bl->coeffs, 0, sizeof(bl->coeffs));
-	dc = bitstream_get(bs,9);  /* DC coefficient (twos complement) */
-	if(dc > 255) dc -= 512;
-	bl->coeffs[0] = dc;
-	vlc_trace("DC [%d,%d,%d,%d] = %d\n",mb->i,mb->j,mb->k,b,dc);
-	bl->dct_mode = bitstream_get(bs,1);
-	bl->class_no = bitstream_get(bs,2);
-	bitstream_seek_set(bs, mb_start + dv_parse_bit_end[b]);
+          b < n_blocks;
+          b++,bl++) {
+        memset(bl->coeffs, 0, sizeof(bl->coeffs));
+        dc = bitstream_get(bs,9);  /* DC coefficient (twos complement) */
+        if(dc > 255) dc -= 512;
+        bl->coeffs[0] = dc;
+        vlc_trace("DC [%d,%d,%d,%d] = %d\n",mb->i,mb->j,mb->k,b,dc);
+        bl->dct_mode = bitstream_get(bs,1);
+        bl->class_no = bitstream_get(bs,2);
+        bitstream_seek_set(bs, mb_start + dv_parse_bit_end[b]);
       } /* for b */
     } else {
       /* quality is DV_QUALITY_AC_1 or DV_QUALITY_AC_2 */
       for(b=0,bl=mb->b;
-	  b < n_blocks;
-	  b++,bl++) {
-	/* Pass 0, read bits from individual blocks  */
-	/* Get DC coeff, mode, and class from start of block */
-	dc = bitstream_get(bs,9);  /* DC coefficient (twos complement) */
-	if(dc > 255) dc -= 512;
-	bl->coeffs[0] = dc;
-	vlc_trace("DC [%d,%d,%d,%d] = %d\n",mb->i,mb->j,mb->k,b,dc);
-	bl->dct_mode = bitstream_get(bs,1);
-	bl->class_no = bitstream_get(bs,2);
-	bl->eob=0;
-	bl->offset= mb_start + dv_parse_bit_start[b];
-	bl->end= mb_start + dv_parse_bit_end[b];
-	bl->reorder = &dv_reorder[bl->dct_mode][1];
-	bl->reorder_sentinel = bl->reorder + 63;
-	dv_parse_ac_coeffs_pass0(bs,mb,bl);
-	bitstream_seek_set(bs,bl->end);
+          b < n_blocks;
+          b++,bl++) {
+        /* Pass 0, read bits from individual blocks  */
+        /* Get DC coeff, mode, and class from start of block */
+        dc = bitstream_get(bs,9);  /* DC coefficient (twos complement) */
+        if(dc > 255) dc -= 512;
+        bl->coeffs[0] = dc;
+        vlc_trace("DC [%d,%d,%d,%d] = %d\n",mb->i,mb->j,mb->k,b,dc);
+        bl->dct_mode = bitstream_get(bs,1);
+        bl->class_no = bitstream_get(bs,2);
+        bl->eob=0;
+        bl->offset= mb_start + dv_parse_bit_start[b];
+        bl->end= mb_start + dv_parse_bit_end[b];
+        bl->reorder = &dv_reorder[bl->dct_mode][1];
+        bl->reorder_sentinel = bl->reorder + 63;
+        dv_parse_ac_coeffs_pass0(bs,mb,bl);
+        bitstream_seek_set(bs,bl->end);
       } /* for b */
     } /* if quality */
   } /* for m */

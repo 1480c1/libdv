@@ -1199,7 +1199,7 @@ static void process_videosegment(dv_enc_input_filter_t * input,
 			% (videoseg->isPAL ? 12 : 10);
 		mb->j = dv_super_map_horizontal[m];
 		mb->k = videoseg->k;
-		
+
 		if (videoseg->isPAL) {
 			dv_place_420_macroblock(mb);
 		} else {
@@ -1474,13 +1474,13 @@ void dv_show_statistics()
  *          trimmed to their ITU-R 601 legal limits.
  *          Typically this should be set true.
  */
-dv_encoder_t * 
+dv_encoder_t *
 dv_encoder_new(int rem_ntsc_setup, int clamp_luma, int clamp_chroma) {
   dv_encoder_t *result;
-  
+
   result = (dv_encoder_t *)calloc(1,sizeof(dv_encoder_t));
   if(!result) return(NULL);
-  
+
   result->img_y = (short*) calloc(DV_PAL_HEIGHT * DV_WIDTH, sizeof(short));
   if(!result->img_y) goto no_y;
   result->img_cr = (short*) calloc(DV_PAL_HEIGHT * DV_WIDTH / 2, sizeof(short));
@@ -1493,7 +1493,7 @@ dv_encoder_new(int rem_ntsc_setup, int clamp_luma, int clamp_chroma) {
   result->clamp_chroma = clamp_chroma;
   result->force_dct = DV_DCT_AUTO;
 
-  dv_init( clamp_luma, clamp_chroma);
+  dv_init(NULL, clamp_luma, clamp_chroma);
 
   result->frame_count = 0;
   return(result);

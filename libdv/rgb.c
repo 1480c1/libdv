@@ -19,7 +19,7 @@
  *   
  *  You should have received a copy of the GNU General Public License
  *  along with GNU Make; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
@@ -81,6 +81,8 @@ static int32_t real_ylut_setup[768], *ylut_setup;
 /* rgb lookup - clamps values in range -256 .. 511 to 0 .. 255 */
 static uint8_t real_rgblut[768], *rgblut;
 
+#define NUM_RENDERER    1
+
 /* ---------------------------------------------------------------------------
  */
 static inline int
@@ -91,49 +93,11 @@ clamp (int low, int val, int high) {
 /* ---------------------------------------------------------------------------
  */
 void
-dv_rgb_init(int clamp_luma, int clamp_chroma) {
-  int i;
-  int clamped_offset;
-  table_2_018 = real_table_2_018 + 128;
-  table_0_813 = real_table_0_813 + 128;
-  table_0_391 = real_table_0_391 + 128;
-  table_1_596 = real_table_1_596 + 128;
-
-  for(i=-128;
-      i<128;
-      ++i) {
-    if ((clamp_chroma == TRUE) && (i < (16-128))) {
-      clamped_offset = (16-128);
-    } else if ((clamp_chroma == TRUE) && (i > (240-128))) {
-      clamped_offset = (240-128);
-    } else {
-      clamped_offset = i;
-    } // else
-    table_2_018[i] = (int32_t)rint(2.018 * COLOR_FRACTION_MUL * clamped_offset);
-    table_0_813[i] = (int32_t)rint(0.813 * COLOR_FRACTION_MUL * clamped_offset);
-    table_0_391[i] = (int32_t)rint(0.391 * COLOR_FRACTION_MUL * clamped_offset);
-    table_1_596[i] = (int32_t)rint(1.596 * COLOR_FRACTION_MUL * clamped_offset);
-  } // for
-
-  ylut = real_ylut + 256;
-  ylut_setup = real_ylut_setup + 256;
-  for(i=-256; i < 512; i++) {
-    clamped_offset = i + 128 - 16;
-    if (clamp_luma == TRUE) clamped_offset = CLAMP(clamped_offset, 16, 235);
-    ylut[i] = (int32_t)rint(1.164 * COLOR_FRACTION_MUL * clamped_offset);
-    ylut_setup[i] = (int32_t)rint(1.164 * COLOR_FRACTION_MUL * (clamped_offset+16));
-  } // for
-
-  rgblut = real_rgblut + 256;
-  for(i=-256; i < 512; i++) {
-    rgblut[i] = CLAMP(i, 0, 255);
-  } // for
-} /* dv_rgb_init */
-
-/* ---------------------------------------------------------------------------
- */
-void
-dv_mb411_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_setup) {
+dv_mb411_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
+             int add_ntsc_setup,
+             int clamp_luma,
+             int clamp_chroma)
+{
   dv_coeff_t *Y[4], *cr_frame, *cb_frame;
   uint8_t *prgb, *pwrgb;
   int i,j,k, row;
@@ -179,7 +143,11 @@ dv_mb411_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_s
 /* ---------------------------------------------------------------------------
  */
 void
-dv_mb411_right_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_setup) {
+dv_mb411_right_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
+             int add_ntsc_setup,
+             int clamp_luma,
+             int clamp_chroma)
+{
   dv_coeff_t *Ytmp;
   dv_coeff_t *Y[4], *cr_frame, *cb_frame;
   uint8_t *prgb, *pwrgb;
@@ -242,7 +210,11 @@ dv_mb411_right_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_
 /* ---------------------------------------------------------------------------
  */
 void
-dv_mb420_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
+dv_mb420_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
+             int add_ntsc_setup,
+             int clamp_luma,
+             int clamp_chroma)
+{
   dv_coeff_t *Y[4], *cr_frame, *cb_frame;
   uint8_t *prgb, *pwrgb0, *pwrgb1;
   int i, j, k, row, col;
@@ -304,7 +276,11 @@ dv_mb420_rgb(dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
 /* ---------------------------------------------------------------------------
  */
 void
-dv_mb411_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_setup) {
+dv_mb411_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
+              int add_ntsc_setup,
+              int clamp_luma,
+              int clamp_chroma)
+{
   dv_coeff_t *Y[4], *cr_frame, *cb_frame;
   uint8_t *prgb, *pwrgb;
   int i,j,k, row;
@@ -351,7 +327,11 @@ dv_mb411_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_
 /* ---------------------------------------------------------------------------
  */
 void
-dv_mb411_right_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add_ntsc_setup) {
+dv_mb411_right_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
+                    int add_ntsc_setup,
+                    int clamp_luma,
+                    int clamp_chroma)
+{
   dv_coeff_t *Ytmp;
   dv_coeff_t *Y[4], *cr_frame, *cb_frame;
   uint8_t *prgb, *pwrgb;
@@ -415,7 +395,11 @@ dv_mb411_right_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches, int add
 /* ---------------------------------------------------------------------------
  */
 void
-dv_mb420_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
+dv_mb420_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches,
+              int add_ntsc_setup,
+              int clamp_luma,
+              int clamp_chroma)
+{
   dv_coeff_t *Y[4], *cr_frame, *cb_frame;
   uint8_t *prgb, *pwrgb0, *pwrgb1;
   int i, j, k, row, col;
@@ -442,28 +426,28 @@ dv_mb420_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
         for (col = 0; col < 4; ++col) {  // 4 spans of 2x2 pixels
           int8_t cb = clamp (-128, *cb_frame++, 127); // +128;
           int8_t cr = clamp (-128, *cr_frame++, 127); // +128
-	  int ro = table_1_596[cr];
-	  int go = table_0_813[cr] + table_0_391[cb];
-	  int bo =                   table_2_018[cb];
+          int ro = table_1_596[cr];
+          int go = table_0_813[cr] + table_0_391[cb];
+          int bo =                   table_2_018[cb];
 
           for (k = 0; k < 2; ++k) { // 2x2 pixel
             int32_t y = ylut[clamp (-256, *Ytmp0++, 511)];
             int32_t r = (y + ro) >> COLOR_FRACTION_BITS;
             int32_t g = (y - go) >> COLOR_FRACTION_BITS;
             int32_t b = (y + bo) >> COLOR_FRACTION_BITS;
-	    *pwrgb0++ = rgblut[b];
-	    *pwrgb0++ = rgblut[g];
-	    *pwrgb0++ = rgblut[r];
-	    *pwrgb0++ = 0;
+            *pwrgb0++ = rgblut[b];
+            *pwrgb0++ = rgblut[g];
+            *pwrgb0++ = rgblut[r];
+            *pwrgb0++ = 0;
 
             y = ylut[clamp (-256, *Ytmp1++, 511)];
             r = (y + ro) >> COLOR_FRACTION_BITS;
             g = (y - go) >> COLOR_FRACTION_BITS;
             b = (y + bo) >> COLOR_FRACTION_BITS;
-	    *pwrgb1++ = rgblut[b];
-	    *pwrgb1++ = rgblut[g];
-	    *pwrgb1++ = rgblut[r];
-	    *pwrgb1++ = 0;
+            *pwrgb1++ = rgblut[b];
+            *pwrgb1++ = rgblut[g];
+            *pwrgb1++ = rgblut[r];
+            *pwrgb1++ = 0;
           } // for k
 
         } // for col
@@ -478,3 +462,61 @@ dv_mb420_bgr0(dv_macroblock_t *mb, uint8_t **pixels, int *pitches) {
 
 
 /* TODO: MMX versions */
+static dv_renderer RGB_renderer [NUM_RENDERER] =
+        {{{dv_mb411_rgb, dv_mb411_right_rgb,
+           dv_mb420_rgb, dv_mb420_rgb},
+          {720, 720, 720, 720},
+          {480, 480, 576, 576},
+          DV_ATTR_FULL_HIGH | DV_ATTR_C,
+          DV_FOURCC_RGB24,
+          "RGB24",
+          "RGB24 std C render functions"
+         },
+        };
+
+/* ---------------------------------------------------------------------------
+ */
+void
+dv_rgb_init(dv_decoder_t *decoder, int clamp_luma, int clamp_chroma) {
+  int i;
+  int clamped_offset;
+  table_2_018 = real_table_2_018 + 128;
+  table_0_813 = real_table_0_813 + 128;
+  table_0_391 = real_table_0_391 + 128;
+  table_1_596 = real_table_1_596 + 128;
+
+  for(i=-128;
+      i<128;
+      ++i) {
+    if ((clamp_chroma == TRUE) && (i < (16-128))) {
+      clamped_offset = (16-128);
+    } else if ((clamp_chroma == TRUE) && (i > (240-128))) {
+      clamped_offset = (240-128);
+    } else {
+      clamped_offset = i;
+    } // else
+    table_2_018[i] = (int32_t)rint(2.018 * COLOR_FRACTION_MUL * clamped_offset);
+    table_0_813[i] = (int32_t)rint(0.813 * COLOR_FRACTION_MUL * clamped_offset);
+    table_0_391[i] = (int32_t)rint(0.391 * COLOR_FRACTION_MUL * clamped_offset);
+    table_1_596[i] = (int32_t)rint(1.596 * COLOR_FRACTION_MUL * clamped_offset);
+  } // for
+
+  ylut = real_ylut + 256;
+  ylut_setup = real_ylut_setup + 256;
+  for(i=-256; i < 512; i++) {
+    clamped_offset = i + 128 - 16;
+    if (clamp_luma == TRUE) clamped_offset = CLAMP(clamped_offset, 16, 235);
+    ylut[i] = (int32_t)rint(1.164 * COLOR_FRACTION_MUL * clamped_offset);
+    ylut_setup[i] = (int32_t)rint(1.164 * COLOR_FRACTION_MUL * (clamped_offset+16));
+  } // for
+
+  rgblut = real_rgblut + 256;
+  for(i=-256; i < 512; i++) {
+    rgblut[i] = CLAMP(i, 0, 255);
+  } // for
+  if (decoder) {
+    for (i = 0; i < NUM_RENDERER; ++i) {
+      dv_add_renderer (decoder, &RGB_renderer [i]);
+    }
+  }
+} /* dv_rgb_init */
