@@ -1,15 +1,42 @@
+2001-04-26  Charles 'Buck' Krasic  <krasic@acm.org>
+
+	* Version 0.8
+
+	* Restructure source: make subdirectories libdv, playdv, and
+	  encodedv.  This starts to fix some of the #include problems.
+
+	* Fix typos: missing #ifdef ARCH_X86 around #include "mmx.h"
+	
+2001-04-14  Peter Schlaile <udbz@rz.uni-karlsruhe.de>
+	* Removed "bttv bug work around". It was my VIA board...
+	
+	* Changed DV_WIDTH in rgbtoyuv to make things more clear and compile
+	  on more platforms
+	
+	* need_dct_248 now uses the ratio between field error and error in 
+	  x-direction. Hopefully fixes  encoding of cartoons with hard edges.
+	
+	* --force-dct added. Just in case.
+	
+	* Added updated man page for encodedv
+	
 2001-04-07  Peter Schlaile <udbz@rz.uni-karlsruhe.de>
 	* VLC encoder improvements: static qno tables for 3 passes
+	
 	* audio support for the encoder (plugin system with wav and /dev/dsp
 	  support)
+	
 	* renamed build_coeff to fill_macroblock and moved it into the
 	  input filter. Wrote specialized mmx copy routines. 
 	  -> now we _are_ realtime on an Athlon 800 even with 3 VLC passes 
 	  (static qno tables!) It's time to throw the video recorder away ;-)
+	
 	* New option: --fps : select frames per second if your machine isn't
 	  fast enough for the full bandwidth
+	
 	* Interface changes: -t renamed to -v since it gives additional
 	  verbose output now.
+	
 	* pgm support for mpeg2dec
 
 2001-03-30  Stefan Lucke <Stefan.Lucke@snafu.de>

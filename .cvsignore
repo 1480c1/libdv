@@ -19,7 +19,6 @@ configure
 configure.scan
 dovlc
 encode
-encodedv
 fix_headers
 gasmoff
 gmon.out
@@ -30,7 +29,6 @@ libdv.la
 libdv.spec
 libtool
 ltconfig
-playdv
 ppmqscale
 scan_packet_headers
 stamp-h

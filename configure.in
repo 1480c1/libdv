@@ -1,10 +1,10 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(parse.c)
+AC_INIT(libdv/parse.c)
 AC_CONFIG_AUX_DIR(config)
 AM_CONFIG_HEADER(config.h)
 
 RPM_RELEASE=1
-AM_INIT_AUTOMAKE(libdv, 0.7)
+AM_INIT_AUTOMAKE(libdv, 0.8)
 
 AC_CANONICAL_HOST
 AM_MAINTAINER_MODE
@@ -15,7 +15,7 @@ dnl Checks for programs.
 AC_SUBST(CFLAGS)
 AC_PROG_CC
 
-CFLAGS="$CFLAGS -I .."
+CFLAGS="$CFLAGS -I . -I .."
 
 dnl Add -Wall if gcc
 if test "$GCC" = "yes"; then
@@ -182,4 +182,4 @@ AC_CHECK_FUNCS(gettimeofday)
 AC_SUBST(ac_aux_dir)
 AC_SUBST(RPM_RELEASE)
 
-AC_OUTPUT(Makefile libdv.spec)
+AC_OUTPUT(Makefile libdv.spec libdv/Makefile playdv/Makefile encodedv/Makefile)

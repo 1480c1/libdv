@@ -1,0 +1,9 @@
+.deps
+.libs
+Makefile
+Makefile.in
+encodedv
+fix_headers
+insert_audio
+ppmqscale
+steal_header

@@ -59,13 +59,15 @@ make prefix=$RPM_BUILD_ROOT/usr install
 
 %files
 %defattr(-,root,root)
-%doc ChangeLog COPYING README AUTHORS NEWS INSTALL TODO COPYRIGHT
+%doc ChangeLog COPYING README README.encoder AUTHORS NEWS INSTALL TODO COPYRIGHT 
+/usr/man/man1/playdv.1.gz
+/usr/man/man1/encodedv.1.gz
 /usr/bin/playdv
-/usr/bin/encode
+/usr/bin/encodedv
 
 %files devel
 %defattr(-, root, root)
-%doc ChangeLog COPYING README AUTHORS NEWS INSTALL TODO COPYRIGHT
+%doc ChangeLog COPYING README README.encoder AUTHORS NEWS INSTALL TODO COPYRIGHT
 /usr/include/libdv/*
 /usr/lib/lib*.a
 

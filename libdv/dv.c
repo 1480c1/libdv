@@ -29,6 +29,7 @@
 
 #include "dv_types.h"
 #include "dv.h"
+#include "encode.h"
 #include "util.h"
 #include "dct.h"
 #include "audio.h"
@@ -41,7 +42,6 @@
 #include "rgb.h"
 #include "YUY2.h"
 #include "YV12.h"
-#include "encode.h"
 #if ARCH_X86
 #include "mmx.h"
 #endif
@@ -145,12 +145,10 @@ dv_init(void) {
   dv_rgb_init();
   dv_YUY2_init();
   dv_YV12_init();
-  memset(runs_used,0,sizeof(runs_used));
-  memset(cycles_used,0,sizeof(cycles_used));
-  memset(classes_used,0,sizeof(classes_used));
-  memset(qnos_used,0,sizeof(qnos_used));
-  memset(dct_used,0,sizeof(dct_used));
-  vlc_overflows = 0;
+  init_vlc_test_lookup();
+  init_vlc_encode_lookup();
+  init_qno_start();
+  prepare_reorder_tables();
 
   done=TRUE;
  init_done:
