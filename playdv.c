@@ -88,6 +88,7 @@ int main(int argc,char *argv[]) {
   int fd;
   off_t offset = 0, eof;
   guint frame_count = 0;
+  gdouble seconds;
 
   /* Open the input file, do fstat to get it's total size */
   if (argc != 2) goto usage;
@@ -140,7 +141,9 @@ int main(int argc,char *argv[]) {
 
   gettimeofday(tv+1,NULL);
   timersub(tv+1,tv+0,tv+2);
-  fprintf(stderr,"Displayed %d frames in %ld.%ld seconds\n", frame_count, tv[2].tv_sec, tv[2].tv_usec / 100000);
+  seconds = (double)tv[2].tv_usec / 1000000.0; 
+  seconds += tv[2].tv_sec;
+  fprintf(stderr,"Displayed %d frames in %05.2f seconds (%05.2f fps)\n", frame_count, seconds, (double)frame_count/seconds);
   dv_display_exit(dv_dpy);
   exit(0);
 
