@@ -39,12 +39,12 @@
 
 #include <math.h>
 
+#include "quant.h"
+#include "idct_248.h"
+
 #if ARCH_X86
 #include <mmx.h>
 #endif
-
-#include "quant.h"
-#include "idct_248.h"
 
 static guint8 dv_88_areas[64] = {
 -1,0,0,1,1,1,2,2, 
