@@ -920,6 +920,14 @@ dv_get_raw_samples (dv_decoder_t *dv, int chan)
 /* ---------------------------------------------------------------------------
  */
 int
+dv_get_frequency (dv_decoder_t *dv)
+{
+  return dv -> audio -> frequency;
+}
+
+/* ---------------------------------------------------------------------------
+ */
+int
 dv_is_new_recording (dv_decoder_t *dv, const uint8_t *buffer)
 {
     int temp_time_stamp [4],

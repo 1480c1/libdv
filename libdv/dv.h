@@ -145,7 +145,8 @@ extern int dv_is_new_recording (dv_decoder_t *dv, const uint8_t *buffer),
 extern int dv_get_num_samples (dv_decoder_t *dv),
            dv_get_num_channels (dv_decoder_t *dv),
            dv_get_raw_samples (dv_decoder_t *dv, int chan),
-           dv_is_4ch (dv_decoder_t *dv);
+           dv_is_4ch (dv_decoder_t *dv),
+           dv_get_frequency (dv_decoder_t *dv);
 
 #ifdef __cplusplus
 }
