@@ -319,14 +319,13 @@ main(int argc,char *argv[])
   exit(0);
 
   /* Error handling section */
+#if HAVE_LIBPOPT
  bad_arg:
   /* an error occurred during option processing */
   fprintf(stderr, "%s: %s\n",
 	  poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
 	  poptStrerror(rc));
   exit(-1);
-
-#if HAVE_LIBPOPT
  bad_filename:
   poptPrintUsage(optCon, stderr, 0);
   fprintf(stderr, "\nSpecify a single <filename> argument; e.g. pond.dv\n");
