@@ -1,11 +1,26 @@
-CPPFLAGS += -I. $(shell glib-config --cflags) $(shell gtk-config --cflags) $(shell sdl-config --cflags)
-#CFLAGS += -mcpu=i686 -pg -O6 -funroll-all-loops -Wall  $(CPPFLAGS) # for regular profiling with gprof
-#CFLAGS += -mcpu=i686 -g -pg -ax -O6 -funroll-all-loops -Wall  $(CPPFLAGS) # for line by line profiling with gprof
-#CFLAGS += -mcpu=i686 -s -O6 -funroll-all-loops -Wall  $(CPPFLAGS) # for maximum speed
-CFLAGS += -mcpu=i686 -g -O -fstrict-aliasing -Wall  $(CPPFLAGS) # for debugging
-LDFLAGS += $(shell glib-config --libs) $(shell gtk-config --libs) $(shell sdl-config --libs) -lm -lXv
+# Build problems? Try this on RH7, since they ship a buggy gcc
+CC=kgcc
 
-CPPFLAGS += -DUSE_MMX_ASM=1 -DHAVE_XV40x=1 -DHAVE_GTK=1 -DHAVE_SDL=1
+USE_SDL=1
+USE_XV=1
+
+ifeq ($(USE_SDL),1) 
+	SDL_CFLAGS=$(shell sdl-config --cflags)
+	SDL_LDFLAGS=$(shell sdl-config --libs) 
+endif
+
+ifeq ($(USE_XV),1) 
+	XV_LDFLAGS=-lXv
+endif
+
+CPPFLAGS += -I. $(shell glib-config --cflags) $(shell gtk-config --cflags) $(SDL_CFLAGS)
+#CFLAGS += -mcpu=i686 -pg -O6 -funroll-all-loops -Wall  $(CPPFLAGS)                 # for regular profiling with gprof
+#CFLAGS += -mcpu=i686 -g -pg -ax -O6 -funroll-all-loops -Wall  $(CPPFLAGS)          # for line by line profiling with gprof -l
+#CFLAGS += -mcpu=i686 -s -O6 -funroll-all-loops -Wall  $(CPPFLAGS)                  # for maximum speed
+CFLAGS += -mcpu=i686 -g -O -fstrict-aliasing -Wall  $(CPPFLAGS)                     # for debugging
+LDFLAGS += $(shell glib-config --libs) $(shell gtk-config --libs) -lm $(XV_LDFLAGS) $(SDL_LDFLAGS)
+
+CPPFLAGS += -DUSE_MMX_ASM=1 -DHAVE_XV40x=$(USE_XV) -DHAVE_GTK=1 -DHAVE_SDL=$(USE_SDL)
 asm = vlc_x86.S quant_x86.S idct_block_mmx.S 
 
 gensources=dv.c dct.c idct_248.c weighting.c quant.c vlc.c place.c parse.c bitstream.c YUY2.c YV12.c rgb.c 
@@ -37,7 +52,6 @@ libdv.a: $(objects)
 
 playdv: playdv.o display.o $(objects)
 	$(CC) -o $@ $(CFLAGS) $^ $(LDFLAGS)
-
 
 dovlc: dovlc.o bitstream.o vlc.o
 	$(CC) -o $@ $(CFLAGS) $^ $(LDFLAGS)
