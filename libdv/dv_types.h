@@ -35,7 +35,7 @@
 #endif // HAVE_LIBPOPT
 
 #include <stdlib.h>
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <time.h>
 #if HAVE_ENDIAN_H

@@ -234,7 +234,7 @@ dnl Checks for header files.
 AC_PATH_X
 AC_HEADER_STDC
 AC_CHECK_HEADERS(fcntl.h sys/time.h unistd.h linux/videodev.h sys/soundcard.h \
-endian.h machine/endian.h)
+endian.h machine/endian.h inttypes.h)
 
 dnl Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST

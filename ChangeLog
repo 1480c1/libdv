@@ -1,3 +1,7 @@
+2004-07-13  Dan Dennedy <dan@dennedy.org>
+	* libdv/dv.h, dv_types.h, headers.c, encode.c: use inttypes.h instead of
+	  stdint.h as it is more universal.
+
 2004-07-06  Dan Dennedy <dan@dennedy.org>
 	* libdv/dv.c: fix SMPTE314M typo in dv_format_wide()
 
