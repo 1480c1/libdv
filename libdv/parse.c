@@ -880,6 +880,8 @@ dv_parse_header(dv_decoder_t *dv, const uint8_t *buffer) {
 
   dv_parse_audio_header(dv, buffer);
 
+  free( bs );
+  
   return(result);
 
  parse_error:
