@@ -56,8 +56,8 @@ scratch4:       .quad 0
 .text
 
 .align 8	
-.global dct_88_block_mmx
-dct_88_block_mmx:
+.global _dv_dct_88_block_mmx
+_dv_dct_88_block_mmx:
 
 	pushl   %ebp
 	movl    %esp, %ebp
@@ -271,8 +271,8 @@ dct_88_block_mmx:
 /* do mmx postscaling and reordering... */
 		
 .align 8	
-.global dct_block_mmx_postscale_88
-dct_block_mmx_postscale_88:
+.global _dv_dct_block_mmx_postscale_88
+_dv_dct_block_mmx_postscale_88:
 
 	pushl	 %ebp
 	movl	 %esp,%ebp
@@ -747,8 +747,8 @@ dct_block_mmx_postscale_88:
 	ret
 
 .align 8	
-.global dct_248_block_mmx
-dct_248_block_mmx:
+.global _dv_dct_248_block_mmx
+_dv_dct_248_block_mmx:
 
 	pushl   %ebp
 	movl    %esp, %ebp
@@ -911,8 +911,8 @@ dct_248_block_mmx:
 	ret
 
 .align 8	
-.global dct_248_block_mmx_post_sum
-dct_248_block_mmx_post_sum:
+.global _dv_dct_248_block_mmx_post_sum
+_dv_dct_248_block_mmx_post_sum:
 
 	pushl   %ebp
 	movl    %esp, %ebp
@@ -991,8 +991,8 @@ dct_248_block_mmx_post_sum:
 	ret		
 
 .align 8	
-.global dct_block_mmx_postscale_248
-dct_block_mmx_postscale_248:
+.global _dv_dct_block_mmx_postscale_248
+_dv_dct_block_mmx_postscale_248:
 
 	pushl	 %ebp
 	movl	 %esp,%ebp

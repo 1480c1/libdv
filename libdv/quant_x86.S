@@ -49,13 +49,13 @@ and shifting all the appropriate array elements.
 #include "asmoff.h"
 	
 /*
-void quant_88_inverse(dv_coeff_t *block,int qno,int class)
+void _dv_quant_88_inverse(dv_coeff_t *block,int qno,int class)
 */
 
 .text
 	.align	4
-.globl	quant_88_inverse_x86
-quant_88_inverse_x86:	
+.globl	_dv_quant_88_inverse_x86
+_dv_quant_88_inverse_x86:	
 	pushl	%ebx
 	pushl	%esi
 
@@ -192,8 +192,8 @@ quant_88_inverse_x86:
 	ret
 
 	.align	4
-.globl	quant_x86
-quant_x86:	
+.globl	_dv_quant_x86
+_dv_quant_x86:	
 	pushl	%ebx
 	pushl	%ecx
 	pushl	%edx	

@@ -26,9 +26,9 @@
 #ifndef DV_TYPES_H
 #define DV_TYPES_H
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif // HAVE_CONFIG_H
+#if HAVE_CONFIG_H
+# include <config.h>
+#endif
 
 #if HAVE_LIBPOPT
 #include <popt.h>

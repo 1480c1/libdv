@@ -24,7 +24,9 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#include <libdv/dv_types.h>
+#if HAVE_CONFIG_H
+# include <config.h>
+#endif
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -36,7 +38,7 @@
 #include <fcntl.h>
 #include <string.h>
 
-#include <libdv/dv.h>
+#include "libdv/dv.h"
 #include "display.h"
 #include "oss.h"
 

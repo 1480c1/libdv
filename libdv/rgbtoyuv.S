@@ -41,7 +41,7 @@
 #define DV_WIDTH_SHORT_HALF 720
 #define DV_WIDTH_BYTE_HALF  360	
 		
-.global rgbtoycb_mmx
+.global _dv_rgbtoycb_mmx
 # .global yuvtoycb_mmx
 
 .data
@@ -120,7 +120,7 @@ VBG0B:  .long   0,0
 #define _outuPtr   24
 #define _outvPtr   28
 
-rgbtoycb_mmx:
+_dv_rgbtoycb_mmx:
 
 	pushl   %ebp
 	movl    %esp, %ebp
@@ -371,8 +371,8 @@ rgbtoycb_mmx_loop:
 
 	ret     
 
-.global ppm_copy_y_block_mmx
-ppm_copy_y_block_mmx:
+.global _dv_ppm_copy_y_block_mmx
+_dv_ppm_copy_y_block_mmx:
 
 	pushl   %ebp
 	movl    %esp, %ebp
@@ -421,8 +421,8 @@ ppm_copy_y_block_mmx:
 	pop	%ebp
 	ret
 
-.global pgm_copy_y_block_mmx
-pgm_copy_y_block_mmx:
+.global _dv_pgm_copy_y_block_mmx
+_dv_pgm_copy_y_block_mmx:
 
 	pushl   %ebp
 	movl    %esp, %ebp
@@ -563,8 +563,8 @@ pgm_copy_y_block_mmx:
 	pop	%ebp
 	ret
 
-.global video_copy_y_block_mmx
-video_copy_y_block_mmx:
+.global _dv_video_copy_y_block_mmx
+_dv_video_copy_y_block_mmx:
 
 	pushl   %ebp
 	movl    %esp, %ebp
@@ -708,8 +708,8 @@ video_copy_y_block_mmx:
 	ret
 	
 		
-.global ppm_copy_pal_c_block_mmx
-ppm_copy_pal_c_block_mmx:
+.global _dv_ppm_copy_pal_c_block_mmx
+_dv_ppm_copy_pal_c_block_mmx:
 				
 	pushl   %ebp
 	movl    %esp, %ebp
@@ -851,8 +851,8 @@ ppm_copy_pal_c_block_mmx:
 	pop	%ebp
 	ret
 
-.global pgm_copy_pal_c_block_mmx
-pgm_copy_pal_c_block_mmx:
+.global _dv_pgm_copy_pal_c_block_mmx
+_dv_pgm_copy_pal_c_block_mmx:
 				
 	pushl   %ebp
 	movl    %esp, %ebp
@@ -999,8 +999,8 @@ pgm_copy_pal_c_block_mmx:
 	pop	%ebp
 	ret
 
-.global video_copy_pal_c_block_mmx
-video_copy_pal_c_block_mmx:
+.global _dv_video_copy_pal_c_block_mmx
+_dv_video_copy_pal_c_block_mmx:
 				
 	pushl   %ebp
 	movl    %esp, %ebp
@@ -1094,8 +1094,8 @@ video_copy_pal_c_block_mmx_loop:
 	pop	%ebp
 	ret
 	
-.global ppm_copy_ntsc_c_block_mmx
-ppm_copy_ntsc_c_block_mmx:
+.global _dv_ppm_copy_ntsc_c_block_mmx
+_dv_ppm_copy_ntsc_c_block_mmx:
 				
 	pushl   %ebp
 	movl    %esp, %ebp
@@ -1167,8 +1167,8 @@ ppm_copy_ntsc_c_block_mmx_loop:
 	pop	%ebp
 	ret
 
-.global pgm_copy_ntsc_c_block_mmx
-pgm_copy_ntsc_c_block_mmx:
+.global _dv_pgm_copy_ntsc_c_block_mmx
+_dv_pgm_copy_ntsc_c_block_mmx:
 				
 	pushl   %ebp
 	movl    %esp, %ebp
@@ -1324,8 +1324,8 @@ pgm_copy_ntsc_c_block_mmx:
 	pop	%ebp
 	ret
 
-.global video_copy_ntsc_c_block_mmx
-video_copy_ntsc_c_block_mmx:
+.global _dv_video_copy_ntsc_c_block_mmx
+_dv_video_copy_ntsc_c_block_mmx:
 				
 	pushl   %ebp
 	movl    %esp, %ebp

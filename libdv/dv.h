@@ -41,6 +41,8 @@
 #include <libdv/dv_types.h>
 
 #include <stdio.h>
+#include <stdint.h>
+#include <time.h>
 
 #ifdef __cplusplus
 extern "C" {

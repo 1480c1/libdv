@@ -39,6 +39,10 @@
  *  @{
  */
 
+#if HAVE_CONFIG_H
+# include <config.h>
+#endif
+
 #include <math.h>
 
 #include "weighting.h"
@@ -134,7 +138,7 @@ static void postscale248_init(double* post_sc)
 	post_sc[63] = 1.0;    
 }
 
-void weight_init(void) 
+void _dv_weight_init(void) 
 {
 	double temp[64];
 	double temp_postsc[64];
@@ -215,7 +219,7 @@ void weight_init(void)
 	dv_weight_inverse_248_matrix[0] = 4.0;
 }
 
-void weight_88(dv_coeff_t *block) 
+void _dv_weight_88(dv_coeff_t *block) 
 {
 	/* These weights are now folded into the dct postscaler - so this
 	   function doesn't do anything. */
@@ -243,7 +247,7 @@ static void weight_88_float(double *block)
 }
 
 
-void weight_248(dv_coeff_t *block) 
+void _dv_weight_248(dv_coeff_t *block) 
 {
 	/* These weights are now folded into the dct postscaler - so this
 	   function doesn't do anything. */
@@ -287,7 +291,7 @@ static void weight_88_inverse_float(double *block)
 	block[0] = dc * 4.0;
 }
 
-void weight_88_inverse(dv_coeff_t *block) 
+void _dv_weight_88_inverse(dv_coeff_t *block) 
 {
 	/* When we're using MMX assembler, weights are applied in the 8x8
 	   iDCT prescale */
@@ -300,7 +304,7 @@ void weight_88_inverse(dv_coeff_t *block)
 #endif
 }
 
-void weight_248_inverse(dv_coeff_t *block) 
+void _dv_weight_248_inverse(dv_coeff_t *block) 
 {
 	/* These weights are now folded into the idct prescalers - so this
 	   function doesn't do anything. */

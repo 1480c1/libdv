@@ -27,7 +27,11 @@
 #ifndef DV_DISPLAY_H
 #define DV_DISPLAY_H
 
-#include <libdv/dv_types.h>
+#if HAVE_CONFIG_H
+# include <config.h>
+#endif
+
+#include "libdv/dv_types.h"
 #include <gtk/gtk.h>
 
 #if HAVE_LIBXV

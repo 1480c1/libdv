@@ -40,10 +40,14 @@
  */
 
 
-#include <dv_types.h>
+#if HAVE_CONFIG_H
+# include <config.h>
+#endif
 
 #include <stdio.h>
 #include <math.h>
+
+#include "idct_248.h"
 
 #define IDCT_248_UNIT_TEST 0
 

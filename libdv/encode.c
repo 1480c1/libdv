@@ -36,6 +36,10 @@
  *  @{
  */
 
+#if HAVE_CONFIG_H
+# include <config.h>
+#endif
+
 #include <time.h>
 #include <math.h>
 #include <string.h>
@@ -318,7 +322,7 @@ static dv_vlc_encode_t dv_vlc_test_table[89] = {
 
 static dv_vlc_encode_t * vlc_test_lookup[512];
 
-void init_vlc_test_lookup()
+void _dv_init_vlc_test_lookup()
 {
 	int i;
 	memset(vlc_test_lookup, 0, 512 * sizeof(dv_vlc_encode_t*));
@@ -410,7 +414,7 @@ static inline dv_vlc_entry_t * vlc_encode_orig(int run, int amp, int sign,
 dv_vlc_entry_t * vlc_encode_lookup;
 unsigned char  * vlc_num_bits_lookup;
 
-void init_vlc_encode_lookup(void)
+void _dv_init_vlc_encode_lookup(void)
 {
 	int run,amp;
 	vlc_encode_lookup = (dv_vlc_entry_t *) malloc(
@@ -465,7 +469,7 @@ static unsigned short reorder_248[64] = {
 	14,28,30,44,46,58,60,64
 };
 
-void prepare_reorder_tables(void)
+void _dv_prepare_reorder_tables(void)
 {
 	int i;
 	for (i = 0; i < 64; i++) {
@@ -476,7 +480,7 @@ void prepare_reorder_tables(void)
 	}
 }
 
-extern int reorder_block_mmx(dv_coeff_t * a, 
+extern int _dv_reorder_block_mmx(dv_coeff_t * a, 
 			     const unsigned short* reorder_table);
 
 static void reorder_block(dv_block_t *bl)
@@ -493,7 +497,7 @@ static void reorder_block(dv_block_t *bl)
 		reorder = reorder_248;
 
 #if ARCH_X86
-	reorder_block_mmx(bl->coeffs, reorder);
+	_dv_reorder_block_mmx(bl->coeffs, reorder);
 	emms();
 #else	
 	for (i = 0; i < 64; i++) {
@@ -503,7 +507,7 @@ static void reorder_block(dv_block_t *bl)
 #endif
 }
 
-extern unsigned long vlc_encode_block_mmx(dv_coeff_t* coeffs,
+extern unsigned long _dv_vlc_encode_block_mmx(dv_coeff_t* coeffs,
 					  dv_vlc_entry_t ** out);
 
 static unsigned long vlc_encode_block(dv_coeff_t* coeffs, dv_vlc_block_t* out)
@@ -538,7 +542,7 @@ static unsigned long vlc_encode_block(dv_coeff_t* coeffs, dv_vlc_block_t* out)
 #else
 	int num_bits;
 
-	num_bits = vlc_encode_block_mmx(coeffs, &o);
+	num_bits = _dv_vlc_encode_block_mmx(coeffs, &o);
 	emms();
 #endif
 	*o++ = set_dv_vlc(0x6, 4); /* EOB */
@@ -549,9 +553,9 @@ static unsigned long vlc_encode_block(dv_coeff_t* coeffs, dv_vlc_block_t* out)
 	return num_bits;
 }
 
-extern unsigned long vlc_num_bits_block_x86(dv_coeff_t* coeffs);
+extern unsigned long _dv_vlc_num_bits_block_x86(dv_coeff_t* coeffs);
 
-extern unsigned long vlc_num_bits_block(dv_coeff_t* coeffs)
+extern unsigned long _dv_vlc_num_bits_block(dv_coeff_t* coeffs)
 {
 #if !ARCH_X86
 	dv_coeff_t * z = coeffs + 1; /* First AC coeff */
@@ -572,7 +576,7 @@ extern unsigned long vlc_num_bits_block(dv_coeff_t* coeffs)
 
 	return num_bits;
 #else
-	return vlc_num_bits_block_x86(coeffs);
+	return _dv_vlc_num_bits_block_x86(coeffs);
 #endif
 }
 
@@ -619,7 +623,7 @@ static inline void vlc_split_code(dv_vlc_block_t * src,
 	*e = set_dv_vlc(get_dv_vlc_val(*e) & ((1 << len)-1), len);
 }	   
 
-extern void vlc_encode_block_pass_1_x86(dv_vlc_entry_t** start,
+extern void _dv_vlc_encode_block_pass_1_x86(dv_vlc_entry_t** start,
 					dv_vlc_entry_t*  end,
 					long* bit_budget,
 					long* bit_offset,
@@ -648,7 +652,7 @@ static void vlc_encode_block_pass_1(dv_vlc_block_t * bl,
 	bl->bit_budget = bit_budget;
 	bl->bit_offset = bit_offset;
 #else
-	vlc_encode_block_pass_1_x86(&bl->coeffs_start, bl->coeffs_end,
+	_dv_vlc_encode_block_pass_1_x86(&bl->coeffs_start, bl->coeffs_end,
 				    &bl->bit_budget, &bl->bit_offset,
 				    vsbuffer);
 #endif
@@ -724,10 +728,10 @@ static void vlc_encode_block_pass_n(dv_vlc_block_t * blocks,
 	return;
 }
 
-extern int classify_mmx(dv_coeff_t * a, unsigned short* amp_ofs,
+extern int _dv_classify_mmx(dv_coeff_t * a, unsigned short* amp_ofs,
 			unsigned short* amp_cmp);
 
-inline int classify(dv_coeff_t * bl)
+static inline int classify(dv_coeff_t * bl)
 {
 #if ARCH_X86
 	static unsigned short amp_ofs[3][4] = { 
@@ -745,7 +749,7 @@ inline int classify(dv_coeff_t * bl)
 	dc = bl[0];
 	bl[0] = 0;
 	for (i = 0; i < 3; i++) {
-		if (classify_mmx(bl, amp_ofs[i], amp_cmp[i])) {
+		if (_dv_classify_mmx(bl, amp_ofs[i], amp_cmp[i])) {
 			bl[0] = dc;
 			emms();
 			return 3-i;
@@ -792,18 +796,18 @@ static void do_dct(dv_macroblock_t *mb)
 		dv_block_t *bl = &mb->b[b];
 		
 		if (bl->dct_mode == DV_DCT_88) {
-			dct_88(bl->coeffs);
+			_dv_dct_88(bl->coeffs);
 #if !ARCH_X86
 			reorder_block(bl);
 #endif
 #if BRUTE_FORCE_DCT_88
-			weight_88(bl->coeffs);
+			_dv_weight_88(bl->coeffs);
 #endif
 		} else {
-			dct_248(bl->coeffs);
+			_dv_dct_248(bl->coeffs);
 			reorder_block(bl);
 #if BRUTE_FORCE_DCT_248
-			weight_248(bl->coeffs);
+			_dv_weight_248(bl->coeffs);
 #endif
 		}
 		dct_used[bl->dct_mode]++;
@@ -831,7 +835,7 @@ static int quant_2_static_table[2][20] = {
 static int qnos_class_combi[16][16];
 static int qno_next_hit[4][16];
 
-void init_qno_start(void)
+void _dv_init_qno_start(void)
 {
 	int qno;
 	int klass;
@@ -918,8 +922,8 @@ static void quant_1_pass(dv_videosegment_t* videoseg,
 			while (smallest_qno > 0) {
 				memcpy(bb[b], bl->coeffs, 
 				       64 *sizeof(dv_coeff_t));
-				quant(bb[b], smallest_qno, bl->class_no);
-				if (vlc_num_bits_block(bb[b]) 
+				_dv_quant(bb[b], smallest_qno, bl->class_no);
+				if (_dv_vlc_num_bits_block(bb[b]) 
 				    <= ac_coeff_budget)
 					break;
 				qno_index++;
@@ -937,7 +941,7 @@ static void quant_1_pass(dv_videosegment_t* videoseg,
 		if (smallest_qno != 15) { 
 			for (b = 0; b < 6; b++) {
 				dv_block_t *bl = &mb->b[b];
-				quant(bl->coeffs, smallest_qno, bl->class_no);
+				_dv_quant(bl->coeffs, smallest_qno, bl->class_no);
 				vlc_encode_block(bl->coeffs, vblocks + b);
 			}
 			
@@ -978,8 +982,8 @@ static void quant_2_passes(dv_videosegment_t* videoseg,
 			int bits;
 			dv_block_t *bl = &mb->b[b];
 			memcpy(bb[b], bl->coeffs, 64 *sizeof(dv_coeff_t));
-			quant(bb[b], qno, bl->class_no);
-			bits = vlc_num_bits_block(bb[b]);
+			_dv_quant(bb[b], qno, bl->class_no);
+			bits = _dv_vlc_num_bits_block(bb[b]);
 			bits_used += bits;
 #if 0
 			bits_used_ += bits;
@@ -1012,8 +1016,8 @@ static void quant_2_passes(dv_videosegment_t* videoseg,
 					dv_block_t *bl = &mb->b[b];
 					memcpy(bb[b], bl->coeffs, 
 					       64 *sizeof(dv_coeff_t));
-					quant(bb[b], qno, bl->class_no);
-					bits_used += vlc_num_bits_block(bb[b]);
+					_dv_quant(bb[b], qno, bl->class_no);
+					bits_used += _dv_vlc_num_bits_block(bb[b]);
 				}
 
 				if (bits_used > ac_coeff_budget) {
@@ -1041,7 +1045,7 @@ static void quant_2_passes(dv_videosegment_t* videoseg,
 		if (qno != 15) { 
 			for (b = 0; b < 6; b++) {
 				dv_block_t *bl = &mb->b[b];
-				quant(bl->coeffs, qno, bl->class_no);
+				_dv_quant(bl->coeffs, qno, bl->class_no);
 				vlc_encode_block(bl->coeffs, vblocks + b);
 			}
 			if (qno == 0 || static_qno) {
@@ -1082,8 +1086,8 @@ static void quant_3_passes(dv_videosegment_t* videoseg,
 		for (b = 0; b < 6; b++) {
 			dv_block_t *bl = &mb->b[b];
 			memcpy(bb[m][b], bl->coeffs, 64 * sizeof(dv_coeff_t));
-			quant(bb[m][b], smallest_qno[m], bl->class_no);
-			bits_used[m] += vlc_num_bits_block(bb[m][b]);
+			_dv_quant(bb[m][b], smallest_qno[m], bl->class_no);
+			bits_used[m] += _dv_vlc_num_bits_block(bb[m][b]);
 			class_combi[m] |= (1 << bl->class_no);
 		}
 		while (qnos_class_combi[class_combi[m]][qno_index[m]] > 15) {
@@ -1145,8 +1149,8 @@ static void quant_3_passes(dv_videosegment_t* videoseg,
 		for (b = 0; b < 6; b++) {
 			dv_block_t *bl = &mb->b[b];
 			memcpy(bb[m][b], bl->coeffs, 64 *sizeof(dv_coeff_t));
-			quant(bb[m][b], smallest_qno[m], bl->class_no);
-			bits_used_ += vlc_num_bits_block(bb[m][b]);
+			_dv_quant(bb[m][b], smallest_qno[m], bl->class_no);
+			bits_used_ += _dv_vlc_num_bits_block(bb[m][b]);
 		}
 #if 0
 		fprintf(stderr, "(qno: %d, gain: %d, run: %d) ", 
@@ -1164,7 +1168,7 @@ static void quant_3_passes(dv_videosegment_t* videoseg,
 		if (smallest_qno[m] != 15) { 
 			for (b = 0; b < 6; b++) {
 				dv_block_t *bl = &mb->b[b];
-				quant(bl->coeffs,smallest_qno[m],bl->class_no);
+				_dv_quant(bl->coeffs,smallest_qno[m],bl->class_no);
 				vlc_encode_block(bl->coeffs,vblocks+6 * m + b);
 			}
 		} else {
@@ -1310,7 +1314,7 @@ static void encode(dv_enc_input_filter_t * input,
 	} 
 }
 
-int encoder_loop(dv_enc_input_filter_t * input,
+int dv_encoder_loop(dv_enc_input_filter_t * input,
 		 dv_enc_audio_input_filter_t * audio_input,
 		 dv_enc_output_filter_t * output,
 		 int start, int end, const char* filename,
@@ -1412,7 +1416,7 @@ int encoder_loop(dv_enc_input_filter_t * input,
 	return 0;
 }
 
-void show_statistics()
+void dv_show_statistics()
 {
 	int i = 0;
 	fprintf(stderr, "\n\nFinal statistics:\n"
@@ -1545,7 +1549,7 @@ int dv_encode_videosegment( dv_encoder_t *dv_enc,
 		} else {
 			dv_place_411_macroblock(mb);
 		}
-		ycb_fill_macroblock(dv_enc, mb);
+		_dv_ycb_fill_macroblock(dv_enc, mb);
 		do_dct(mb);
 		do_classify(mb, dv_enc->static_qno);
 	}
@@ -1768,7 +1772,7 @@ int dv_encode_full_frame(dv_encoder_t *dv_enc, uint8_t **in,
 		} 
 	} 
 	
-	write_meta_data(target, dv_enc->frame_count++, dv_enc->isPAL, dv_enc->is16x9, &now);
+	_dv_write_meta_data(target, dv_enc->frame_count++, dv_enc->isPAL, dv_enc->is16x9, &now);
 
 	return 0;
 }
@@ -1818,7 +1822,7 @@ int dv_encode_full_audio(dv_encoder_t *dv_enc, int16_t **pcm,
 				swab( pcm[j]+i, audio.data + (i*2+j)*channels, 2);
 	}
 
-	return raw_insert_audio(frame_buf, &audio, dv_enc->isPAL);
+	return _dv_raw_insert_audio(frame_buf, &audio, dv_enc->isPAL);
 }
 
 /** @brief Calculate number of samples to be applied to a new frame.

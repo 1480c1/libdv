@@ -29,8 +29,8 @@ VLCADDMASK:	.byte 255,0,0,0,255,0,0,0
 		
 .text
 
-.global vlc_encode_block_mmx
-vlc_encode_block_mmx:	
+.global _dv_vlc_encode_block_mmx
+_dv_vlc_encode_block_mmx:	
 	pushl	%ebx
 	pushl	%esi
 	pushl	%edi
@@ -105,8 +105,8 @@ vlc_encode_block_out:
 	popl	%ebx
 	ret	
 
-.global vlc_num_bits_block_x86
-vlc_num_bits_block_x86:	
+.global _dv_vlc_num_bits_block_x86
+_dv_vlc_num_bits_block_x86:	
 	pushl	%ebx
 	pushl	%esi
 	pushl	%edi
@@ -163,8 +163,8 @@ vlc_num_bits_block_out:
 	popl	%ebx
 	ret	
 
-.global vlc_encode_block_pass_1_x86	
-vlc_encode_block_pass_1_x86:	
+.global _dv_vlc_encode_block_pass_1_x86	
+_dv_vlc_encode_block_pass_1_x86:	
 	pushl	%ebx
 	pushl	%esi
 	pushl	%edi
@@ -239,8 +239,8 @@ vlc_encode_block_pass1_x86_out:
 	popl	%ebx	
 	ret		
 		
-.global classify_mmx
-classify_mmx:
+.global _dv_classify_mmx
+_dv_classify_mmx:
 
 	pushl   %ebp
 	movl    %esp, %ebp
@@ -341,11 +341,11 @@ classify_mmx:
 	pop	%ebp
 	ret
 
-/* FIXME: reorder_block_mmx isn't really _that_ faster than the C version... 
+/* FIXME: _dv_reorder_block_mmx isn't really _that_ faster than the C version... 
 	 don't know why... */
 	
-.global reorder_block_mmx
-reorder_block_mmx:
+.global _dv_reorder_block_mmx
+_dv_reorder_block_mmx:
 				
 	pushl   %ebp
 	movl    %esp, %ebp
@@ -459,8 +459,8 @@ reorder_loop:
 	popl	%ebp
 	ret
 
-.global need_dct_248_mmx_rows
-need_dct_248_mmx_rows:
+.global _dv_need_dct_248_mmx_rows
+_dv_need_dct_248_mmx_rows:
 	
 	pushl   %ebp
 	movl    %esp, %ebp

@@ -26,7 +26,7 @@
 #ifndef DV_OSS_H
 #define DV_OSS_H
 
-#include <libdv/dv_types.h>
+#include "libdv/dv_types.h"
 #include <glib.h>
 
 #ifdef __cplusplus

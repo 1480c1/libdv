@@ -22,7 +22,7 @@
  *
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
-#include <dv_types.h>
+#include "dv_types.h"
 
 #include <stdio.h>
 

@@ -1,7 +1,7 @@
 .text
-.global transpose_mmx
+.global _dv_transpose_mmx
 	
-transpose_mmx:
+_dv_transpose_mmx:
 	pushl   %ebp
 	movl    %esp, %ebp
 	pushl   %esi

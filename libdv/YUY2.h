@@ -27,7 +27,7 @@
 #ifndef DV_YUY2_H
 #define DV_YUY2_H
 
-#include <libdv/dv_types.h>
+#include "dv_types.h"
 
 /* Convert output of decoder to YUY2 conforming layout.  YUY2 is a
  * format supported directly by many display adaptors.  See

@@ -23,6 +23,10 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
+#if HAVE_CONFIG_H
+# include <config.h>
+#endif
+
 #include "util.h"
 
 #if HAVE_LIBPOPT

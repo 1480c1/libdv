@@ -23,7 +23,7 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#include <libdv/dv_types.h>
+#include "libdv/dv_types.h"
 
 #include <stdio.h>
 #include <sys/ioctl.h>
@@ -44,10 +44,10 @@
 #include <malloc.h>
 #include <stdarg.h>
 
-#include <libdv/headers.h>
-#include <libdv/enc_audio_input.h>
-#include <libdv/enc_input.h>
-#include <libdv/enc_output.h>
+#include "libdv/headers.h"
+#include "libdv/enc_audio_input.h"
+#include "libdv/enc_input.h"
+#include "libdv/enc_output.h"
 
 static jmp_buf error_jmp_env;
 
@@ -489,7 +489,7 @@ int main(int argc, const char** argv)
 		exit(-1);
 	}
 
-	get_dv_enc_output_filters(&output_filter, &count);
+	dv_enc_get_output_filters(&output_filter, &count);
 	while (count && 
 	       strcmp(output_filter->filter_name, output_filter_str) != 0) {
 		output_filter++;
@@ -499,7 +499,7 @@ int main(int argc, const char** argv)
 		fprintf(stderr, "Unknown output filter selected: %s!\n"
 			"The following filters are supported:\n",
 			output_filter_str);
-		get_dv_enc_output_filters(&output_filter, &count);
+		dv_enc_get_output_filters(&output_filter, &count);
 		while (count--) {
 			fprintf(stderr, "%s\n", output_filter->filter_name);
 			output_filter++;

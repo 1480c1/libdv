@@ -23,6 +23,10 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
  
+#if HAVE_CONFIG_H
+# include <config.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -60,7 +64,7 @@ static int dv_audio_unshuffle_50[6][9] = {
   { 15, 33, 51, 10, 28, 46,  5, 23, 41 },
 };
 
-void put_16_bit(unsigned char * target, unsigned char* wave_buf,
+static void put_16_bit(unsigned char * target, unsigned char* wave_buf,
 		dv_enc_audio_info_t * audio, int dif_seg, int isPAL,
 		int channel)
 {
@@ -106,7 +110,7 @@ void put_16_bit(unsigned char * target, unsigned char* wave_buf,
 }
 
 
-int raw_insert_audio(unsigned char * frame_buf, 
+int _dv_raw_insert_audio(unsigned char * frame_buf, 
 		     dv_enc_audio_info_t * audio, int isPAL)
 {
 	int dif_seg;
@@ -135,7 +139,7 @@ int raw_insert_audio(unsigned char * frame_buf,
 					| (/* pa = */ 0 << 4) 
 					| (/* chn = */ 0 << 5)
 					| (/* sm = */ 0 << 7);
-				head_50[4] = /* 12 Bits */0 
+				head_50[4] = /* 16 Bits */0 
 					| (/* 32000 kHz */ 2 << 3)
 					| (/* tc = */ 0 << 6) 
 					| (/* ef = */ 0 << 7);
@@ -186,7 +190,7 @@ int raw_insert_audio(unsigned char * frame_buf,
 					| (/* pa = */ 0 << 4) 
 					| (/* chn = */ 0 << 5)
 					| (/* sm = */ 0 << 7);
-				head_50[4] = /* 12 Bits */0 
+				head_50[4] = /* 16 Bits */0 
 					| (/* 32000 kHz */ 2 << 3)
 					| (/* tc = */ 0 << 6) 
 					| (/* ef = */ 0 << 7);
@@ -301,11 +305,11 @@ static int raw_store(unsigned char* encoded_data,
 		     int isPAL, int is16x9, time_t now)
 {
 	if (!keep_meta_headers) {
-		write_meta_data(encoded_data, frame_counter, 
+		_dv_write_meta_data(encoded_data, frame_counter, 
 				isPAL, is16x9, &now);
 	}
 	if (audio_data) {
-		int rval = raw_insert_audio(encoded_data, audio_data, isPAL);
+		int rval = _dv_raw_insert_audio(encoded_data, audio_data, isPAL);
 		if (rval) {
 			return rval;
 		}
@@ -326,7 +330,7 @@ void dv_enc_register_output_filter(dv_enc_output_filter_t filter)
 	*p = filter;
 }
 
-int get_dv_enc_output_filters(dv_enc_output_filter_t ** filters_,
+int dv_enc_get_output_filters(dv_enc_output_filter_t ** filters_,
 			      int * count)
 {
 	dv_enc_output_filter_t * p = filters;

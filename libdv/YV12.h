@@ -27,7 +27,7 @@
 #ifndef DV_YV12_H
 #define DV_YV12_H
 
-#include <libdv/dv_types.h>
+#include "dv_types.h"
 
 /* Convert output of decoder to YV12 conforming layout.  YV12 is a
  * format supported directly by many display adaptors.  See

@@ -23,7 +23,7 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#include <libdv/dv_types.h>
+#include "libdv/dv_types.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -66,7 +66,7 @@ int main(int argc, const char** argv)
 	}
 
 	while (read_frame(stdin, frame_buf, &isPAL)) {
-		write_meta_data(frame_buf, frame_count++, isPAL, wide, &t);
+		_dv_write_meta_data(frame_buf, frame_count++, isPAL, wide, &t);
 		fwrite(frame_buf, 1, isPAL ? 144000 : 120000, stdout);
 	}
 	return 0;

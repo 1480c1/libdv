@@ -48,12 +48,12 @@ extern "C" {
 		const char* filter_name;
 	} dv_enc_output_filter_t;
 
-	extern int raw_insert_audio(unsigned char * frame_buf, 
+	extern int _dv_raw_insert_audio(unsigned char * frame_buf, 
 		     dv_enc_audio_info_t * audio, int isPAL);
 
 	extern void dv_enc_register_output_filter(dv_enc_output_filter_t 
 						  filter);
-	extern int get_dv_enc_output_filters(dv_enc_output_filter_t ** filters,
+	extern int dv_enc_get_output_filters(dv_enc_output_filter_t ** filters,
 					     int * count);
 
 #ifdef __cplusplus

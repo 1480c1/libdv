@@ -36,7 +36,7 @@
 #ifndef DV_DCT_H
 #define DV_DCT_H
 
-#include <libdv/dv_types.h>
+#include "dv_types.h"
 
 #define DCT_YUV_PRECISION 1        /* means fixpoint with YUV_PRECISION bits 
 				      after the point (if you change this,
@@ -47,14 +47,14 @@
 extern "C" {
 #endif
 
-void dct_init(void);
+void _dv_dct_init(void);
 /* Input is transposed ! */
-void dct_88(dv_coeff_t *block);
+void _dv_dct_88(dv_coeff_t *block);
 /* Input is transposed ! */
-void dct_248(dv_coeff_t *block);
-void idct_88(dv_coeff_t *block);
+void _dv_dct_248(dv_coeff_t *block);
+void _dv_idct_88(dv_coeff_t *block);
 #if BRUTE_FORCE_248
-void idct_248(double *block);
+void _dv_idct_248(double *block);
 #endif
 
 #ifdef __cplusplus

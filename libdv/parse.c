@@ -41,13 +41,17 @@
  *  @{
  */
 
+#if HAVE_CONFIG_H
+# include <config.h>
+#endif
+
 #include <string.h>
 
 #include "util.h"
 #include "dv.h"
 #include "vlc.h"
-#include "parse.h"
 #include "audio.h"
+#include "parse.h"
 
 #define STRICT_SYNTAX 0
 #define VLC_BOUNDS_CHECK 0
@@ -796,8 +800,8 @@ dv_parse_header(dv_decoder_t *dv, const uint8_t *buffer) {
   dv_id_t      id;
   int         prev_system, result = 0;
 
-  if(!(bs = bitstream_init())) goto no_bitstream;
-  bitstream_new_buffer(bs,(uint8_t *)buffer,6*80);
+  if(!(bs = _dv_bitstream_init())) goto no_bitstream;
+  _dv_bitstream_new_buffer(bs,(uint8_t *)buffer,6*80);
   dv_parse_id(bs,&id);
   if (id.sct != 0) goto parse_error;            /* error, if not header */
   header->dsf = bitstream_get(bs,1);

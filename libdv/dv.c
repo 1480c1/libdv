@@ -35,6 +35,10 @@
  *  @{
  */
 
+#if HAVE_CONFIG_H
+# include <config.h>
+#endif
+
 #include <string.h>
 #include <pthread.h>
 
@@ -178,8 +182,8 @@ dv_init(int clamp_luma, int clamp_chroma) {
 #if ARCH_X86
   dv_use_mmx = mmx_ok(); 
 #endif
-  weight_init();
-  dct_init();
+  _dv_weight_init();
+  _dv_dct_init();
   dv_dct_248_init();
   dv_construct_vlc_table();
   dv_parse_init();
@@ -188,10 +192,10 @@ dv_init(int clamp_luma, int clamp_chroma) {
   dv_rgb_init(clamp_luma, clamp_chroma);
   dv_YUY2_init(clamp_luma, clamp_chroma);
   dv_YV12_init(clamp_luma, clamp_chroma);
-  init_vlc_test_lookup();
-  init_vlc_encode_lookup();
-  init_qno_start();
-  prepare_reorder_tables();
+  _dv_init_vlc_test_lookup();
+  _dv_init_vlc_encode_lookup();
+  _dv_init_qno_start();
+  _dv_prepare_reorder_tables();
 
   done=TRUE;
  init_done:
@@ -216,16 +220,16 @@ dv_decode_macroblock(dv_decoder_t *dv, dv_macroblock_t *mb, unsigned int quality
     if (mb->b[i].dct_mode == DV_DCT_248) {
 	dv_248_coeff_t co248[64];
 
-      quant_248_inverse (mb->b[i].coeffs, mb->qno, mb->b[i].class_no, co248);
+      _dv_quant_248_inverse (mb->b[i].coeffs, mb->qno, mb->b[i].class_no, co248);
       dv_idct_248 (co248, mb->b[i].coeffs);
     } else {
 #if ARCH_X86
-      quant_88_inverse_x86(mb->b[i].coeffs,mb->qno,mb->b[i].class_no);
-      idct_88(mb->b[i].coeffs);
+      _dv_quant_88_inverse_x86(mb->b[i].coeffs,mb->qno,mb->b[i].class_no);
+      _dv_idct_88(mb->b[i].coeffs);
 #else /* ARCH_X86 */
-      quant_88_inverse(mb->b[i].coeffs,mb->qno,mb->b[i].class_no);
-      weight_88_inverse(mb->b[i].coeffs);
-      idct_88(mb->b[i].coeffs);
+      _dv_quant_88_inverse(mb->b[i].coeffs,mb->qno,mb->b[i].class_no);
+      _dv_weight_88_inverse(mb->b[i].coeffs);
+      _dv_idct_88(mb->b[i].coeffs);
 #endif /* ARCH_X86 */
     } /* else */
   } /* for b */
@@ -245,17 +249,17 @@ dv_decode_video_segment(dv_decoder_t *dv, dv_videosegment_t *seg, unsigned int q
       if (bl->dct_mode == DV_DCT_248) {
 	  dv_248_coeff_t co248[64];
 
-	quant_248_inverse (mb->b[b].coeffs, mb->qno, mb->b[b].class_no, co248);
+	_dv_quant_248_inverse (mb->b[b].coeffs, mb->qno, mb->b[b].class_no, co248);
 	dv_idct_248 (co248, mb->b[b].coeffs);
       } else {
 #if ARCH_X86
-	quant_88_inverse_x86(bl->coeffs,mb->qno,bl->class_no);
-	weight_88_inverse(bl->coeffs);
-	idct_88(bl->coeffs);
+	_dv_quant_88_inverse_x86(bl->coeffs,mb->qno,bl->class_no);
+	_dv_weight_88_inverse(bl->coeffs);
+	_dv_idct_88(bl->coeffs);
 #else /* ARCH_X86 */
-	quant_88_inverse(bl->coeffs,mb->qno,bl->class_no);
-	weight_88_inverse(bl->coeffs);
-	idct_88(bl->coeffs);
+	_dv_quant_88_inverse(bl->coeffs,mb->qno,bl->class_no);
+	_dv_weight_88_inverse(bl->coeffs);
+	_dv_idct_88(bl->coeffs);
 #endif /* ARCH_X86 */
       } /* else */
     } /* for b */
@@ -450,7 +454,7 @@ dv_decode_full_frame(dv_decoder_t *dv, const uint8_t *buffer,
   unsigned int offset = 0, dif = 0, audio=0;
 
   if(!seg->bs) {
-    seg->bs = bitstream_init();
+    seg->bs = _dv_bitstream_init();
     if(!seg->bs) 
       goto no_mem;
   } /* if */
@@ -478,7 +482,7 @@ dv_decode_full_frame(dv_decoder_t *dv, const uint8_t *buffer,
       } /* if */
       /* stage 1: parse and VLC decode 5 macroblocks that make up a video segment */
       offset = dif * 80;
-      bitstream_new_buffer(seg->bs, (uint8_t *)buffer + offset, 80*5); 
+      _dv_bitstream_new_buffer(seg->bs, (uint8_t *)buffer + offset, 80*5); 
       dv_parse_video_segment(seg, dv->quality);
       /* stage 2: dequant/unweight/iDCT blocks, and place the macroblocks */
       dif+=5;

@@ -38,14 +38,14 @@
 
 #include "bitstream.h"
 
-void bitstream_next_buffer(bitstream_t * bs) {
+void _dv_bitstream_next_buffer(bitstream_t * bs) {
   if (bs->bitstream_next_buffer) {
     bs->buflen = bs->bitstream_next_buffer(&bs->buf,bs->priv);
     bs->bufoffset = 0;
   }
 }
 
-void bitstream_byte_align(bitstream_t *bs) {
+void _dv_bitstream_byte_align(bitstream_t *bs) {
   //byte align the bitstream
 bs->bitsread += bs->bits_left & 7;
   bs->bits_left = bs->bits_left & ~7;
@@ -56,18 +56,18 @@ bs->bitsread += bs->bits_left & 7;
   }
 }
 
-bitstream_t *bitstream_init() {
+bitstream_t *_dv_bitstream_init() {
   bitstream_t *bs = (bitstream_t *)malloc(sizeof(bitstream_t));
   memset(bs,0,sizeof(bitstream_t));
 
   return bs;
 }
 
-void bitstream_set_fill_func(bitstream_t *bs,uint32_t (*next_function) (uint8_t **,void *),void *priv) {
+void _dv_bitstream_set_fill_func(bitstream_t *bs,uint32_t (*next_function) (uint8_t **,void *),void *priv) {
   bs->bitstream_next_buffer = next_function;
   bs->priv = priv;
 
-  bitstream_next_buffer(bs);
+  _dv_bitstream_next_buffer(bs);
 
   bitstream_next_word(bs);
   bs->current_word = bs->next_word;
@@ -76,7 +76,7 @@ void bitstream_set_fill_func(bitstream_t *bs,uint32_t (*next_function) (uint8_t 
   bs->bitsread = 0;
 }
 
-void bitstream_new_buffer(bitstream_t *bs,uint8_t *buf,uint32_t len) {
+void _dv_bitstream_new_buffer(bitstream_t *bs,uint8_t *buf,uint32_t len) {
   bs->buf = buf;
   bs->buflen = len;
   bs->bufoffset = 0;
@@ -88,7 +88,7 @@ void bitstream_new_buffer(bitstream_t *bs,uint8_t *buf,uint32_t len) {
   bs->bitsread = 0;
 }
 
-uint32_t bitstream_done(bitstream_t *bs) {
+uint32_t _dv_bitstream_done(bitstream_t *bs) {
   //FIXME
   return 0;
 }

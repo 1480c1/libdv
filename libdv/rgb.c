@@ -25,9 +25,13 @@
  */
 
 
-#include <dv_types.h>
+#if HAVE_CONFIG_H
+# include <config.h>
+#endif
 
 #include <math.h>
+
+#include "rgb.h"
 
 #define COLOR_FRACTION_BITS 10
 #define COLOR_FRACTION_MUL  (1 << COLOR_FRACTION_BITS)

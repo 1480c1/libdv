@@ -31,7 +31,7 @@
 #ifndef DV_BITSTREAM_H
 #define DV_BITSTREAM_H
 
-#include <dv_types.h>
+#include "dv_types.h"
 #if HAVE_ENDIAN_H
 #include <endian.h>
 #elif HAVE_MACHINE_ENDIAN_H
@@ -52,17 +52,17 @@ extern "C" {
  (((uint8_t*)&x)[2] << 8)  | (((uint8_t*)&x)[3]))
 #endif // LITTLE_ENDIAN
 
-bitstream_t *bitstream_init();
-void bitstream_set_fill_func(bitstream_t *bs,uint32_t (*next_function) (uint8_t **,void *),void *priv);
-void bitstream_next_buffer(bitstream_t * bs);
-void bitstream_new_buffer(bitstream_t *bs,uint8_t *buf,uint32_t len);
-void bitstream_byte_align(bitstream_t *bs);
+bitstream_t *_dv_bitstream_init();
+void _dv_bitstream_set_fill_func(bitstream_t *bs,uint32_t (*next_function) (uint8_t **,void *),void *priv);
+void _dv_bitstream_next_buffer(bitstream_t * bs);
+void _dv_bitstream_new_buffer(bitstream_t *bs,uint8_t *buf,uint32_t len);
+void _dv_bitstream_byte_align(bitstream_t *bs);
 
 static void bitstream_next_word(bitstream_t *bs) {
   uint32_t diff = bs->buflen - bs->bufoffset;
 
   if (diff == 0)
-    bitstream_next_buffer(bs);
+    _dv_bitstream_next_buffer(bs);
 
   if ((bs->buflen - bs->bufoffset) >=4 ) {
     bs->next_word = *(uint32_t *)(bs->buf + bs->bufoffset);
@@ -74,7 +74,7 @@ static void bitstream_next_word(bitstream_t *bs) {
     bs->next_word = *(uint32_t *)(bs->buf + bs->buflen - 4);
     bs->next_bits = (bs->buflen - bs->bufoffset) * 8;
 //    fprintf(stdout,"end of buffer, have %d bits\n",bs->next_bits);
-    bitstream_next_buffer(bs);
+    _dv_bitstream_next_buffer(bs);
 //    fprintf(stderr,"next_word is %08x at %d\n",bs->next_word,bs->bufoffset);
   }
 }

@@ -27,6 +27,9 @@
 /* Most of this file is derived from patches 101018 and 101136 submitted by
  * Stefan Lucke <Stefan.Lucke1@epost.de> */
 
+#if HAVE_CONFIG_H
+# include <config.h>
+#endif
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -34,8 +37,8 @@
 #include <math.h>
 #include <string.h>
 
-#include <libdv/dv_types.h>
-#include <libdv/util.h>
+#include "libdv/dv_types.h"
+#include "libdv/util.h"
 #include "display.h"
 
 #if HAVE_LIBXV

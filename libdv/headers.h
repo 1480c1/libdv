@@ -32,7 +32,7 @@
 extern "C" {
 #endif
 
-extern void write_meta_data(unsigned char* target, int frame, int isPAL,
+extern void _dv_write_meta_data(unsigned char* target, int frame, int isPAL,
 			    int is16x9, time_t * now);
 
 #ifdef __cplusplus

@@ -26,7 +26,7 @@
 #ifndef DV_UTIL_H
 #define DV_UTIL_H
 
-#include <libdv/dv_types.h>
+#include "dv_types.h"
 
 #ifdef __cplusplus
 extern "C" {

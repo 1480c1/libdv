@@ -27,7 +27,9 @@
 /* Most of this file is derived from patch 101018 submitted by Stefan
  * Lucke <Stefan.Lucke1@epost.de> */
 
-#include <dv_types.h>
+#if HAVE_CONFIG_H
+# include <config.h>
+#endif
 
 #if HAVE_ENDIAN_H
 #include <endian.h>

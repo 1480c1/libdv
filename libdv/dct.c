@@ -24,6 +24,10 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <math.h>
 #include <string.h>
 
@@ -66,19 +70,19 @@ static double KC88[8][8][8][8];
 #endif /* (!ARCH_X86) || BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88 */
 
 #if ARCH_X86
-void idct_block_mmx(int16_t *block);
-void dct_88_block_mmx(int16_t* block);
-void dct_block_mmx_postscale_88(int16_t* block, int16_t* postscale_matrix);
-void dct_block_mmx_postscale_248(int16_t* block, int16_t* postscale_matrix);
-void dct_248_block_mmx(int16_t* block);
-void dct_248_block_mmx_post_sum(int16_t* out_block);
-void transpose_mmx(short * dst);
+void _dv_idct_block_mmx(int16_t *block);
+void _dv_dct_88_block_mmx(int16_t* block);
+void _dv_dct_block_mmx_postscale_88(int16_t* block, int16_t* postscale_matrix);
+void _dv_dct_block_mmx_postscale_248(int16_t* block, int16_t* postscale_matrix);
+void _dv_dct_248_block_mmx(int16_t* block);
+void _dv_dct_248_block_mmx_post_sum(int16_t* out_block);
+void _dv_transpose_mmx(short * dst);
 #endif /* ARCH_X86 */
 
 extern dv_coeff_t postSC88[64] ALIGN32;
 extern dv_coeff_t postSC248[64] ALIGN32;
 
-void dct_init(void) {
+void _dv_dct_init(void) {
 #if BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88
   int u, z;
 #endif /* BRUTE_FORCE_DCT_248 || BRUTE_FORCE_DCT_88 */
@@ -255,7 +259,7 @@ static void dct44_aan_line(short* in, short* out)
 	out[6] = v43;
 }
 
-void postscale88(var v[64])
+static void postscale88(var v[64])
 {
 	int i;
 	int factor = pow(2, 16 + DCT_YUV_PRECISION);
@@ -318,7 +322,7 @@ static inline void dct248_aan(short *s_in)
 	}
 }
 
-void postscale248(var v[64])
+static void postscale248(var v[64])
 {
 	int i;
 	int factor = pow(2, 16 + DCT_YUV_PRECISION);
@@ -329,7 +333,7 @@ void postscale248(var v[64])
 
 /* Input has to be transposed !!! */
 
-void dct_88(dv_coeff_t *block) {
+void _dv_dct_88(dv_coeff_t *block) {
 #if !ARCH_X86
 #if BRUTE_FORCE_DCT_88
   int v,h,y,x,i;
@@ -357,17 +361,17 @@ void dct_88(dv_coeff_t *block) {
   postscale88(block);
 #endif /* BRUTE_FORCE_DCT_88 */
 #else /* ARCH_X86 */
-  dct_88_block_mmx(block);
-  transpose_mmx(block);
-  dct_88_block_mmx(block);
-  dct_block_mmx_postscale_88(block, postSC88);
+  _dv_dct_88_block_mmx(block);
+  _dv_transpose_mmx(block);
+  _dv_dct_88_block_mmx(block);
+  _dv_dct_block_mmx_postscale_88(block, postSC88);
   emms(); 
 #endif /* ARCH_X86 */
 }
 
 /* Input has to be transposed !!! */
 
-void dct_248(dv_coeff_t *block) 
+void _dv_dct_248(dv_coeff_t *block) 
 {
 #if !ARCH_X86
 #if BRUTE_FORCE_DCT_248
@@ -398,16 +402,16 @@ void dct_248(dv_coeff_t *block)
   postscale248(block);
 #endif /* BRUTE_FORCE_DCT_248 */
 #else /* ARCH_X86 */
-  dct_88_block_mmx(block);
-  transpose_mmx(block);
-  dct_248_block_mmx(block);
-  dct_248_block_mmx_post_sum(block);
-  dct_block_mmx_postscale_248(block, postSC248);
+  _dv_dct_88_block_mmx(block);
+  _dv_transpose_mmx(block);
+  _dv_dct_248_block_mmx(block);
+  _dv_dct_248_block_mmx_post_sum(block);
+  _dv_dct_block_mmx_postscale_248(block, postSC248);
   emms();
 #endif /* ARCH_X86 */
 }
 
-void idct_88(dv_coeff_t *block) 
+void _dv_idct_88(dv_coeff_t *block) 
 {
 #if !ARCH_X86
   int v,h,y,x,i;
@@ -427,14 +431,14 @@ void idct_88(dv_coeff_t *block)
   for (i=0;i<64;i++)
     block[i] = temp[i];
 #else
-  idct_block_mmx(block);
+  _dv_idct_block_mmx(block);
   emms();
 #endif
 }
 
 #if BRUTE_FORCE_248
 
-void idct_248(double *block) 
+void _dv_idct_248(double *block) 
 {
   int u,h,z,x,i;
   double temp[64];

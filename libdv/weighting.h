@@ -36,17 +36,17 @@
 #ifndef DV_WEIGHTING_H
 #define DV_WEIGHTING_H
 
-#include <libdv/dv_types.h>
+#include "dv_types.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void weight_init(void);
-void weight_88(dv_coeff_t *block);
-void weight_248(dv_coeff_t *block);
-void weight_88_inverse(dv_coeff_t *block);
-void weight_248_inverse(dv_coeff_t *block);
+void _dv_weight_init(void);
+void _dv_weight_88(dv_coeff_t *block);
+void _dv_weight_248(dv_coeff_t *block);
+void _dv_weight_88_inverse(dv_coeff_t *block);
+void _dv_weight_248_inverse(dv_coeff_t *block);
 
 #ifdef __cplusplus
 }

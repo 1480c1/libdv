@@ -23,6 +23,10 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
  
+#if HAVE_CONFIG_H
+# include <config.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -107,7 +111,7 @@ static void convert_u16_be(unsigned char* in_buf, unsigned char* out_buf,
 }
 
 
-unsigned long read_long(FILE* in_wav)
+static unsigned long read_long(FILE* in_wav)
 {
 	unsigned char buf[4];
 
@@ -119,7 +123,7 @@ unsigned long read_long(FILE* in_wav)
 	return buf[0] + (buf[1] << 8) + (buf[2] << 16) + (buf[3] << 24);
 }
 
-unsigned long read_short(FILE* in_wav)
+static unsigned long read_short(FILE* in_wav)
 {
 	unsigned char buf[2];
 	if (fread(buf, 1, 2, in_wav) != 2) {
@@ -130,7 +134,7 @@ unsigned long read_short(FILE* in_wav)
 	return buf[0] + (buf[1] << 8);
 }
 
-void read_header(FILE* in_wav, char* header)
+static void read_header(FILE* in_wav, char* header)
 {
 	unsigned char buf[4];
 
@@ -145,7 +149,7 @@ void read_header(FILE* in_wav, char* header)
 	}
 }
 
-int parse_wave_header(FILE* in_wav, dv_enc_audio_info_t * res)
+static int parse_wave_header(FILE* in_wav, dv_enc_audio_info_t * res)
 {
 	unsigned char fmt_header_junk[1024];
 	int header_len;
@@ -224,7 +228,7 @@ static void bytesperframe(dv_enc_audio_info_t * audio_info, int isPAL)
 
 static FILE* audio_fp = NULL;
 
-int wav_init(const char* filename, dv_enc_audio_info_t * audio_info)
+static int wav_init(const char* filename, dv_enc_audio_info_t * audio_info)
 {
 	audio_fp = fopen(filename, "r");
 
@@ -242,12 +246,12 @@ int wav_init(const char* filename, dv_enc_audio_info_t * audio_info)
 	return(0);
 }
 
-void wav_finish()
+static void wav_finish()
 {
 	fclose(audio_fp);
 }
 
-int wav_load(dv_enc_audio_info_t * audio_info, int isPAL)
+static int wav_load(dv_enc_audio_info_t * audio_info, int isPAL)
 {
 	int rval;
 	unsigned char data[DV_AUDIO_MAX_SAMPLES * 2 * 2];
@@ -384,7 +388,7 @@ void dv_enc_register_audio_input_filter(dv_enc_audio_input_filter_t filter)
 	p->filter_name = NULL;
 }
 
-int get_dv_enc_audio_input_filters(dv_enc_audio_input_filter_t ** filters_,
+int dv_enc_get_audio_input_filters(dv_enc_audio_input_filter_t ** filters_,
 				   int * count)
 {
 	dv_enc_audio_input_filter_t * p = filters;

@@ -43,7 +43,7 @@ int main(int argc, char **argv)
   p = buffer;
   bits_left = 8;
   dv_construct_vlc_table();
-  bs = bitstream_init();
+  bs = _dv_bitstream_init();
   coeff_count=count=0;
   while((c=fgetc(stdin)) != EOF) {
     if(c=='0') bit = 0;
@@ -54,7 +54,7 @@ int main(int argc, char **argv)
     bits_left--;
     if(!bits_left) { p++; bits_left=8; }
   }
-  bitstream_new_buffer(bs,buffer,256);
+  _dv_bitstream_new_buffer(bs,buffer,256);
   while(count >0) {
     dv_peek_vlc(bs,count,&vlc);
     if(vlc.len > 0) {

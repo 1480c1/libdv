@@ -25,12 +25,12 @@
  */
 
 #include <string.h>
-#include <libdv/dv_types.h>
-#include <libdv/dv.h>
-#include <libdv/encode.h>
-#include <libdv/enc_input.h>
-#include <libdv/enc_output.h>
-#include <libdv/headers.h>
+#include "libdv/dv_types.h"
+#include "libdv/dv.h"
+#include "libdv/encode.h"
+#include "libdv/enc_input.h"
+#include "libdv/enc_output.h"
+#include "libdv/headers.h"
 
 #define DV_ENCODER_OPT_VERSION         0
 #define DV_ENCODER_OPT_START_FRAME     1
@@ -250,7 +250,7 @@ int main(int argc, char *argv[])
 	filename = argv[1];
 #endif /* HAVE_LIBPOPT */
 
-	get_dv_enc_input_filters(&input_filter, &count);
+	dv_enc_get_input_filters(&input_filter, &count);
 	while (count 
 	       && strcmp(input_filter->filter_name, input_filter_str) != 0) {
 		input_filter++;
@@ -260,7 +260,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Unknown input filter selected: %s!\n"
 			"The following filters are supported:\n",
 			input_filter_str);
-		get_dv_enc_input_filters(&input_filter, &count);
+		dv_enc_get_input_filters(&input_filter, &count);
 		while (count--) {
 			fprintf(stderr, "%s\n", input_filter->filter_name);
 			input_filter++;
@@ -269,7 +269,7 @@ int main(int argc, char *argv[])
 	}
 
 	if (strcmp(audio_input_filter_str, "none") != 0) {
-		get_dv_enc_audio_input_filters(&audio_input_filter, &count);
+		dv_enc_get_audio_input_filters(&audio_input_filter, &count);
 		while (count 
 		       && strcmp(audio_input_filter->filter_name, 
 				 audio_input_filter_str) != 0) {
@@ -281,7 +281,7 @@ int main(int argc, char *argv[])
 				"Unknown audio input filter selected: %s!\n"
 				"The following filters are supported:\n",
 				audio_input_filter_str);
-			get_dv_enc_audio_input_filters(&audio_input_filter, 
+			dv_enc_get_audio_input_filters(&audio_input_filter, 
 						       &count);
 			while (count--) {
 				fprintf(stderr, "%s\n", 
@@ -297,7 +297,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	get_dv_enc_output_filters(&output_filter, &count);
+	dv_enc_get_output_filters(&output_filter, &count);
 	while (count && 
 	       strcmp(output_filter->filter_name, output_filter_str) != 0) {
 		output_filter++;
@@ -307,7 +307,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Unknown output filter selected: %s!\n"
 			"The following filters are supported:\n",
 			output_filter_str);
-		get_dv_enc_output_filters(&output_filter, &count);
+		dv_enc_get_output_filters(&output_filter, &count);
 		while (count--) {
 			fprintf(stderr, "%s\n", output_filter->filter_name);
 			output_filter++;
@@ -349,9 +349,9 @@ int main(int argc, char *argv[])
 	if (output_filter->init(stdout) < 0) {
 		return -1;
 	}
-	/* audio_input_filter->init() is in encoder_loop! */
+	/* audio_input_filter->init() is in dv_encoder_loop! */
 
-	err_code = encoder_loop(input_filter,audio_input_filter, output_filter,
+	err_code = dv_encoder_loop(input_filter,audio_input_filter, output_filter,
 				start, end, filename, audio_filename,
 				vlc_encode_passes, static_qno,
 				verbose_mode, fps, is16x9);
@@ -363,7 +363,7 @@ int main(int argc, char *argv[])
 	output_filter->finish();
   
 	if (verbose_mode) {
-		show_statistics();
+		dv_show_statistics();
 	}
 	return 0;
 }

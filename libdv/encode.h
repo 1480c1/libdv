@@ -26,9 +26,9 @@
 #ifndef DV_ENCODE_H
 #define DV_ENCODE_H
 
-#include <libdv/dct.h>
-#include <libdv/enc_input.h>
-#include <libdv/enc_output.h>
+#include "dct.h"
+#include "enc_input.h"
+#include "enc_output.h"
 
 #define DV_WIDTH       720
 #define DV_PAL_HEIGHT  576
@@ -37,12 +37,12 @@
 /* FIXME: Just guessed! */
 #define DCT_248_THRESHOLD  (17 * 65536 /10)
 
-extern void init_vlc_test_lookup(void);
-extern void init_vlc_encode_lookup(void);
-extern void init_qno_start(void);
-extern void prepare_reorder_tables(void);
-extern void show_statistics(void);
-extern int  encoder_loop(dv_enc_input_filter_t * input,
+extern void _dv_init_vlc_test_lookup(void);
+extern void _dv_init_vlc_encode_lookup(void);
+extern void _dv_init_qno_start(void);
+extern void _dv_prepare_reorder_tables(void);
+extern void dv_show_statistics(void);
+extern int  dv_encoder_loop(dv_enc_input_filter_t * input,
 			 dv_enc_audio_input_filter_t * audio_input,
 			 dv_enc_output_filter_t * output,
 			 int start, int end, const char* filename,

@@ -23,7 +23,7 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#include <libdv/dv_types.h>
+#include "libdv/dv_types.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,7 +55,7 @@ void generate_empty_frame(unsigned char* frame_buf, int isPAL)
 		t++;
 	}
 	memset(frame_buf, 0, isPAL ? 144000 : 120000);
-	write_meta_data(frame_buf, 0, isPAL, 0, &t);
+	_dv_write_meta_data(frame_buf, 0, isPAL, 0, &t);
 }
 
 int read_frame(FILE* in_vid, unsigned char* frame_buf, int * isPAL)
@@ -192,7 +192,7 @@ int main(int argc, const char** argv)
 #endif
 
 	if (strcmp(audio_input_filter_str, "none") != 0) {
-		get_dv_enc_audio_input_filters(&audio_input_filter, &count);
+		dv_enc_get_audio_input_filters(&audio_input_filter, &count);
 		while (count 
 		       && strcmp(audio_input_filter->filter_name, 
 				 audio_input_filter_str) != 0) {
@@ -204,7 +204,7 @@ int main(int argc, const char** argv)
 				"Unknown audio input filter selected: %s!\n"
 				"The following filters are supported:\n",
 				audio_input_filter_str);
-			get_dv_enc_audio_input_filters(&audio_input_filter, 
+			dv_enc_get_audio_input_filters(&audio_input_filter, 
 						       &count);
 			while (count--) {
 				fprintf(stderr, "%s\n", 
@@ -220,7 +220,7 @@ int main(int argc, const char** argv)
 		}
 	}
 
-	get_dv_enc_output_filters(&output_filter, &count);
+	dv_enc_get_output_filters(&output_filter, &count);
 	while (count && 
 	       strcmp(output_filter->filter_name, output_filter_str) != 0) {
 		output_filter++;
@@ -230,7 +230,7 @@ int main(int argc, const char** argv)
 		fprintf(stderr, "Unknown output filter selected: %s!\n"
 			"The following filters are supported:\n",
 			output_filter_str);
-		get_dv_enc_output_filters(&output_filter, &count);
+		dv_enc_get_output_filters(&output_filter, &count);
 		while (count--) {
 			fprintf(stderr, "%s\n", output_filter->filter_name);
 			output_filter++;

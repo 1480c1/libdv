@@ -58,7 +58,7 @@ extern "C" {
 
 	extern void dv_enc_register_audio_input_filter(
 		dv_enc_audio_input_filter_t filter);
-	extern int get_dv_enc_audio_input_filters(
+	extern int dv_enc_get_audio_input_filters(
 		dv_enc_audio_input_filter_t ** filters, int * count);
 
 #ifdef __cplusplus

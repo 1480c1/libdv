@@ -23,7 +23,7 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
-#include <dv_types.h>
+#include "dv_types.h"
 
 #include <stdio.h>
 #include <assert.h>
@@ -82,8 +82,8 @@ static void correctness(void)
     };
     int i;
 
-    bs = bitstream_init();
-    bitstream_new_buffer(bs, buffer, sizeof(buffer)); 
+    bs = _dv_bitstream_init();
+    _dv_bitstream_new_buffer(bs, buffer, sizeof(buffer)); 
     
     for (i = 0; sizes[i] != 0; i++) {
 	int n = bitstream_get(bs, sizes[i]);
@@ -102,10 +102,10 @@ void performance(void)
     static uint32_t value;
     int passes, i;
     
-    bs = bitstream_init();
+    bs = _dv_bitstream_init();
 
     for (passes = 30000; passes; passes--) {
-	bitstream_new_buffer(bs, buffer, sizeof(buffer)); 
+	_dv_bitstream_new_buffer(bs, buffer, sizeof(buffer)); 
 
 	for (i = 0; i < numbits; i += 11) {
 	    value = bitstream_show(bs, 4);

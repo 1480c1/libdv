@@ -23,6 +23,10 @@
  *  The libdv homepage is http://libdv.sourceforge.net/.  
  */
 
+#if HAVE_CONFIG_H
+# include <config.h>
+#endif
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
@@ -234,7 +238,7 @@ static void write_audio_headers(unsigned char* target, int frame, int ds)
 }
 
 
-void write_meta_data(unsigned char* target, int frame, int isPAL, 
+void _dv_write_meta_data(unsigned char* target, int frame, int isPAL, 
 		     int is16x9, time_t * now)
 {
 	int numDIFseq;
