@@ -2,6 +2,7 @@
 .libs
 Makefile
 Makefile.in
+dvavi
 dvconnect
 encodedv
 fix_headers

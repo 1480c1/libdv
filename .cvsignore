@@ -10,6 +10,7 @@ aclocal.m4
 asmoff.h
 autom4te-2.53.cache
 autom4te-2.5x.cache
+autom4te.cache
 bb.out
 config
 config.cache

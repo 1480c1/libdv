@@ -1,3 +1,29 @@
+2003-11-10  Dan Dennedy  <dan@dennedy.org>
+	* libdv/dv.c, encode.dv: bugfix thread safetiness of encoder.
+	  In a threaded environment, one should call dv_init() to setup
+	  libdv properly before dv_decoder_new() or dv_encoder_new().
+
+2003-10-29  Dan Dennedy  <dan@dennedy.org>
+	* libdv/parse.c: bugfix memory leak on error parsing header.
+	* libdv/dv.c: bugfix memory leak on non-freed bitstream_t
+	* libdv/dv.c, encode.c: remove encoder-specific malloc and init from
+	  the decoder init path. bugfix memory leaks in vlc.
+
+2003-10-27  Dan Dennedy  <dan@dennedy.org>
+	* libdv/enc_output.c, audio.c: fix speed flag handling for SMPTE 314M
+
+2003-10-20  Charles 'Buck' Krasic  <krasic@acm.org>
+
+	* Change license to LGPL, with permission of all the authors.
+
+2003-09-23 Stefan Lucke <stefan@lucke.in-berlin.de>
+        * keep deemphasis filter state across frame boundaries
+	* extend audio frequency table with additional undefined entries.
+
+2003-08-20 Dan Dennedy <dan@dennedy.org>
+	* headers.c: correct target[3] that indicates NTSC/PAL to 
+	  correct values based upon my SMPTE 314M spec and data samples
+
 2003-07-22 Dan Dennedy <dan@dennedy.org>
 	* applied feature patches to insert_audio.c and dvconnect.c from 
 	  Marko Mäkelä.

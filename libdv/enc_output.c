@@ -7,17 +7,17 @@
  *  codec.
  *
  *  libdv is free software; you can redistribute it and/or modify it
- *  under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your
+ *  under the terms of the GNU Lesser Public License as published by
+ *  the Free Software Foundation; either version 2.1, or (at your
  *  option) any later version.
  *   
  *  libdv is distributed in the hope that it will be useful, but
  *  WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  General Public License for more details.
+ *  Lesser Public License for more details.
  *   
- *  You should have received a copy of the GNU General Public License
- *  along with GNU Make; see the file COPYING.  If not, write to
+ *  You should have received a copy of the GNU Lesser Public License
+ *  along with libdv; see the file COPYING.  If not, write to
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
  *
  *  The libdv homepage is http://libdv.sourceforge.net/.  
@@ -234,7 +234,12 @@ int _dv_raw_insert_audio(unsigned char * frame_buf,
 	head_51[0] = 0x51; /* FIXME: What's this? */ 
 	head_51[1] = 0x33;
 	head_51[2] = 0xcf;
-	head_51[3] = 0xa0;
+	if ((frame_buf[4] & 0x7) == 0) /* IEC 61834? */
+		head_51[3] = 0xa0; /* forward, normal speed */
+	else if (isPAL) /* SMPTE 314M */
+		head_51[3] = 0x80 /* forward */ | 0x64 /* normal speed */;
+	else
+		head_51[3] = 0x80 /* forward */ | 0x78 /* normal speed */;
 	head_51[4] = 0xff;
 
 	head_52[0] = 0x52;

@@ -5,7 +5,9 @@
 Makefile
 Makefile.in
 asmoff.h
-gasmoff
-testvlc
 dovlc
+gasmoff
+recode
+reppm
 testbitstream
+testvlc

@@ -7,17 +7,17 @@
  *  codec.
  *
  *  libdv is free software; you can redistribute it and/or modify it
- *  under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your
+ *  under the terms of the GNU Lesser Public License as published by
+ *  the Free Software Foundation; either version 2.1, or (at your
  *  option) any later version.
  *   
  *  libdv is distributed in the hope that it will be useful, but
  *  WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  General Public License for more details.
+ *  Lesser Public License for more details.
  *   
- *  You should have received a copy of the GNU General Public License
- *  along with GNU Make; see the file COPYING.  If not, write to
+ *  You should have received a copy of the GNU Lesser Public License
+ *  along with libdv; see the file COPYING.  If not, write to
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
  *
  *  The libdv homepage is http://libdv.sourceforge.net/.  
@@ -39,7 +39,7 @@ static void write_header_block(unsigned char* target, int ds, int isPAL)
 	target[1] = 0x07 | (ds << 4);
 	target[2] = 0x00;
 
-	target[3] = ( isPAL ? 0x80 : 0); /* FIXME: 0x3f */
+	target[3] = ( isPAL ? 0xbf : 0x3f);
 	target[4] = 0x68; /* FIXME ? */
 	target[5] = 0x78; /* FIXME ? */
 	target[6] = 0x78; /* FIXME ? */

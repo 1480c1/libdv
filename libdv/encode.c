@@ -8,17 +8,17 @@
  *  codec.
  *
  *  libdv is free software; you can redistribute it and/or modify it
- *  under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your
+ *  under the terms of the GNU Lesser Public License as published by
+ *  the Free Software Foundation; either version 2.1, or (at your
  *  option) any later version.
  *   
  *  libdv is distributed in the hope that it will be useful, but
  *  WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  General Public License for more details.
+ *  Lesser Public License for more details.
  *   
- *  You should have received a copy of the GNU General Public License
- *  along with GNU Make; see the file COPYING.  If not, write to
+ *  You should have received a copy of the GNU Lesser Public License
+ *  along with libdv; see the file COPYING.  If not, write to
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
  *
  *  The libdv homepage is http://libdv.sourceforge.net/.  
@@ -411,16 +411,12 @@ static inline dv_vlc_entry_t * vlc_encode_orig(int run, int amp, int sign,
 	return ++o;
 }
 
-dv_vlc_entry_t * vlc_encode_lookup;
-unsigned char  * vlc_num_bits_lookup;
+dv_vlc_entry_t vlc_encode_lookup[32768 * 2];
+unsigned char  vlc_num_bits_lookup[32768];
 
 void _dv_init_vlc_encode_lookup(void)
 {
 	int run,amp;
-	vlc_encode_lookup = (dv_vlc_entry_t *) malloc(
-		32768 * 2 * sizeof(dv_vlc_entry_t));
-	vlc_num_bits_lookup = (unsigned char*) malloc(32768);
-		
 	for (run = 0; run <= 63; run++) {
 		for (amp = 0; amp <= 255; amp++) {
 			int index1 = (255 + amp) | (run << 9);
@@ -469,12 +465,13 @@ static unsigned short reorder_248[64] = {
 	14,28,30,44,46,58,60,64
 };
 
+
 void _dv_prepare_reorder_tables(void)
 {
 	int i;
 	for (i = 0; i < 64; i++) {
- 		reorder_88[i]--;
- 		reorder_88[i] *= 2;
+		reorder_88[i]--;
+		reorder_88[i] *= 2;
 		reorder_248[i]--;
 		reorder_248[i] *= 2;
 	}
@@ -1401,7 +1398,7 @@ int dv_encoder_loop(dv_enc_input_filter_t * input,
 			skip_frame_count -= 65536;
 			skipped = 1;
 		}
-		if (output->store(target, audio_info, FALSE, 
+		if (output->store(target, audio_info, FALSE,
 				  isPAL, is16x9,now) < 0) {
 			return -1;
 		}
@@ -1425,14 +1422,14 @@ void dv_show_statistics()
 		"|VLC OVERF|DCT\n"
 		"========================================================\n");
 	fprintf(stderr, "%2d: %8ld |%8ld  |%8ld |%8ld |%8ld "
-		"|%8ld (DCT88)\n", 
+		"|%8ld (DCT88)\n",
 		i, cycles_used[i], runs_used[i], qnos_used[i],
 		classes_used[i], vlc_overflows, dct_used[DV_DCT_88]);
 	i++;
 	fprintf(stderr, "%2d: %8ld |%8ld  |%8ld |%8ld |         "
-		"|%8ld (DCT248)\n", 
+		"|%8ld (DCT248)\n",
 		i, cycles_used[i], runs_used[i], qnos_used[i],
-		classes_used[i], 
+		classes_used[i],
 		dct_used[DV_DCT_248]);
 	i++;
 	for (;i < 4; i++) {
@@ -1481,6 +1478,8 @@ dv_encoder_new(int rem_ntsc_setup, int clamp_luma, int clamp_chroma) {
   result = (dv_encoder_t *)calloc(1,sizeof(dv_encoder_t));
   if(!result) return(NULL);
 
+  dv_init(NULL, clamp_luma, clamp_chroma);
+
   result->img_y = (short*) calloc(DV_PAL_HEIGHT * DV_WIDTH, sizeof(short));
   if(!result->img_y) goto no_y;
   result->img_cr = (short*) calloc(DV_PAL_HEIGHT * DV_WIDTH / 2, sizeof(short));
@@ -1492,8 +1491,6 @@ dv_encoder_new(int rem_ntsc_setup, int clamp_luma, int clamp_chroma) {
   result->clamp_luma = clamp_luma;
   result->clamp_chroma = clamp_chroma;
   result->force_dct = DV_DCT_AUTO;
-
-  dv_init(NULL, clamp_luma, clamp_chroma);
 
   result->frame_count = 0;
   return(result);

@@ -8,17 +8,17 @@
  *  codec.
  *
  *  libdv is free software; you can redistribute it and/or modify it
- *  under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your
+ *  under the terms of the GNU Lesser Public License as published by
+ *  the Free Software Foundation; either version 2.1, or (at your
  *  option) any later version.
  *   
  *  libdv is distributed in the hope that it will be useful, but
  *  WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  General Public License for more details.
+ *  Lesser Public License for more details.
  *   
- *  You should have received a copy of the GNU General Public License
- *  along with GNU Make; see the file COPYING.  If not, write to
+ *  You should have received a copy of the GNU Lesser Public License
+ *  along with libdv; see the file COPYING.  If not, write to
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
  *
  *  The libdv homepage is http://libdv.sourceforge.net/.  
@@ -435,6 +435,12 @@ typedef struct {
                    sample_failure,
                    real_samples_this_frame,
                    fail_samples_this_frame;
+  /* -------------------------------------------------------------------------
+   * memorize deemphasis values
+   */
+  short            lastin [4];
+  double           lastout [4];
+
   FILE             *error_log;
   dv_decoder_tp    dv_decoder;
 #if HAVE_LIBPOPT
@@ -505,6 +511,7 @@ typedef struct dv_decoder_s {
   uint8_t             ssyb_next;
   uint8_t             ssyb_pack [256];
   uint8_t             ssyb_data [45][4];
+  bitstream_t        *bs;
 
 #if HAVE_LIBPOPT
   struct poptOption option_table[DV_DECODER_NUM_OPTS+1];

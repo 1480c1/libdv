@@ -7,17 +7,17 @@
  *  codec.
  *
  *  libdv is free software; you can redistribute it and/or modify it
- *  under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your
+ *  under the terms of the GNU Lesser Public License as published by
+ *  the Free Software Foundation; either version 2.1, or (at your
  *  option) any later version.
  *
  *  libdv is distributed in the hope that it will be useful, but
  *  WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- *  General Public License for more details.
+ *  Lesser Public License for more details.
  *   
- *  You should have received a copy of the GNU General Public License
- *  along with GNU Make; see the file COPYING.  If not, write to
+ *  You should have received a copy of the GNU Lesser Public License
+ *  along with libdv; see the file COPYING.  If not, write to
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
  *
  *  The libdv homepage is http://libdv.sourceforge.net/.
@@ -288,6 +288,8 @@ dv_init(dv_decoder_t *decoder, int clamp_luma, int clamp_chroma) {
 #if ARCH_X86
   dv_use_mmx = mmx_ok();
 #endif
+
+  /* decoder */
   _dv_weight_init();
   _dv_dct_init();
   dv_dct_248_init();
@@ -298,11 +300,13 @@ dv_init(dv_decoder_t *decoder, int clamp_luma, int clamp_chroma) {
   dv_rgb_init(decoder, clamp_luma, clamp_chroma);
   dv_YUY2_init(decoder, clamp_luma, clamp_chroma);
   dv_YV12_init(decoder, clamp_luma, clamp_chroma);
+
+  /* encoder */
   _dv_init_vlc_test_lookup();
   _dv_init_vlc_encode_lookup();
   _dv_init_qno_start();
   _dv_prepare_reorder_tables();
-
+  
   done=TRUE;
  init_done:
   return;
@@ -704,7 +708,7 @@ dv_decode_full_frame(dv_decoder_t *dv, const uint8_t *buffer,
   unsigned int offset = 0, dif = 0, audio=0;
 
   if(!seg->bs) {
-    seg->bs = _dv_bitstream_init();
+    dv->bs = seg->bs = _dv_bitstream_init();
     if(!seg->bs)
       goto no_mem;
   } /* if */
@@ -910,11 +914,7 @@ dv_decode_full_audio(dv_decoder_t *dv, const uint8_t *buffer, int16_t **outbufs)
     dv_audio_correct_errors (dv -> audio, outbufs);
   }
 
-  if(dv->audio->emphasis) {
-    for(ch=0; ch< dv->audio->raw_num_channels; ch++) {
-      dv_audio_deemphasis(dv->audio, outbufs[ch]);
-    } /* for  */
-  } /* if */
+  dv_audio_deemphasis (dv -> audio, outbufs);
 
   dv_audio_mix4ch (dv -> audio, outbufs);
 
@@ -949,6 +949,7 @@ dv_report_video_error (dv_decoder_t *dv, uint8_t *data)
      */
     if ((data [i] & 0xe0) == 0x80) {
       error_code = data [i + 3] >> 4;
+#if 0
       if (error_code) {
         dv_get_timestamp (dv, err_msg1);
         dv_get_recording_datetime (dv, err_msg2);
@@ -963,6 +964,7 @@ dv_report_video_error (dv_decoder_t *dv, uint8_t *data)
                  data [i + 2],
                  data [i + 3]);
       }
+#endif
     }
   }
 }
