@@ -3,6 +3,11 @@
 	  destructor attribute to invoke dv_cleanup() when unloading
 	  libdv after loading dynamically and thereby fixing a
 	  memory leak.
+	  
+	* playdv.c: bugfix segfault on exit due to dv_display_exit()
+	  being called twice: once in main() and second in atexit
+	  handler created by dv_display. Thanks for hint provided
+	  by Jean-Francois Panisset.
 
 2005-01-31  Dan Dennedy <dan@dennedy.org>
 	* *.S: apply patch from Nicholas Miell <nmiell@gmail.com>

@@ -511,9 +511,6 @@ restart:
   if(!dv_player->arg_disable_video) {
     dv_display_exit(dv_player->display);
   } /* if */
-  if(!dv_player->arg_disable_audio) {
-    dv_oss_close(dv_player->oss);
-  } /* if  */
   dv_decoder_free(dv_player->decoder);
   free(dv_player);
   exit(0);
