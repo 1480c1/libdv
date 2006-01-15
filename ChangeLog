@@ -1,3 +1,9 @@
+2006-01-15  Dan Dennedy <dan@dennedy.org>
+	* encode.c: apply patch from Burkhard Plaum to use gcc
+	  destructor attribute to invoke dv_cleanup() when unloading
+	  libdv after loading dynamically and thereby fixing a
+	  memory leak.
+
 2005-01-31  Dan Dennedy <dan@dennedy.org>
 	* *.S: apply patch from Nicholas Miell <nmiell@gmail.com>
 	  to not require execution stack for assembler functions.

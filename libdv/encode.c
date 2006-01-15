@@ -1581,6 +1581,19 @@ dv_encoder_free( dv_encoder_t *encoder)
   }
 } /* dv_encoder_free */
 
+/** @brief call dv_cleanup() automatically
+ *
+ * This function calls dv_cleanup() automatically before a dynamic
+ * libdv is unloaded.
+ * This fixes potential memory leaks when repeatedly loading 
+ * and unloading libdv.
+ */
+
+static void do_free() __attribute__ ((destructor));
+
+static void do_free() {
+  dv_cleanup();
+} /* do_free */
 
 /** @brief Free the dynamically allocated global memory.
  *
