@@ -95,8 +95,8 @@ function pkgconfig_version_msg () {
 	pkgconfig_version_msg
 }
 
-pkgconfig_major=`pkg-config --version | sed 's/\([0-9]*\).\([0-9]*\).\([0-9]*\)/\1/'`
-pkgconfig_minor=`pkg-config --version | sed 's/\([0-9]*\).\([0-9]*\).\([0-9]*\)/\2/'`
+pkgconfig_major=`pkg-config --version | sed 's/\([0-9][0-9]*\)\.\([0-9][0-9]*\)/\1/'`
+pkgconfig_minor=`pkg-config --version | sed 's/\([0-9][0-9]*\)\.\([0-9][0-9]*\)/\2/'`
 
 if [ $pkgconfig_major -lt 1 ]; then
 	if [ $pkgconfig_minor -lt 7 ]; then
