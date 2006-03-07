@@ -1,3 +1,7 @@
+2006-03-06  Dan Dennedy <dan@dennedy.org>
+	* mmx.h: apply patches from Zan Lynx and Richard Guenther to fix x86
+	  compilation on gcc 4.1.
+
 2006-01-15  Dan Dennedy <dan@dennedy.org>
 	* encode.c: apply patch from Burkhard Plaum to use gcc
 	  destructor attribute to invoke dv_cleanup() when unloading
