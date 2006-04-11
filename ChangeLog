@@ -1,3 +1,9 @@
+libdv ChangeLog
+
+2006-04-10  Dan Dennedy <dan@dennedy.org>
+	* playdv/playdv.c: bugfix segfault on exit due to dv_display_exit being
+	  called twice.
+
 2006-03-06  Dan Dennedy <dan@dennedy.org>
 	* mmx.h: apply patches from Zan Lynx and Richard Guenther to fix x86
 	  compilation on gcc 4.1.
@@ -19,7 +25,7 @@
 
 2004-12-20  Dan Dennedy <dan@dennedy.org>
 	* vlc.h, mmx.h: apply patch from Daniel Kobras to improve
-	  compile compatibillity by making extern inlinei, static inline..
+	  compile compatibillity by making extern inline, static inline.
 
 2004-12-12  Dan Dennedy <dan@dennedy.org>
 	* *_x86_64.S: apply patch from Dean Kolosiek to fix linker
@@ -158,10 +164,10 @@
 
 2003-07-22 Dan Dennedy <dan@dennedy.org>
 	* applied feature patches to insert_audio.c and dvconnect.c from 
-	  Marko Mäkelä.
+	  Marko Mï¿½elï¿½
 
 2003-07-08 Stefan Lucke <stefan@lucke.in-berlin.de>
-        * applied yv12 part of transcode's patch (by Thomas Östreich)
+        * applied yv12 part of transcode's patch (by Thomas ï¿½treich)
 
 2003-07-05 Stefan Lucke <stefan@lucke.in-berlin.de>
         * added audio correction for single sample failure (by Jan Schmidt)
@@ -170,7 +176,7 @@
 	* added dv_get_ssyb_pack()
 	* encode.c: bugfix default encoding params result in poor quality due to 
 	  not setting DCT method.
-	* dvconnect.c: bugfix fopen mode on capture spotted by Marko Mäkelä.
+	* dvconnect.c: bugfix fopen mode on capture spotted by Marko Mï¿½elï¿½
 	* dv.c, audio.c: cleanup compilation warnings.
 
 2003-05-17  Charles Yates <charles.yates@pandora.be>

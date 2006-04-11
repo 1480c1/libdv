@@ -508,9 +508,6 @@ restart:
   seconds += dv_player->tv[2].tv_sec;
   fprintf(stderr,"Processed %d frames in %05.2f seconds (%05.2f fps)\n", 
 	  frame_count, seconds, (double)frame_count/seconds);
-  if(!dv_player->arg_disable_video) {
-    dv_display_exit(dv_player->display);
-  } /* if */
   dv_decoder_free(dv_player->decoder);
   free(dv_player);
   exit(0);
