@@ -6,6 +6,8 @@ libdv ChangeLog
 	* configure.ac, Makefile.am: apply patch from Burkhard Plaum to 
 	  automatically disable GTK-based features (playdv) when GTK+ 1.2
 	  is not found and to fix dist make target behavior with GTK+ disabled.
+	* libdv/Makefile.am: bump libtool revision.
+	* configure.ac: bump project version to 1.0.0.
 
 2006-04-10  Dan Dennedy <dan@dennedy.org>
 	* playdv/playdv.c: bugfix segfault on exit due to dv_display_exit being

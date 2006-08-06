@@ -2404,7 +2404,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=libdv
- VERSION=0.104
+ VERSION=1.0.0
 
 
 cat >>confdefs.h <<_ACEOF
