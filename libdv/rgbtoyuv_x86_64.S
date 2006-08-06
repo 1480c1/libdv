@@ -122,6 +122,9 @@ VBG0B:  .long   0,0
 #define _outuPtr   24
 #define _outvPtr   28
 
+.global _dv_rgbtoycb_mmx_x86_64
+.hidden _dv_rgbtoycb_mmx_x86_64
+.type   _dv_rgbtoycb_mmx_x86_64,@function
 _dv_rgbtoycb_mmx_x86_64:
 
         /* extern void _dv_rgbtoycb_mmx_x86_64(unsigned char* inPtr,    rdi
@@ -376,7 +379,9 @@ rgbtoycb_mmx_loop:
 	ret     
 
 .global _dv_ppm_copy_y_block_mmx_x86_64
-_dv_ppm_copy_y_block_mmx_x86_64:	
+.hidden _dv_ppm_copy_y_block_mmx_x86_64
+.type   _dv_ppm_copy_y_block_mmx_x86_64,@function
+_dv_ppm_copy_y_block_mmx_x86_64:
 
 /* extern void _dv_ppm_copy_y_block_mmx_x86_64(short * dst, short * src); */
 
@@ -419,7 +424,9 @@ _dv_ppm_copy_y_block_mmx_x86_64:
 	ret
 
 .global _dv_pgm_copy_y_block_mmx_x86_64
-_dv_pgm_copy_y_block_mmx_x86_64:	
+.hidden _dv_pgm_copy_y_block_mmx_x86_64
+.type   _dv_pgm_copy_y_block_mmx_x86_64,@function
+_dv_pgm_copy_y_block_mmx_x86_64:
 
 /* extern void _dv_pgm_copy_y_block_mmx_x86_64(short * dst, unsigned char * src); */
 
@@ -554,6 +561,8 @@ _dv_pgm_copy_y_block_mmx_x86_64:
 	ret
 
 .global _dv_video_copy_y_block_mmx_x86_64
+.hidden _dv_video_copy_y_block_mmx_x86_64
+.type   _dv_video_copy_y_block_mmx_x86_64,@function
 _dv_video_copy_y_block_mmx_x86_64:
 
 /* extern void _dv_video_copy_y_block_mmx_x86_64(short * dst, unsigned char * src); */
@@ -692,6 +701,8 @@ _dv_video_copy_y_block_mmx_x86_64:
 	
 		
 .global _dv_ppm_copy_pal_c_block_mmx_x86_64
+.hidden _dv_ppm_copy_pal_c_block_mmx_x86_64
+.type   _dv_ppm_copy_pal_c_block_mmx_x86_64,@function
 _dv_ppm_copy_pal_c_block_mmx_x86_64:
 
 /* extern void _dv_ppm_copy_pal_c_block_mmx_x86_64(short * dst, short * src); */
@@ -826,6 +837,8 @@ _dv_ppm_copy_pal_c_block_mmx_x86_64:
 	ret
 
 .global _dv_pgm_copy_pal_c_block_mmx_x86_64
+.hidden _dv_pgm_copy_pal_c_block_mmx_x86_64
+.type   _dv_pgm_copy_pal_c_block_mmx_x86_64,@function
 _dv_pgm_copy_pal_c_block_mmx_x86_64:
 	
 /* extern void _dv_pgm_copy_pal_c_block_mmx_x86_64(short * dst, unsigned char * src); */
@@ -964,6 +977,8 @@ _dv_pgm_copy_pal_c_block_mmx_x86_64:
 	ret
 
 .global _dv_video_copy_pal_c_block_mmx_x86_64
+.hidden _dv_video_copy_pal_c_block_mmx_x86_64
+.type   _dv_video_copy_pal_c_block_mmx_x86_64,@function
 _dv_video_copy_pal_c_block_mmx_x86_64:
 	
 	/* extern void _dv_video_copy_pal_c_block_mmx_x86_64(short * dst, unsigned char * src); */
@@ -1054,6 +1069,8 @@ video_copy_pal_c_block_mmx_loop:
 	ret
 	
 .global _dv_ppm_copy_ntsc_c_block_mmx_x86_64
+.hidden _dv_ppm_copy_ntsc_c_block_mmx_x86_64
+.type   _dv_ppm_copy_ntsc_c_block_mmx_x86_64,@function
 _dv_ppm_copy_ntsc_c_block_mmx_x86_64:
 	
 	/* extern void _dv_ppm_copy_ntsc_c_block_mmx_x86_64(short * dst, short * src); */
@@ -1122,6 +1139,8 @@ ppm_copy_ntsc_c_block_mmx_loop:
 	ret
 
 .global _dv_pgm_copy_ntsc_c_block_mmx_x86_64
+.hidden _dv_pgm_copy_ntsc_c_block_mmx_x86_64
+.type   _dv_pgm_copy_ntsc_c_block_mmx_x86_64,@function
 _dv_pgm_copy_ntsc_c_block_mmx_x86_64:
 	
 	/* extern void _dv_pgm_copy_ntsc_c_block_mmx_x86_64(short * dst, unsigned char * src); */
@@ -1272,6 +1291,8 @@ _dv_pgm_copy_ntsc_c_block_mmx_x86_64:
 	ret
 
 .global _dv_video_copy_ntsc_c_block_mmx_x86_64
+.hidden _dv_video_copy_ntsc_c_block_mmx_x86_64
+.type   _dv_video_copy_ntsc_c_block_mmx_x86_64,@function
 _dv_video_copy_ntsc_c_block_mmx_x86_64:
 
 	/* extern void _dv_video_copy_ntsc_c_block_mmx_x86_64(short * dst, unsigned char * src); */

@@ -59,6 +59,8 @@ scratch4:       .quad 0
 
 .align 8	
 .global _dv_dct_88_block_mmx
+.hidden _dv_dct_88_block_mmx
+.type   _dv_dct_88_block_mmx,@function
 _dv_dct_88_block_mmx:
 
 	pushl   %ebp
@@ -274,6 +276,8 @@ _dv_dct_88_block_mmx:
 		
 .align 8	
 .global _dv_dct_block_mmx_postscale_88
+.hidden _dv_dct_block_mmx_postscale_88
+.type   _dv_dct_block_mmx_postscale_88,@function
 _dv_dct_block_mmx_postscale_88:
 
 	pushl	 %ebp
@@ -750,6 +754,8 @@ _dv_dct_block_mmx_postscale_88:
 
 .align 8	
 .global _dv_dct_248_block_mmx
+.hidden _dv_dct_248_block_mmx
+.type   _dv_dct_248_block_mmx,@function
 _dv_dct_248_block_mmx:
 
 	pushl   %ebp
@@ -914,6 +920,8 @@ _dv_dct_248_block_mmx:
 
 .align 8	
 .global _dv_dct_248_block_mmx_post_sum
+.hidden _dv_dct_248_block_mmx_post_sum
+.type   _dv_dct_248_block_mmx_post_sum,@function
 _dv_dct_248_block_mmx_post_sum:
 
 	pushl   %ebp
@@ -994,6 +1002,8 @@ _dv_dct_248_block_mmx_post_sum:
 
 .align 8	
 .global _dv_dct_block_mmx_postscale_248
+.hidden _dv_dct_block_mmx_postscale_248
+.type   _dv_dct_block_mmx_postscale_248,@function
 _dv_dct_block_mmx_postscale_248:
 
 	pushl	 %ebp

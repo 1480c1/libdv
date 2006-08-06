@@ -1,8 +1,10 @@
 .section .note.GNU-stack, "", @progbits
 
 .text
+
 .global _dv_transpose_mmx
-	
+.hidden _dv_transpose_mmx
+.type   _dv_transpose_mmx,@function
 _dv_transpose_mmx:
 	pushl   %ebp
 	movl    %esp, %ebp

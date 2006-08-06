@@ -122,6 +122,9 @@ VBG0B:  .long   0,0
 #define _outuPtr   24
 #define _outvPtr   28
 
+.global _dv_rgbtoycb_mmx
+.hidden _dv_rgbtoycb_mmx
+.type   _dv_rgbtoycb_mmx,@function
 _dv_rgbtoycb_mmx:
 
 	pushl   %ebp
@@ -374,6 +377,8 @@ rgbtoycb_mmx_loop:
 	ret     
 
 .global _dv_ppm_copy_y_block_mmx
+.hidden _dv_ppm_copy_y_block_mmx
+.type   _dv_ppm_copy_y_block_mmx,@function
 _dv_ppm_copy_y_block_mmx:
 
 	pushl   %ebp
@@ -424,6 +429,8 @@ _dv_ppm_copy_y_block_mmx:
 	ret
 
 .global _dv_pgm_copy_y_block_mmx
+.hidden _dv_pgm_copy_y_block_mmx
+.type   _dv_pgm_copy_y_block_mmx,@function
 _dv_pgm_copy_y_block_mmx:
 
 	pushl   %ebp
@@ -566,6 +573,8 @@ _dv_pgm_copy_y_block_mmx:
 	ret
 
 .global _dv_video_copy_y_block_mmx
+.hidden _dv_video_copy_y_block_mmx
+.type   _dv_video_copy_y_block_mmx,@function
 _dv_video_copy_y_block_mmx:
 
 	pushl   %ebp
@@ -711,6 +720,8 @@ _dv_video_copy_y_block_mmx:
 	
 		
 .global _dv_ppm_copy_pal_c_block_mmx
+.hidden _dv_ppm_copy_pal_c_block_mmx
+.type   _dv_ppm_copy_pal_c_block_mmx,@function
 _dv_ppm_copy_pal_c_block_mmx:
 				
 	pushl   %ebp
@@ -854,6 +865,8 @@ _dv_ppm_copy_pal_c_block_mmx:
 	ret
 
 .global _dv_pgm_copy_pal_c_block_mmx
+.hidden _dv_pgm_copy_pal_c_block_mmx
+.type   _dv_pgm_copy_pal_c_block_mmx,@function
 _dv_pgm_copy_pal_c_block_mmx:
 				
 	pushl   %ebp
@@ -1002,6 +1015,8 @@ _dv_pgm_copy_pal_c_block_mmx:
 	ret
 
 .global _dv_video_copy_pal_c_block_mmx
+.hidden _dv_video_copy_pal_c_block_mmx
+.type   _dv_video_copy_pal_c_block_mmx,@function
 _dv_video_copy_pal_c_block_mmx:
 				
 	pushl   %ebp
@@ -1097,6 +1112,8 @@ video_copy_pal_c_block_mmx_loop:
 	ret
 	
 .global _dv_ppm_copy_ntsc_c_block_mmx
+.hidden _dv_ppm_copy_ntsc_c_block_mmx
+.type   _dv_ppm_copy_ntsc_c_block_mmx,@function
 _dv_ppm_copy_ntsc_c_block_mmx:
 				
 	pushl   %ebp
@@ -1170,6 +1187,8 @@ ppm_copy_ntsc_c_block_mmx_loop:
 	ret
 
 .global _dv_pgm_copy_ntsc_c_block_mmx
+.hidden _dv_pgm_copy_ntsc_c_block_mmx
+.type   _dv_pgm_copy_ntsc_c_block_mmx,@function
 _dv_pgm_copy_ntsc_c_block_mmx:
 				
 	pushl   %ebp
@@ -1327,6 +1346,8 @@ _dv_pgm_copy_ntsc_c_block_mmx:
 	ret
 
 .global _dv_video_copy_ntsc_c_block_mmx
+.hidden _dv_video_copy_ntsc_c_block_mmx
+.type   _dv_video_copy_ntsc_c_block_mmx,@function
 _dv_video_copy_ntsc_c_block_mmx:
 				
 	pushl   %ebp

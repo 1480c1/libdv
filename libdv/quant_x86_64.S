@@ -57,6 +57,8 @@ void _dv_quant_88_inverse(dv_coeff_t *block,int qno,int class)
 .text
 	.align	4
 .globl	_dv_quant_88_inverse_x86_64
+.hidden	_dv_quant_88_inverse_x86_64
+.type	_dv_quant_88_inverse_x86_64,@function
 _dv_quant_88_inverse_x86_64:
 	
 	/* Args are at block=rdi, qno=rsi, class=rdx */
@@ -197,6 +199,8 @@ _dv_quant_88_inverse_x86_64:
 
 	.align	4
 .globl	_dv_quant_x86_64
+.hidden	_dv_quant_x86_64
+.type	_dv_quant_x86_64,@function
 _dv_quant_x86_64:
 	
 	/* Args are at block=rdi, qno=rsi, class=rdx */

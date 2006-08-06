@@ -33,7 +33,9 @@ VLCADDMASK:	.byte 255,0,0,0,255,0,0,0
 .text
 
 .global _dv_vlc_encode_block_mmx
-_dv_vlc_encode_block_mmx:	
+.hidden _dv_vlc_encode_block_mmx
+.type   _dv_vlc_encode_block_mmx,@function
+_dv_vlc_encode_block_mmx:
 	pushl	%ebx
 	pushl	%esi
 	pushl	%edi
@@ -109,7 +111,9 @@ vlc_encode_block_out:
 	ret	
 
 .global _dv_vlc_num_bits_block_x86
-_dv_vlc_num_bits_block_x86:	
+.hidden _dv_vlc_num_bits_block_x86
+.type   _dv_vlc_num_bits_block_x86,@function
+_dv_vlc_num_bits_block_x86:
 	pushl	%ebx
 	pushl	%esi
 	pushl	%edi
@@ -166,8 +170,10 @@ vlc_num_bits_block_out:
 	popl	%ebx
 	ret	
 
-.global _dv_vlc_encode_block_pass_1_x86	
-_dv_vlc_encode_block_pass_1_x86:	
+.global _dv_vlc_encode_block_pass_1_x86
+.hidden _dv_vlc_encode_block_pass_1_x86
+.type   _dv_vlc_encode_block_pass_1_x86,@function
+_dv_vlc_encode_block_pass_1_x86:
 	pushl	%ebx
 	pushl	%esi
 	pushl	%edi
@@ -243,6 +249,8 @@ vlc_encode_block_pass1_x86_out:
 	ret		
 		
 .global _dv_classify_mmx
+.hidden _dv_classify_mmx
+.type   _dv_classify_mmx,@function
 _dv_classify_mmx:
 
 	pushl   %ebp
@@ -348,6 +356,8 @@ _dv_classify_mmx:
 	 don't know why... */
 	
 .global _dv_reorder_block_mmx
+.hidden _dv_reorder_block_mmx
+.type   _dv_reorder_block_mmx,@function
 _dv_reorder_block_mmx:
 				
 	pushl   %ebp
@@ -463,6 +473,8 @@ reorder_loop:
 	ret
 
 .global _dv_need_dct_248_mmx_rows
+.hidden _dv_need_dct_248_mmx_rows
+.type   _dv_need_dct_248_mmx_rows,@function
 _dv_need_dct_248_mmx_rows:
 	
 	pushl   %ebp

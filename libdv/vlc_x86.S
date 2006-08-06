@@ -143,6 +143,7 @@ void dv_parse_ac_coeffs_pass0(bitstream_t *bs,
 .text
 	.align	4
 .globl	dv_parse_ac_coeffs_pass0
+.type	dv_parse_ac_coeffs_pass0,@function
 dv_parse_ac_coeffs_pass0:
 	pushl	%ebx
 	pushl	%edi
@@ -361,6 +362,7 @@ show16:
 	gint dv_parse_video_segment(dv_videosegment_t *seg, guint quality) {
 	*/
 	.globl dv_parse_video_segment
+	.type  dv_parse_video_segment,@function
 dv_parse_video_segment:
 	pushl	%ebx
 	pushl	%edi

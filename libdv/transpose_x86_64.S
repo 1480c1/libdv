@@ -1,8 +1,10 @@
 .section .note.GNU-stack, "", @progbits
 
 .text
+
 .global _dv_transpose_mmx_x86_64
-	
+.hidden _dv_transpose_mmx_x86_64
+.type   _dv_transpose_mmx_x86_64,@function
 _dv_transpose_mmx_x86_64:
 	
 /* extern void _dv_transpose_mmx_x86_64(short * dst); */

@@ -10,8 +10,9 @@
 
 .text
 	.align 4
-.globl _dv_idct_block_mmx 
-	.type	 _dv_idct_block_mmx,@function
+.global _dv_idct_block_mmx
+.hidden _dv_idct_block_mmx
+.type   _dv_idct_block_mmx,@function
 _dv_idct_block_mmx:
 	pushl	 %ebp
 	movl	 %esp,%ebp

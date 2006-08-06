@@ -59,6 +59,8 @@ scratch4:       .quad 0
 
 .align 8	
 .global _dv_dct_88_block_mmx_x86_64
+.hidden _dv_dct_88_block_mmx_x86_64
+.type   _dv_dct_88_block_mmx_x86_64,@function
 _dv_dct_88_block_mmx_x86_64:
 
 /* void _dv_dct_88_block_mmx_x86_64(int16_t* block); */
@@ -271,6 +273,8 @@ _dv_dct_88_block_mmx_x86_64:
 		
 .align 8	
 .global _dv_dct_block_mmx_x86_64_postscale_88
+.hidden _dv_dct_block_mmx_x86_64_postscale_88
+.type   _dv_dct_block_mmx_x86_64_postscale_88,@function
 _dv_dct_block_mmx_x86_64_postscale_88:
 
 /* void _dv_dct_block_mmx_x86_64_postscale_88(int16_t* block, int16_t* postscale_matrix); */
@@ -746,6 +750,8 @@ _dv_dct_block_mmx_x86_64_postscale_88:
 
 .align 8	
 .global _dv_dct_248_block_mmx_x86_64
+.hidden _dv_dct_248_block_mmx_x86_64
+.type   _dv_dct_248_block_mmx_x86_64,@function
 _dv_dct_248_block_mmx_x86_64:
 
 /* void _dv_dct_248_block_mmx_x86_64(int16_t* block); */
@@ -906,6 +912,8 @@ _dv_dct_248_block_mmx_x86_64:
 
 .align 8	
 .global _dv_dct_248_block_mmx_x86_64_post_sum
+.hidden _dv_dct_248_block_mmx_x86_64_post_sum
+.type   _dv_dct_248_block_mmx_x86_64_post_sum,@function
 _dv_dct_248_block_mmx_x86_64_post_sum:
 
 /* void _dv_dct_248_block_mmx_x86_64_post_sum(int16_t* out_block); */
@@ -984,6 +992,8 @@ _dv_dct_248_block_mmx_x86_64_post_sum:
 
 .align 8	
 .global _dv_dct_block_mmx_x86_64_postscale_248
+.hidden _dv_dct_block_mmx_x86_64_postscale_248
+.type   _dv_dct_block_mmx_x86_64_postscale_248,@function
 _dv_dct_block_mmx_x86_64_postscale_248:
 
 /* void _dv_dct_block_mmx_x86_64_postscale_248(int16_t* block, int16_t* postscale_matrix); */

@@ -171,7 +171,8 @@ void dv_parse_ac_coeffs_pass0(bitstream_t *bs,
 .text
 	.align	4
 .globl	dv_parse_ac_coeffs_pass0
-	
+.type	dv_parse_ac_coeffs_pass0,@function
+
 dv_parse_ac_coeffs_pass0:
 	
 	/* Args are at rdi=bs, rsi=mb, rdx=bl */
@@ -424,6 +425,7 @@ show16:                         /* not used */
 gint dv_parse_video_segment(dv_videosegment_t *seg, guint quality) {
 */
 	.globl dv_parse_video_segment
+	.type  dv_parse_video_segment,@function
 dv_parse_video_segment:
 	
 	/* Args are at rdi=seg, rsi=quality */

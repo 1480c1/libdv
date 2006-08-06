@@ -17,8 +17,9 @@
 
 .text
 	.align 4
-.globl _dv_idct_block_mmx_x86_64
-	.type	 _dv_idct_block_mmx_x86_64,@function
+.global _dv_idct_block_mmx_x86_64
+.hidden _dv_idct_block_mmx_x86_64
+.type   _dv_idct_block_mmx_x86_64,@function
 _dv_idct_block_mmx_x86_64:
 /* void _dv_idct_88(dv_coeff_t *block) */
 	/* argument block=rdi */

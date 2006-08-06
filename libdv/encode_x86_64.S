@@ -32,6 +32,8 @@ VLCADDMASK:	.byte 255,0,0,0,255,0,0,0
 .text
 
 .global _dv_vlc_encode_block_mmx_x86_64
+.hidden _dv_vlc_encode_block_mmx_x86_64
+.type   _dv_vlc_encode_block_mmx_x86_64,@function
 _dv_vlc_encode_block_mmx_x86_64:
 	
 /* extern unsigned long _dv_vlc_encode_block_mmx(dv_coeff_t* coeffs,
@@ -115,6 +117,8 @@ vlc_encode_block_out:
 	ret	
 
 .global _dv_vlc_num_bits_block_x86_64
+.hidden _dv_vlc_num_bits_block_x86_64
+.type   _dv_vlc_num_bits_block_x86_64,@function
 _dv_vlc_num_bits_block_x86_64:
 	
 	/* extern unsigned long _dv_vlc_num_bits_block_x86_64(dv_coeff_t* coeffs); */
@@ -175,6 +179,8 @@ vlc_num_bits_block_out:
 	ret	
 
 .global _dv_vlc_encode_block_pass_1_x86_64
+.hidden _dv_vlc_encode_block_pass_1_x86_64
+.type   _dv_vlc_encode_block_pass_1_x86_64,@function
 _dv_vlc_encode_block_pass_1_x86_64:
 
 /*
@@ -253,6 +259,8 @@ vlc_encode_block_pass1_x86_out:
 	ret		
 		
 .global _dv_classify_mmx_x86_64
+.hidden _dv_classify_mmx_x86_64
+.type   _dv_classify_mmx_x86_64,@function
 _dv_classify_mmx_x86_64:
 
 	/* extern int _dv_classify_mmx_x86_64(dv_coeff_t *    a,          rdi
@@ -357,6 +365,8 @@ _dv_classify_mmx_x86_64:
 	 don't know why... */
 	
 .global _dv_reorder_block_mmx_x86_64
+.hidden _dv_reorder_block_mmx_x86_64
+.type   _dv_reorder_block_mmx_x86_64,@function
 _dv_reorder_block_mmx_x86_64:
 	
 /*extern int _dv_reorder_block_mmx_x86_64(dv_coeff_t *          a,               rdi
@@ -471,6 +481,8 @@ reorder_loop:
 	ret
 
 .global _dv_need_dct_248_mmx_x86_64_rows
+.hidden _dv_need_dct_248_mmx_x86_64_rows
+.type   _dv_need_dct_248_mmx_x86_64_rows,@function
 _dv_need_dct_248_mmx_x86_64_rows:
 	
 	/* extern int _dv_need_dct_248_mmx_x86_64_rows(dv_coeff_t * bl);  rdi */
