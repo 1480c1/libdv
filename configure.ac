@@ -160,12 +160,14 @@ AM_CONDITIONAL(HOST_X86_64, test x$arch_x86_64 = xtrue)
 
 
 dnl Checks for libraries.
-
+have_gtk="false"
 if $use_gtk; then
 	REQUIRES='glib >= 1.2.4 gtk+ >= 1.2.4'
-	PKG_CHECK_MODULES(GTK,$REQUIRES)
+	PKG_CHECK_MODULES(GTK,$REQUIRES,have_gtk="true",have_gtk="false")
 	AC_DEFINE(HAVE_GTK)
 fi
+
+AM_CONDITIONAL(HAVE_GTK, test x$have_gtk = xtrue)
 
 dnl used in Makefile.am
 AC_SUBST(GTK_CFLAGS)
@@ -188,13 +190,6 @@ if [ $use_gtk && $use_xv ]; then
 		$GTK_LIBS
 	)
 fi
-
-if $use_gtk; then
-	PLAYDV_SUBDIR='playdv'
-else
-	PLAYDV_SUBDIR=''
-fi
-AC_SUBST(PLAYDV_SUBDIR)
 
 
 dnl *********************************************************************

@@ -1,4 +1,10 @@
-SUBDIRS                   = libdv encodedv @PLAYDV_SUBDIR@
+if HAVE_GTK
+gtk_subdirs = playdv
+else
+gtk_subdirs =
+endif
+
+SUBDIRS                   = libdv encodedv $(gtk_subdirs)
 
 AUX_DIST                  = $(ac_aux_dir)/config.guess \
                                    $(ac_aux_dir)/config.sub \

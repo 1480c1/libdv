@@ -3,6 +3,9 @@ libdv ChangeLog
 2006-08-06  Dan Dennedy <dan@dennedy.org>
 	* libdv/*.S: apply patch from Mike Frysinger <vapier@gentoo.org> to
 	  cleanup assembly symbols by hiding them and/or setting their type.
+	* configure.ac, Makefile.am: apply patch from Burkhard Plaum to 
+	  automatically disable GTK-based features (playdv) when GTK+ 1.2
+	  is not found and to fix dist make target behavior with GTK+ disabled.
 
 2006-04-10  Dan Dennedy <dan@dennedy.org>
 	* playdv/playdv.c: bugfix segfault on exit due to dv_display_exit being
