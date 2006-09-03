@@ -1,5 +1,13 @@
 libdv ChangeLog
 
+2006-09-04  Dan Dennedy <dan@dennedy.org>
+	* libdv 1.0.0 release.
+
+2006-09-03  Dan Dennedy <dan@dennedy.org>
+	* libdv/encode.c, libdv/enc_output.c: apply patch (1550898) from Craig
+	  Lawson to prevent noise when dv_encode_full_audio() is called with
+	  zero samples.
+
 2006-08-06  Dan Dennedy <dan@dennedy.org>
 	* libdv/*.S: apply patch from Mike Frysinger <vapier@gentoo.org> to
 	  cleanup assembly symbols by hiding them and/or setting their type.

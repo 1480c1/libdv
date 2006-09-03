@@ -1821,7 +1821,8 @@ int dv_encode_full_frame(dv_encoder_t *dv_enc, uint8_t **in,
 	if (dv_enc->clamp_luma == TRUE) {
 		for (i = 0;
 			i < (DV_WIDTH * (dv_enc->isPAL ? DV_PAL_HEIGHT : DV_NTSC_HEIGHT));
-			dv_enc->img_y[i] = CLAMP(dv_enc->img_y[i++], -224, 214) );
+			i++ )
+				dv_enc->img_y[i] = CLAMP(dv_enc->img_y[i], -224, 214);
 	}
 		
 	/* -224 = (16-128)*2
@@ -1919,7 +1920,7 @@ int dv_encode_full_audio(dv_encoder_t *dv_enc, int16_t **pcm,
 	if ( dv_enc->samples_this_frame == 0 )
 		audio.bytesperframe = audio.bytespersecond/(dv_enc->isPAL ? 25 : 30);
 	else
-		audio.bytesperframe = dv_enc->samples_this_frame;
+		audio.bytesperframe = dv_enc->samples_this_frame * 2 * channels;
 
 
 	/* interleave channels */
